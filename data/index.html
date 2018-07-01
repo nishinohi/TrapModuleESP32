@@ -1,0 +1,166 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <title>ESP Configuration</title>
+    <meta http-equiv="Content-Type" content="text/html" charset="utf-8">
+    <link rel="stylesheet" type="text/css" href="trapModule.css">
+    <script type="text/javascript" src="trapModule.js"></script>
+    <script type="text/javascript" src="sigmamin.js"></script>
+    <script type="text/javascript" src="dragNodesmin.js"></script>
+    <script type="text/javascript" src="forceAtlas2min.js"></script>
+    <script type="text/javascript" src="rSlidermin.js"></script>
+</head>
+
+<body>
+    <div class="popup">
+        <div class="successBox">
+            <span class="popupText">Success</span>
+        </div>
+        <div class="failedBox">
+            <span class="popupText">Failed</span>
+        </div>
+    </div>
+    <div>
+        <h1>Module Setting</h1>
+        <form id="moduleSetting">
+            <ul>
+                <li>
+                    <span>SleepInterval[sec]</span>
+                    <input id="sleepIntervalConfig" type="number" name="sleepInterval" min="10" max="3600" placeholder="10 - 3600" onblur="this.classList.add('focused');checkConfig(null)">
+                </li>
+                <li>
+                    <span>WorkTime[sec]</span>
+                    <input id="workTimeConfig" type="number" name="workTime" min="30" max="600" placeholder="30 - 600" onblur="this.classList.add('focused');checkConfig(null)">
+                </li>
+                <li>
+                    <span>Mode</span>
+                    <select id="modeConfig" name="trapMode">
+                        <option value="0">Set Mode</option>
+                        <option value="1">Trap Mode</option>
+                    </select>
+                </li>
+                <li>
+                    <span>Active Time</span>
+                    <input type="text" id="slider" class="slider">
+                </li>
+            </ul>
+        </form>
+        <button id="sendButton" class="button" onclick="setConfig()">設定変更</button>
+    </div>
+    <div>
+        <h1>Function</h1>
+        <button class="button" onclick="getModuleInfo()">更新</button>
+        <button class="button" onclick="initGps()">GPS 初期化</button>
+        <button class="button" onclick="getGps()">GPS 取得</button>
+        <button class="button" onclick="setCurrentTime()">現在時刻送信</button>
+        <button class="button" id="CameraEnable" onclick="snapShot()">カメラ撮影</button>
+    </div>
+    <div>
+        <h1>Mesh Network</h1>
+        <div id="container">
+            <div id="graph-container"></div>
+        </div>
+    </div>
+    <div>
+        <h1>Module Info</h1>
+        <ul>
+            <li>CurrentTime
+                <ul id="CurrentTime">
+                    <li>NaN</li>
+                </ul>
+            </li>
+            <li>
+                <a id="TrapLocation" target="_blank">Location</a>
+                <ul>
+                    <li>[lat, lon] = [
+                        <span id="GpsLat">NaN</span>,
+                        <span id="GpsLon">NaN</span>
+                        ]
+                    </li>
+                </ul>
+            </li>
+            <li>TrapMode
+                <ul>
+                    <li>
+                        <span id="TrapMode">NaN</span>
+                    </li>
+                </ul>
+            </li>
+            <li>ModuleID
+                <ul>
+                    <li>
+                        <span id="NodeId">NaN</span>
+                    </li>
+                </ul>
+            </li>
+            <li>ActiveTime
+                <ul>
+                    <li>
+                        <span id="ActiveStart">NaN</span> -
+                        <span id="ActiveEnd">NaN</span>
+                    </li>
+                </ul>
+            </li>
+            <li>TrapFire
+                <ul>
+                    <li>
+                        <span id="TrapFire">NaN</span>
+                    </li>
+                </ul>
+            </li>
+            <li>SleepInterval
+                <ul>
+                    <li>
+                        <span id="SleepInterval">NaN</span>[sec]</li>
+                </ul>
+            </li>
+            <li>WokeTime
+                <ul>
+                    <li>
+                        <span id="WorkTime">NaN</span>[sec]</li>
+                </ul>
+            </li>
+            <li>ModuleList
+                <ol id="NodeList">
+                    <li>NaN</li>
+                </ol>
+            </li>
+            <li>ParentModuleList
+                <ol id="ParentModuleList">
+                    <li>NaN</li>
+                </ol>
+            </li>
+            <li>Picture
+                <ul id="picture">
+                </ul>
+            </li>
+
+        </ul>
+    </div>
+    <div>
+        <h1>Debug Mode</h1>
+        <ul>
+            <li>
+                <span>messageContent</span>
+                <input id="messageContent" type="text" name="content">
+            </li>
+            <li>
+                <span>Mode</span>
+                <select id="messageSendType" name="sendType" onchange="changeMessageSendType()">
+                    <option value="1">send broadcast</option>
+                    <option value="0">send single</option>
+                </select>
+                <ul>
+                    <li id="messageSendNodeIdList" style="display: none">
+                        <span>nodeId</span>
+                        <input id="messageSendNodeId" type="number" name="sendNodeId" required>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+        <button class="button" onclick="sendMessage()">メッセージ送信</button>
+    </div>
+</body>
+
+</html>

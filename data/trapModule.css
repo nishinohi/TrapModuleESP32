@@ -1,0 +1,310 @@
+body {
+    font-family: Meiryo;
+}
+
+h1 {
+    font-size: 1.2em;
+    padding: 0.5em;
+    color: #494949;
+    background: #edf8fc;
+    border-left: solid 5px #3d94ff;
+}
+
+#graph-container {
+    background-color: #ffffff;
+    border: 1px solid #b5b5b5;
+    height: 250px;
+    overflow: auto;
+    margin: 11px 0;
+}
+
+#container {
+    position: relative;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: #ccc;
+}
+
+.button {
+    display: inline-block;
+    min-width: 100px;
+    width: auto;
+    height: 50px;
+    text-align: center;
+    text-decoration: none;
+    outline: none;
+    background-color: #6090ff;
+    color: #fff;
+    margin: 5px;
+    font-weight: bold;
+}
+
+.button[disabled] {
+    background-color: rgb(162, 162, 162);
+}
+
+.button::before,
+.button::after {
+    position: absolute;
+    z-index: -1;
+    display: block;
+    content: '';
+}
+
+.button:hover {
+    background-color: #59b1eb;
+    cursor: pointer;
+}
+
+.button:hover[disabled] {
+    background-color: rgb(162, 162, 162);
+    cursor: pointer;
+}
+
+.config {
+    display: inline-block;
+}
+
+ul,
+ol {
+    color: #494949;
+    font-weight: bold;
+    background: #fcfcfc;
+    padding: 0.2em 0.2em 0.2em 2em;
+}
+
+ul li,
+ol li {
+    line-height: 1.1;
+    padding: 0.2em 0;
+}
+
+ul li ul li,
+ul li ol li {
+    font-weight: normal;
+    line-height: 1.1;
+    padding: 0.2em 0;
+}
+
+input[type=number], select {
+    width: 200px;
+    padding: 12px 20px;
+    margin: 8px 0;
+    display: block;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+input.focused:invalid {  
+    border: 2px solid #ff2626;
+}
+
+/* for popup */
+.popup {
+    position: fixed;
+    width: 120px;
+    height: 40px;
+    margin-left: -80px;
+    margin-top: -40px;
+    top: 50%;
+    left: 50%;
+    border-radius: 5px;
+    display: inline-block;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    z-index: 2;
+}
+
+.popup .successBox {
+    width: inherit;
+    height: inherit;
+    border-radius: inherit;
+    opacity: 0;
+    display: table;
+    position: absolute;
+    background-color: #30a742;
+    transition: all 1800ms 0s ease;
+}
+
+.popup .failedBox {
+    width: inherit;
+    height: inherit;
+    border-radius: inherit;
+    opacity: 0;
+    position: absolute;
+    display: table;
+    background-color: #ff2626;
+    transition: all 1500ms 0s ease;
+}
+
+/* The actual popup */
+.popup .popupText {
+    display: table-cell;
+    color: #fff;
+    font-weight: bold;
+    text-align: center;
+    vertical-align: middle;
+}
+
+/* Toggle this class - hide and show the popup */
+.popup .show {
+    opacity: 1;
+}
+
+/* for rSlider */
+.rs-container * {
+    box-sizing: border-box;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none
+}
+
+.rs-container {
+    font-family: Arial, Helvetica, sans-serif;
+    height: 45px;
+    position: relative;
+    min-width: 400px;
+    max-width: 700px;
+    margin-top: 15px;
+    margin-right: 50px;
+}
+
+.rs-container .rs-bg,
+.rs-container .rs-selected {
+    background-color: #eee;
+    border: 1px solid #ededed;
+    height: 10px;
+    left: 0;
+    position: absolute;
+    top: 5px;
+    width: 100%;
+    border-radius: 3px
+}
+
+.rs-container .rs-selected {
+    background-color: #6090ff;
+    border: 1px solid rgb(43, 99, 169);
+    transition: all .2s linear;
+    width: 0
+}
+
+.rs-container.disabled .rs-selected {
+    background-color: #ccc;
+    border-color: #bbb
+}
+
+.rs-container .rs-pointer {
+    background-color: #fff;
+    border: 1px solid #bbb;
+    border-radius: 4px;
+    cursor: pointer;
+    height: 20px;
+    left: -10px;
+    position: absolute;
+    top: 0;
+    transition: all .2s linear;
+    width: 30px;
+    box-shadow: inset 0 0 1px #FFF, inset 0 1px 6px #ebebeb, 1px 1px 4px rgba(0, 0, 0, .1)
+}
+
+.rs-container.disabled .rs-pointer {
+    border-color: #ccc;
+    cursor: default
+}
+
+.rs-container .rs-pointer::after,
+.rs-container .rs-pointer::before {
+    content: '';
+    position: absolute;
+    width: 1px;
+    height: 9px;
+    background-color: #ddd;
+    left: 12px;
+    top: 5px
+}
+
+.rs-container .rs-pointer::after {
+    left: auto;
+    right: 12px
+}
+
+.rs-container.sliding .rs-pointer,
+.rs-container.sliding .rs-selected {
+    transition: none
+}
+
+.rs-container .rs-scale {
+    left: 0;
+    position: absolute;
+    top: 5px;
+    white-space: nowrap
+}
+
+.rs-container .rs-scale span {
+    float: left;
+    position: relative
+}
+
+.rs-container .rs-scale span::before {
+    background-color: #ededed;
+    content: "";
+    height: 8px;
+    left: 0;
+    position: absolute;
+    top: 10px;
+    width: 1px
+}
+
+.rs-container.rs-noscale span::before {
+    display: none
+}
+
+.rs-container.rs-noscale span:first-child::before,
+.rs-container.rs-noscale span:last-child::before {
+    display: block
+}
+
+.rs-container .rs-scale span:last-child {
+    margin-left: -1px;
+    width: 0
+}
+
+.rs-container .rs-scale span ins {
+    color: #333;
+    display: inline-block;
+    font-size: 12px;
+    margin-top: 20px;
+    text-decoration: none
+}
+
+.rs-container.disabled .rs-scale span ins {
+    color: #999
+}
+
+.rs-tooltip {
+    color: #333;
+    width: auto;
+    min-width: 60px;
+    height: 30px;
+    background: #fff;
+    border: 1px solid #00969b;
+    border-radius: 3px;
+    position: absolute;
+    transform: translate(-50%, -35px);
+    left: 13px;
+    text-align: center;
+    font-size: 13px;
+    padding: 6px 10px 0
+}
+
+.rs-container.disabled .rs-tooltip {
+    border-color: #ccc;
+    color: #999
+}
