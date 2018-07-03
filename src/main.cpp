@@ -22,6 +22,7 @@ void setup() {
     // mesh
     trapMesh.setupMesh();
     trapMesh.setupTask();
+    trapMesh.initCamera();
     DEBUG_MSG_LN("mesh setup");
     // Server
     trapServer.setupServer();

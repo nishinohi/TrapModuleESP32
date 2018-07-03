@@ -1,5 +1,4 @@
 #include "trapModule.h"
-#include <SPIFFS.h>
 #include <TimeLib.h>
 #include <painlessMesh.h>
 
@@ -19,13 +18,12 @@ class ModuleConfig {
     time_t _currentTime = DEF_CURRENT_TIME; // 現在時刻
 
     // フラグ関連
-    bool isTrapStart = false;   // 罠起動モード移行フラグ
-    bool ledOnFlag = false;     // LED点滅フラグ
-    bool isBatteryDead = false; // バッテリー切れフラグ
+    bool _isTrapStart = false;   // 罠起動モード移行フラグ
+    bool _ledOnFlag = false;     // LED点滅フラグ
+    bool _isBatteryDead = false; // バッテリー切れフラグ
 
     // カメラモジュール関連
-    bool cameraEnable = false;
-    bool isCaptured = false;
+    bool _cameraEnable = false;
     // 時間誤差修正
     time_t _realTime = 0;
     unsigned long _realTimeDiff = 0;

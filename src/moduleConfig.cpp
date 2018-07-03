@@ -17,7 +17,7 @@ JsonObject &ModuleConfig::getModuleInfo(painlessMesh& mesh) {
     moduleInfo[KEY_GPS_LON] = _lon;
     moduleInfo[KEY_ACTIVE_START] = _activeStart;
     moduleInfo[KEY_ACTIVE_END] = _activeEnd;
-    moduleInfo[KEY_CAMERA_ENABLE] = cameraEnable;
+    moduleInfo[KEY_CAMERA_ENABLE] = _cameraEnable;
     JsonArray &nodeList = moduleInfo.createNestedArray(KEY_NODE_LIST);
     SimpleList<uint32_t> nodes = mesh.getNodeList();
     for (SimpleList<uint32_t>::iterator it = nodes.begin(); it != nodes.end();
@@ -169,7 +169,7 @@ void ModuleConfig::updateModuleConfig(const JsonObject &config) {
         _trapMode = config[KEY_TRAP_MODE];
         // 設置モードから罠モードへ移行
         if (!preTrapMode && _trapMode) {
-            isTrapStart = true;
+            _isTrapStart = true;
         }
     }
     // 罠検知済みフラグは自身の値で更新(設置モード時は常に未検知状態)

@@ -1,5 +1,8 @@
 #include "trapServer.h"
 
+/**
+ * Server 設定
+ */
 void TrapServer::setupServer() {
     server.on("/setConfig", HTTP_POST,
               std::bind(&TrapServer::onSetConfig, this, std::placeholders::_1));
@@ -29,6 +32,9 @@ void TrapServer::setupServer() {
 /**********************************
  * Server call back
  *********************************/
+/**
+ * モジュール設定コールバック
+ */
 void TrapServer::onSetConfig(AsyncWebServerRequest *request) {
     DEBUG_MSG_LN("onSetConfig");
     // 設定値反映
@@ -72,6 +78,9 @@ void TrapServer::onSetConfig(AsyncWebServerRequest *request) {
     }
 }
 
+/**
+ * モジュール情報取得
+ */
 void TrapServer::onGetModuleInfo(AsyncWebServerRequest *request) {
     DEBUG_MSG_F("FreeHeepMem:%lu\n", ESP.getFreeHeap());
     DEBUG_MSG_LN("onGetModuleInfo");
@@ -82,6 +91,9 @@ void TrapServer::onGetModuleInfo(AsyncWebServerRequest *request) {
     request->send(200, "application/json", response);
 }
 
+/**
+ * メッシュネットワーク状態取得
+ */
 void TrapServer::onGetMeshGraph(AsyncWebServerRequest *request) {
     DEBUG_MSG_LN("onGetMeshGraph");
     String response = _trapMesh->_mesh.subConnectionJson();
@@ -89,14 +101,23 @@ void TrapServer::onGetMeshGraph(AsyncWebServerRequest *request) {
     request->send(200, "application/json", response);
 }
 
+/**
+ * 現在時刻設定
+ */
 void TrapServer::onSetCurrentTime(AsyncWebServerRequest *request) {
     DEBUG_MSG_LN("onSetCurrentTime");
-    if ((request->arg(KEY_YEAR) == NULL || request->arg(KEY_YEAR).length()) == 0 ||
-        (request->arg(KEY_MONTH) == NULL || request->arg(KEY_MONTH).length()) == 0 ||
-        (request->arg(KEY_DAY) == NULL || request->arg(KEY_DAY).length()) == 0 ||
-        (request->arg(KEY_HOUR) == NULL || request->arg(KEY_HOUR).length()) == 0 ||
-        (request->arg(KEY_MINUTE) == NULL || request->arg(KEY_MINUTE).length()) == 0 ||
-        (request->arg(KEY_SECOND) == NULL || request->arg(KEY_SECOND).length()) == 0) {
+    if ((request->arg(KEY_YEAR) == NULL || request->arg(KEY_YEAR).length()) ==
+            0 ||
+        (request->arg(KEY_MONTH) == NULL || request->arg(KEY_MONTH).length()) ==
+            0 ||
+        (request->arg(KEY_DAY) == NULL || request->arg(KEY_DAY).length()) ==
+            0 ||
+        (request->arg(KEY_HOUR) == NULL || request->arg(KEY_HOUR).length()) ==
+            0 ||
+        (request->arg(KEY_MINUTE) == NULL ||
+         request->arg(KEY_MINUTE).length()) == 0 ||
+        (request->arg(KEY_SECOND) == NULL ||
+         request->arg(KEY_SECOND).length()) == 0) {
         DEBUG_MSG_LN("onSetCurrentTime parse Error");
         request->send(500);
         return;
@@ -120,36 +141,21 @@ void TrapServer::onSetCurrentTime(AsyncWebServerRequest *request) {
     }
 }
 
+/**
+ * 写真撮影
+ */
 void TrapServer::onSnapShot(AsyncWebServerRequest *request) {
-    // DEBUG_MSG_LN("onSnapShot");
-    // if (!cameraEnable) {
-    //     DEBUG_MSG_LN("camera cannnot use");
-    //     request->send(500);
-    //     return;
-    // }
-    // DEBUG_MSG_F("FreeHeepMem:%lu\n", ESP.getFreeHeap());
-    // mesh.stop();
-    // if (SPIFFS.exists("/image.jpg")) {
-    //     DEBUG_MSG_LN("delete old image");
-    //     SPIFFS.remove("/image.jpg");
-    // }
-    // DEBUG_MSG_LN("camera snap");
-    // if (!isCaptured) {
-    //     preCapture();
-    //     isCaptured = true;
-    // }
-    // Capture();
-    // if (GetData()) {
-    //     request->send(200, "image/jpeg", "image.jpg");
-    // } else {
-    //     request->send(500);
-    // }
-    // setupMesh();
-    // sendPictureTask.setIterations(5);
-    // sendPictureTask.enableDelayed(5000);
+    DEBUG_MSG_LN("onSnapShot");
+    if (_trapMesh->snapCamera()) {
+        request->send(200, "image/jpeg", "image.jpg");
+        return;
+    }
     request->send(500);
 }
 
+/**
+ * デバッグ用メッセージ送信
+ */
 void TrapServer::onSendMessage(AsyncWebServerRequest *request) {
     DEBUG_MSG_LN("onSendMessage");
     String msg = request->arg("messageContent");
@@ -173,6 +179,9 @@ void TrapServer::onSendMessage(AsyncWebServerRequest *request) {
     DEBUG_MSG_LN("debug message:\n" + msg);
 }
 
+/**
+ * GPS初期化
+ */
 void TrapServer::onInitGps(AsyncWebServerRequest *request) {
     DEBUG_MSG_LN("onInitGps");
     _trapMesh->initGps();
@@ -187,6 +196,9 @@ void TrapServer::onInitGps(AsyncWebServerRequest *request) {
     }
 }
 
+/**
+ * GPS取得要求
+ */
 void TrapServer::onGetGps(AsyncWebServerRequest *request) {
     DEBUG_MSG_LN("onGetGps");
     if (_trapMesh->sendGetGps()) {

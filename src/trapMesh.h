@@ -1,13 +1,15 @@
+#include "camera.h"
 #include "moduleConfig.h"
 #include "trapModule.h"
 #include <ESPAsyncWebServer.h>
-#include <SPIFFS.h>
 #include <TimeLib.h>
 #include <painlessMesh.h>
+#include <ArduinoBase64.h>
 
 class TrapMesh {
   private:
     ModuleConfig _config;
+    Camera _camera;
     // タスク関連
     Task deepSleepTask;    // DeepSleep以降タスク
     Task checkTrapTask;    // 罠作動チェック
@@ -41,6 +43,14 @@ class TrapMesh {
     }
     void setupMesh();
     void setupTask();
+    // config
+    bool isCameraEnable() { return _config._cameraEnable; };
+    // camera
+    bool initCamera() {
+        _config._cameraEnable = _camera.initialize();
+        return _config._cameraEnable;
+    };
+    bool snapCamera();
 
   private:
     // mesh

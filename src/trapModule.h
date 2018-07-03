@@ -1,14 +1,5 @@
-// camera
-#define CAMERA_ACTIVE
-#define OV528_SIZE_80_60 1  // 80x60
-#define OV528_SIZE_QQVGA 3  // 160x120
-#define OV528_SIZE_QVGA 5  // 320x240
-#define OV528_SIZE_VGA 7  // 640x480
-#define PIC_PKT_LEN 500 //data length of each read, dont set this too big because ram is limited
-#define CAM_ADDR 0
-#define PIC_FMT OV528_SIZE_QQVGA
-#define cameraRX 5
-#define cameraTX 4
+#include <Arduino.h>
+#include <SPIFFS.h>
 
 // デバッグ
 #define DEBUG_ESP_PORT Serial
@@ -80,7 +71,11 @@
 #define DEF_CURRENT_TIME 0
 #define DEF_NODE_NUM 0
 // 設定値上限下限値
+#ifdef ESP32
+#define MAX_SLEEP_INTERVAL 86400 // ESP32 の場合停止時間は24時間でも大丈夫
+#else
 #define MAX_SLEEP_INTERVAL 4200	// 70分[sec] 最大Sleep時間（本当は71.5分まで可能だが安全のため）
+#endif
 #define MIN_SLEEP_INTERVAL 10	// 10分[sec]
 #define MIN_WORK_TIME 30	// 1分[sec]（これ以上短いと設定変更するためにアクセスする暇がない）
 #define MAX_WORK_TIME 600	// 10分[sec]

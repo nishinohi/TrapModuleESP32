@@ -49,6 +49,19 @@ void TrapMesh::setupTask() {
 }
 
 /********************************************
+ * Camera メソッド
+ *******************************************/
+bool TrapMesh::snapCamera() {
+    // _mesh.stop();
+    DEBUG_MSG_LN("snapCamera");
+    bool isSnap = _camera.saveCameraData();
+    // setupMesh();
+    sendPictureTask.setIterations(5);
+    sendPictureTask.enableDelayed(5000);
+    return isSnap;
+}
+
+/********************************************
  * loop メソッド
  *******************************************/
 /**
@@ -56,12 +69,12 @@ void TrapMesh::setupTask() {
  **/
 void TrapMesh::update() {
     // 罠モード始動
-    if (_config.isTrapStart) {
+    if (_config._isTrapStart) {
         DEBUG_MSG_LN("Trap start");
         // 罠モード開始直後に deepSleepを開始すると http
         // 接続が未完のまま落ちるので少し待つ
         deepSleepTask.enableDelayed(SYNC_SLEEP_INTERVAL);
-        _config.isTrapStart = false;
+        _config._isTrapStart = false;
     }
     // メッシュ待機限界時間が経過したら罠とバッテリーチェック開始
     if (_config._trapMode &&
@@ -81,7 +94,7 @@ void TrapMesh::update() {
     if (_config._trapMode) {
         digitalWrite(LED, HIGH);
     } else {
-        digitalWrite(LED, !_config.ledOnFlag);
+        digitalWrite(LED, !_config._ledOnFlag);
     }
     _mesh.update();
 }
@@ -106,7 +119,7 @@ void TrapMesh::shiftDeepSleep() {
     }
     yield();
     DEBUG_MSG_LN("Shift Deep Sleep");
-    if (_config.isBatteryDead) {
+    if (_config._isBatteryDead) {
         DEBUG_MSG_LN("Battery limit!\nshutdown...");
         ESP.deepSleep(0);
     }
@@ -222,7 +235,7 @@ void TrapMesh::receivedCallback(uint32_t from, String &msg) {
  */
 void TrapMesh::newConnectionCallback(uint32_t nodeId) {
     // Reset blink task
-    _config.ledOnFlag = false;
+    _config._ledOnFlag = false;
     blinkNodesTask.setIterations((_mesh.getNodeList().size() + 1) * 2);
     blinkNodesTask.enableDelayed(
         BLINK_PERIOD - (_mesh.getNodeTime() % (BLINK_PERIOD * 1000)) / 1000);
@@ -253,7 +266,7 @@ void TrapMesh::newConnectionCallback(uint32_t nodeId) {
 void TrapMesh::changedConnectionCallback() {
     DEBUG_MSG_F("Changed connections %s\n", _mesh.subConnectionJson().c_str());
     // Reset blink task
-    _config.ledOnFlag = false;
+    _config._ledOnFlag = false;
     blinkNodesTask.setIterations((_mesh.getNodeList().size() + 1) * 2);
     blinkNodesTask.enableDelayed(
         BLINK_PERIOD - (_mesh.getNodeTime() % (BLINK_PERIOD * 1000)) / 1000);
@@ -373,10 +386,10 @@ bool TrapMesh::sendTrapFire() {
  ************************************/
 // 接続モジュール数 LED 点滅
 void TrapMesh::blinkLedCallBack() {
-    if (_config.ledOnFlag) {
-        _config.ledOnFlag = false;
+    if (_config._ledOnFlag) {
+        _config._ledOnFlag = false;
     } else {
-        _config.ledOnFlag = true;
+        _config._ledOnFlag = true;
     }
     blinkNodesTask.delay(BLINK_DURATION);
     if (blinkNodesTask.isLastIteration()) {
@@ -424,12 +437,12 @@ void TrapMesh::checkBatteryCallBack() {
     double realValue = currentBattery * 6;
     realValue = realValue / 1024;
     DEBUG_MSG_F("Current Battery:%.2lf\n", realValue);
-    if (!_config.isBatteryDead && currentBattery > DISCHARGE_END_VOLTAGE) {
+    if (!_config._isBatteryDead && currentBattery > DISCHARGE_END_VOLTAGE) {
         return;
     }
     DEBUG_MSG_LN("!****** Battery Dead ******!");
     if (checkBatteryTask.getIterations() == TASK_FOREVER) {
-        _config.isBatteryDead = true;
+        _config._isBatteryDead = true;
         checkBatteryTask.setIterations(SEND_RETRY);
     }
     // 設置モードの場合即時終了
@@ -449,62 +462,63 @@ void TrapMesh::checkBatteryCallBack() {
 void TrapMesh::sendPicture() {
     DEBUG_MSG_LN("sendPicture");
     // 送信先がいなければ何もしないz
-    // if (_mesh.getNodeList().size() == 0) {
-    // 	return;
-    // }
-    // String path = "/image.jpg";
-    // if (!SPIFFS.exists(path)) {
-    // 	return;
-    // }
-    // File file = SPIFFS.open(path, "r");
-    // size_t size = file.size();
-    // if (size == 0) {
-    // 	file.close();
-    // 	return;
-    // }
-    // DEBUG_MSG_LN("read picture");
-    // char* buf = (char*)malloc(size);
-    // file.readBytes(buf, size);
-    // file.close();
-    // int encLen = base64_enc_len(size);
-    // char* enc = (char*)malloc(encLen + 1);
-    // base64_encode(enc, buf, size);
-    // free(buf);
-    // DEBUG_MSG_LN("encoded");
-    // // create json message
-    // DEBUG_MSG_F("FreeHeepMem:%lu\n", ESP.getFreeHeap());
-    // String temp(enc);
-    // free(enc);
-    // String msg = "{\"";
-    // msg += KEY_PICTURE;
-    // msg = msg + "\":\"" + temp + "\"}";
-    // DEBUG_MSG_F("FreeHeepMem:%lu\n", ESP.getFreeHeap());
-    // DEBUG_MSG_F("msgLength:%d\n", msg.length());
-    // DEBUG_MSG_LN(msg);
-    // if(_mesh.sendBroadcast(msg)) {
-    // 	DEBUG_MSG_LN("send picture success");
-    // 	sendPictureTask.disable();
-    // } else {
-    // 	if (sendPictureTask.isLastIteration()) {
-    // 		DEBUG_MSG_LN("send picture failed");
-    // 	} else {
-    // 		DEBUG_MSG_LN("retry send picture...");
-    // 	}
-    // }
+    if (_mesh.getNodeList().size() == 0) {
+        sendPictureTask.disable();
+        return;
+    }
+    String path = "/image.jpg";
+    if (!SPIFFS.exists(path)) {
+        return;
+    }
+    File file = SPIFFS.open(path, "r");
+    size_t size = file.size();
+    if (size == 0) {
+        file.close();
+        return;
+    }
+    DEBUG_MSG_LN("read picture");
+    char *buf = (char *)malloc(size);
+    file.readBytes(buf, size);
+    file.close();
+    int encLen = base64_enc_len(size);
+    char *enc = (char *)malloc(encLen + 1);
+    base64_encode(enc, buf, size);
+    free(buf);
+    DEBUG_MSG_LN("encoded");
+    // create json message
+    DEBUG_MSG_F("FreeHeepMem:%lu\n", ESP.getFreeHeap());
+    String temp(enc);
+    free(enc);
+    String msg = "{\"";
+    msg += KEY_PICTURE;
+    msg = msg + "\":\"" + temp + "\"}";
+    DEBUG_MSG_F("FreeHeepMem:%lu\n", ESP.getFreeHeap());
+    DEBUG_MSG_F("msgLength:%d\n", msg.length());
+    DEBUG_MSG_LN(msg);
+    if (_mesh.sendBroadcast(msg)) {
+        DEBUG_MSG_LN("send picture success");
+        sendPictureTask.disable();
+    } else {
+        if (sendPictureTask.isLastIteration()) {
+            DEBUG_MSG_LN("send picture failed");
+        } else {
+            DEBUG_MSG_LN("retry send picture...");
+        }
+    }
     // DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
     // JsonObject &jsonMessage = jsonBuf.parseObject(msg);
     // if (jsonMessage.containsKey(KEY_PICTURE)) {
-    // 	DEBUG_MSG_LN("img key");
-    // 	const char* data = (const char*)jsonMessage[KEY_PICTURE];
-    // 	int dataLen = strlen(data);
-    // 	DEBUG_MSG_F("jsonSize:%d\n", sizeof(data));
-    // 	DEBUG_MSG_F("jsonLen:%d\n", dataLen);
-    // int decLen = base64_dec_len((char *)data, dataLen);
-    // char *dec = (char *)malloc(decLen + 1);
-    // base64_decode(dec, (char *)data, dataLen);
-    // File img2 = SPIFFS.open("/image2.jpg", "w");
-    // img2.write((const uint8_t*)dec, strlen(data));
-    // img2.close();
+    //     DEBUG_MSG_LN("img key");
+    //     const char *data = (const char *)jsonMessage[KEY_PICTURE];
+    //     int dataLen = strlen(data);
+    //     DEBUG_MSG_F("jsonSize:%d\n", sizeof(data));
+    //     DEBUG_MSG_F("jsonLen:%d\n", dataLen);
+    //     int decLen = base64_dec_len((char *)data, dataLen);
+    //     char *dec = (char *)malloc(decLen + 1);
+    //     base64_decode(dec, (char *)data, dataLen);
+    //     File img2 = SPIFFS.open("/image2.jpg", "w");
+    //     img2.write((const uint8_t *)dec, strlen(data));
+    //     img2.close();
     // }
     // DEBUG_MSG_F("FreeHeepMem:%lu\n", ESP.getFreeHeap());
 }
