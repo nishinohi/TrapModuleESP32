@@ -7,9 +7,8 @@
 #define OV528_SIZE_QQVGA 3 // 160x120
 #define OV528_SIZE_QVGA 5  // 320x240
 #define OV528_SIZE_VGA 7   // 640x480
-// data length of each read, dont set this too big because ram is
+// data length of each read, dont set this too big because ram is limited
 #define PIC_PKT_LEN 500
-// limited
 #define CAM_ADDR 0
 #define PIC_FMT OV528_SIZE_QQVGA
 #define cameraRX 5
@@ -28,13 +27,13 @@ class Camera {
   public:
     Camera() { _camSerial.begin(115200); };
     bool initialize();
-    bool saveCameraData();
+    bool saveCameraData(String fileName, int picFmt);
 
   private:
     void clearRxBuf();
     void sendCmd(char cmd[], int cmd_len);
     uint16_t readBytes(uint8_t buf[], uint16_t len, uint16_t timeout_ms);
-    void preCapture();
+    bool preCapture(int picFmt);
     void Capture();
-    bool GetData();
+    bool GetData(String fileName);
 };

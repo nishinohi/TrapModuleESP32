@@ -15,7 +15,7 @@ void TrapServer::setupServer() {
     server.on(
         "/setCurrentTime", HTTP_POST,
         std::bind(&TrapServer::onSetCurrentTime, this, std::placeholders::_1));
-    server.on("/snapShot", HTTP_GET,
+    server.on("/snapShot", HTTP_POST,
               std::bind(&TrapServer::onSnapShot, this, std::placeholders::_1));
     server.on(
         "/sendMessage", HTTP_POST,
@@ -146,7 +146,12 @@ void TrapServer::onSetCurrentTime(AsyncWebServerRequest *request) {
  */
 void TrapServer::onSnapShot(AsyncWebServerRequest *request) {
     DEBUG_MSG_LN("onSnapShot");
-    if (_trapMesh->snapCamera()) {
+    String temp = request->arg(KEY_PICTURE_FORMAT);
+    int picFmt = -1;
+    if (temp != NULL && temp.length() > 0) {
+        picFmt = temp.toInt();
+    }
+    if (_trapMesh->snapCamera(picFmt)) {
         request->send(200, "image/jpeg", "image.jpg");
         return;
     }

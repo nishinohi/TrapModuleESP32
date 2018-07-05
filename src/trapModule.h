@@ -58,6 +58,7 @@
 #define KEY_MINUTE "Minute"
 #define KEY_SECOND "Second"
 #define KEY_CAMERA_ENABLE "CameraEnable"
+#define KEY_PICTURE_FORMAT "PictureFormat"
 // デフォルト設定値
 #define DEF_SLEEP_INTERVAL 3600	// 60分間隔起動[sec]
 #define DEF_WORK_TIME 180	// 3分間稼働[sec]

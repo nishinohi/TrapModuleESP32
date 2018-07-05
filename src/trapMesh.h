@@ -50,7 +50,7 @@ class TrapMesh {
         _config._cameraEnable = _camera.initialize();
         return _config._cameraEnable;
     };
-    bool snapCamera();
+    bool snapCamera(int picFmt = -1);
 
   private:
     // mesh

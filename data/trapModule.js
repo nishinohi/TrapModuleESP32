@@ -20,6 +20,7 @@ const KEY_DAY = 'Day';
 const KEY_HOUR = 'Hour';
 const KEY_MINUTE = 'Minute';
 const KEY_SECOND = 'Second';
+const KEY_PICTURE_FORMAT = 'PictureFormat'
 
 var sigmaUuid = 0;
 var sigmaObj;
@@ -27,14 +28,14 @@ var sliderObj;
 
 window.onload = function () {
     let succesPop = document.querySelector('.successBox');
-    succesPop.addEventListener('transitionend', function(evt) {
+    succesPop.addEventListener('transitionend', function (evt) {
         let style = getComputedStyle(succesPop);
         if (style.opacity == 1) {
             succesPop.classList.toggle('show');
         }
     });
     let failedPop = document.querySelector('.failedBox');
-    failedPop.addEventListener('transitionend', function(evt) {
+    failedPop.addEventListener('transitionend', function (evt) {
         let style = getComputedStyle(failedPop);
         if (style.opacity == 1) {
             failedPop.classList.toggle('show');
@@ -242,7 +243,15 @@ function sendMessage() {
         messageContent: document.getElementById('messageContent').value,
         messageSendNodeId: document.getElementById('messageSendNodeId').value
     };
-    postAndDoAfter(dbgMsg, function(param){}, sendMessage.name);
+    postAndDoAfter(dbgMsg, function (param) { }, sendMessage.name);
+}
+
+/**
+ * 画像取得
+ */
+function snapShot() {
+    let picFmt = { PictureFormat: document.getElementById('PictureFormat').value };
+    postAndDoAfter(picFmt, updateImage, snapShot.name);
 }
 
 /**
@@ -260,7 +269,7 @@ function changeMessageSendType() {
  * GPS 初期化
  */
 function initGps() {
-    getAndDoAfter(function(param){
+    getAndDoAfter(function (param) {
         document.getElementById(KEY_GPS_LAT).textContent = "";
         document.getElementById(KEY_GPS_LON).textContent = "";
         document.getElementById('TrapLocation').removeAttribute('href');
@@ -270,14 +279,7 @@ function initGps() {
  * GPS 取得
  */
 function getGps() {
-    getAndDoAfter(function(param){}, getGps.name);
-}
-
-/**
- * 画像取得
- */
-function snapShot() {
-    getAndDoAfter(updateImage, snapShot.name);
+    getAndDoAfter(function (param) { }, getGps.name);
 }
 
 /**
@@ -371,7 +373,7 @@ function updateImage(src) {
 function updateTime(param) {
     let moduleTime = document.getElementById('CurrentTime').firstElementChild;
     if (moduleTime != null && (moduleTime.textContent == 'NaN' || moduleTime.textContent == null)) {
-        setInterval(function() {
+        setInterval(function () {
             let now = new Date();
             moduleTime.textContent = now.toLocaleTimeString();
         }, 1000);

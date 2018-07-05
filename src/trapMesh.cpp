@@ -51,10 +51,10 @@ void TrapMesh::setupTask() {
 /********************************************
  * Camera メソッド
  *******************************************/
-bool TrapMesh::snapCamera() {
+bool TrapMesh::snapCamera(int picFmt) {
     // _mesh.stop();
     DEBUG_MSG_LN("snapCamera");
-    bool isSnap = _camera.saveCameraData();
+    bool isSnap = _camera.saveCameraData("/image.jpg", picFmt);
     // setupMesh();
     sendPictureTask.setIterations(5);
     sendPictureTask.enableDelayed(5000);
@@ -71,8 +71,7 @@ void TrapMesh::update() {
     // 罠モード始動
     if (_config._isTrapStart) {
         DEBUG_MSG_LN("Trap start");
-        // 罠モード開始直後に deepSleepを開始すると http
-        // 接続が未完のまま落ちるので少し待つ
+        // 罠モード開始直後に deepSleepを開始すると http 接続が未完のまま落ちるので少し待つ
         deepSleepTask.enableDelayed(SYNC_SLEEP_INTERVAL);
         _config._isTrapStart = false;
     }
@@ -172,18 +171,20 @@ void TrapMesh::receivedCallback(uint32_t from, String &msg) {
         DEBUG_MSG_LN("trap fire message");
     }
     // 画像保存
-    // if (msgJson.containsKey(KEY_PICTURE)) {
-    // 	DEBUG_MSG_LN("image receive");
-    // 	const char* data = (const char*)msgJson[KEY_PICTURE];
-    // 	int dataLen = strlen(data);
-    // 	int decLen = base64_dec_len((char *)data, dataLen);
-    // 	char *dec = (char *)malloc(decLen + 1);
-    // 	base64_decode(dec, (char *)data, dataLen);
-    // 	File img = SPIFFS.open("/image.jpg", "w");
-    // 	img.write((const uint8_t*)dec, strlen(data));
-    // 	free(dec);
-    // 	img.close();
-    // }
+    if (msgJson.containsKey(KEY_PICTURE)) {
+        DEBUG_MSG_LN("image receive");
+        const char *data = (const char *)msgJson[KEY_PICTURE];
+        int inputLen = strlen(data);
+        int decLen = base64_dec_len((char *)data, inputLen);
+        DEBUG_MSG_F("receive base64 decodeLen:\n%d", decLen);
+        char *dec = (char *)malloc(decLen + 1);
+        DEBUG_MSG_F("receive image:\n%s", data);
+        base64_decode(dec, (char *)data, inputLen);
+        File img = SPIFFS.open("/image.jpg", "w");
+        img.write((const uint8_t *)dec, decLen + 1);
+        img.close();
+        free(dec);
+    }
     // GPS 初期化
     if (msgJson.containsKey(KEY_INIT_GPS)) {
         DEBUG_MSG_LN("Init GPS");
