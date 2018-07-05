@@ -23,9 +23,10 @@ void Camera::clearRxBuf() {
 }
 /*********************************************************************/
 void Camera::sendCmd(char cmd[], int cmd_len) {
-    for (int i = 0; i < cmd_len; i++)
+    for (int i = 0; i < cmd_len; i++) {
         yield();
-    _camSerial.write(cmd[i]);
+        _camSerial.write(cmd[i]);
+    }
 }
 /*********************************************************************/
 uint16_t Camera::readBytes(uint8_t buf[], uint16_t len, uint16_t timeout_ms) {
