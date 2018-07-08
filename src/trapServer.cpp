@@ -66,9 +66,7 @@ void TrapServer::onSetConfig(AsyncWebServerRequest *request) {
         config[KEY_ACTIVE_END] = temp.toInt();
     }
     // 設定された変更値で全モジュールの設定値を更新
-    if (_trapMesh->syncAllModuleConfigs(config)) {
-        _trapMesh->updateModuleConfig(config);
-        _trapMesh->saveCurrentModuleConfig();
+    if (_trapModule->setConfig(config)) {
         String cfg;
         config.printTo(cfg);
         request->send(200, "application/json", cfg);
@@ -84,7 +82,7 @@ void TrapServer::onSetConfig(AsyncWebServerRequest *request) {
 void TrapServer::onGetModuleInfo(AsyncWebServerRequest *request) {
     DEBUG_MSG_F("FreeHeepMem:%lu\n", ESP.getFreeHeap());
     DEBUG_MSG_LN("onGetModuleInfo");
-    JsonObject &moduleInfo = _trapMesh->getModuleInfo();
+    JsonObject &moduleInfo = _trapModule->getModuleInfo();
     String response;
     moduleInfo.printTo(response);
     DEBUG_MSG_LN(response);
@@ -96,7 +94,7 @@ void TrapServer::onGetModuleInfo(AsyncWebServerRequest *request) {
  */
 void TrapServer::onGetMeshGraph(AsyncWebServerRequest *request) {
     DEBUG_MSG_LN("onGetMeshGraph");
-    String response = _trapMesh->_mesh.subConnectionJson();
+    String response = _trapModule->getMeshGraph();
     DEBUG_MSG_LN(response);
     request->send(200, "application/json", response);
 }
@@ -122,19 +120,10 @@ void TrapServer::onSetCurrentTime(AsyncWebServerRequest *request) {
         request->send(500);
         return;
     }
-    setTime(request->arg(KEY_HOUR).toInt(), request->arg(KEY_MINUTE).toInt(),
+    if (_trapModule->setCurrentTime(
+            request->arg(KEY_HOUR).toInt(), request->arg(KEY_MINUTE).toInt(),
             request->arg(KEY_SECOND).toInt(), request->arg(KEY_DAY).toInt(),
-            request->arg(KEY_MONTH).toInt(), request->arg(KEY_YEAR).toInt());
-    if (_trapMesh->_mesh.getNodeList().size() == 0) {
-        request->send(200);
-        return;
-    }
-    DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
-    JsonObject &currentTime = jsonBuf.createObject();
-    currentTime[KEY_CURRENT_TIME] = now();
-    String msg;
-    currentTime.printTo(msg);
-    if (_trapMesh->_mesh.sendBroadcast(msg)) {
+            request->arg(KEY_MONTH).toInt(), request->arg(KEY_YEAR).toInt())) {
         request->send(200);
     } else {
         request->send(500);
@@ -151,7 +140,7 @@ void TrapServer::onSnapShot(AsyncWebServerRequest *request) {
     if (temp != NULL && temp.length() > 0) {
         picFmt = temp.toInt();
     }
-    if (_trapMesh->snapCamera(picFmt)) {
+    if (_trapModule->snapCamera(picFmt)) {
         request->send(200, "image/jpeg", "image.jpg");
         return;
     }
@@ -165,23 +154,22 @@ void TrapServer::onSendMessage(AsyncWebServerRequest *request) {
     DEBUG_MSG_LN("onSendMessage");
     String msg = request->arg("messageContent");
     if (msg == NULL || msg.length() == 0) {
+        request->send(500);
         return;
     }
+    DEBUG_MSG_LN("debug message:\n" + msg);
+    bool success = false;
     String nodeId = request->arg("messageSendNodeId");
     if (nodeId == NULL || nodeId.length() == 0) {
-        if (_trapMesh->_mesh.getNodeList().size() == 0) {
-            return;
-        }
-        DEBUG_MSG_LN("send debug message broadcast");
-        _trapMesh->_mesh.sendBroadcast(msg);
+        success = _trapModule->sendDebugMesage(msg);
     } else {
-        uint32_t temp = (uint32_t)nodeId.toInt();
-        DEBUG_MSG_LN("send debug message single");
-        _trapMesh->_mesh.sendSingle(temp, msg);
+        success = _trapModule->sendDebugMesage(msg, (uint32_t)nodeId.toInt());
     }
-    // 自身にもメッセージがきたものとして扱う
-    _trapMesh->receivedCallback(0, msg);
-    DEBUG_MSG_LN("debug message:\n" + msg);
+    if (success) {
+        request->send(200);
+    } else {
+        request->send(500);
+    }
 }
 
 /**
@@ -189,12 +177,7 @@ void TrapServer::onSendMessage(AsyncWebServerRequest *request) {
  */
 void TrapServer::onInitGps(AsyncWebServerRequest *request) {
     DEBUG_MSG_LN("onInitGps");
-    _trapMesh->initGps();
-    String message = "{";
-    message += KEY_INIT_GPS;
-    message += ":\"InitGps\"}";
-    if (_trapMesh->_mesh.getNodeList().size() == 0 ||
-        _trapMesh->_mesh.sendBroadcast(message)) {
+    if (_trapModule->initGps()) {
         request->send(200);
     } else {
         request->send(500);
@@ -206,7 +189,7 @@ void TrapServer::onInitGps(AsyncWebServerRequest *request) {
  */
 void TrapServer::onGetGps(AsyncWebServerRequest *request) {
     DEBUG_MSG_LN("onGetGps");
-    if (_trapMesh->sendGetGps()) {
+    if (_trapModule->sendGetGps()) {
         request->send(200);
     } else {
         request->send(500);

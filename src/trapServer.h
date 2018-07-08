@@ -1,16 +1,17 @@
-#ifndef INCLUDE_GUARD_TRAPMESH
-#define INCLUDE_GUARD_TRAPMESH
+#ifndef INCLUDE_GUARD_SERVER
+#define INCLUDE_GUARD_SERVER
 
-#include "trapMesh.h"
+#include "trapModule.h"
 #include "trapCommon.h"
+#include <ESPAsyncWebServer.h>
 
 class TrapServer {
   private:
     AsyncWebServer server = AsyncWebServer(80);
-    TrapMesh *_trapMesh;
+    TrapModule *_trapModule;
 
   public:
-    TrapServer(TrapMesh *trapMesh) { _trapMesh = trapMesh; };
+    TrapServer(TrapModule *trapMesh) { _trapModule = trapMesh; };
     ~TrapServer(){};
     void beginServer() { server.begin(); };
     void setupServer();
@@ -27,4 +28,4 @@ class TrapServer {
     void onGetGps(AsyncWebServerRequest *request);
 };
 
-#endif // INCLUDE_GUARD_TRAPMESH
+#endif // INCLUDE_GUARD_SERVER
