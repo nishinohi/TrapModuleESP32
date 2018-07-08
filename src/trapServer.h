@@ -1,5 +1,8 @@
+#ifndef INCLUDE_GUARD_TRAPMESH
+#define INCLUDE_GUARD_TRAPMESH
+
 #include "trapMesh.h"
-#include "trapModule.h"
+#include "trapCommon.h"
 
 class TrapServer {
   private:
@@ -23,3 +26,5 @@ class TrapServer {
     void onInitGps(AsyncWebServerRequest *request);
     void onGetGps(AsyncWebServerRequest *request);
 };
+
+#endif // INCLUDE_GUARD_TRAPMESH

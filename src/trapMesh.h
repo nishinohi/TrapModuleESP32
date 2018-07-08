@@ -1,6 +1,9 @@
+#ifndef INCLUDE_GUARD_TRAPMESH
+#define INCLUDE_GUARD_TRAPMESH
+
 #include "camera.h"
 #include "moduleConfig.h"
-#include "trapModule.h"
+#include "trapCommon.h"
 #include <ESPAsyncWebServer.h>
 #include <TimeLib.h>
 #include <painlessMesh.h>
@@ -67,3 +70,5 @@ class TrapMesh {
     bool sendTrapFire();
     void moduleCheckStart();
 };
+
+#endif // INCLUDE_GUARD_TRAPMESH

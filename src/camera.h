@@ -1,4 +1,7 @@
-#include "trapModule.h"
+#ifndef INCLUDE_GUARD_CAMERA
+#define INCLUDE_GUARD_CAMERA
+
+#include "trapCommon.h"
 #include <HardwareSerial.h>
 
 // camera
@@ -37,3 +40,5 @@ class Camera {
     void Capture();
     bool GetData(String fileName);
 };
+
+#endif // INCLUDE_GUARD_CAMERA

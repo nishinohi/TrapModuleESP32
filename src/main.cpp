@@ -1,4 +1,4 @@
-#include "trapModule.h"
+#include "trapCommon.h"
 #include "trapServer.h"
 
 TrapMesh trapMesh;

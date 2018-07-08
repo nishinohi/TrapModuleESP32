@@ -1,4 +1,7 @@
-#include "trapModule.h"
+#ifndef INCLUDE_GUARD_MODULECONFIG
+#define INCLUDE_GUARD_MODULECONFIG
+
+#include "trapCommon.h"
 #include <TimeLib.h>
 #include <painlessMesh.h>
 
@@ -52,3 +55,5 @@ class ModuleConfig {
     bool saveModuleConfig(const JsonObject &config);
     void updateGpsInfo(const char *lat, const char *lon);
 };
+
+#endif // INCLUDE_GUARD_MODULECONFIG
