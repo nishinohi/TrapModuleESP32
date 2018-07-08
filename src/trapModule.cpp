@@ -27,7 +27,7 @@ void TrapModule::setupTask() {
     _blinkNodesTask.enable();
     // battery check interval
     _checkBatteryTask.set(CHECK_INTERVAL, TASK_FOREVER,
-                          std::bind(&TrapModule::checkBatteryCallBack, this));
+                          std::bind(&TrapModule::checkBattery, this));
     _mesh.scheduler.addTask(_checkBatteryTask);
     if (!_config._trapMode) {
         _checkBatteryTask.enable();
@@ -133,6 +133,25 @@ bool TrapModule::initGps() {
     return _mesh.sendBroadcast(message);
 }
 
+/**
+ * GPS 取得要求を親モジュールに送信
+ **/
+bool TrapModule::sendGetGps() {
+    if (_mesh.getNodeList().size() == 0) {
+        return true;
+    }
+    String message = "{";
+    message += KEY_GET_GPS;
+    message += ":\"GetGps\"}";
+    for (SimpleList<uint32_t>::iterator it = _config._parentModules.begin();
+         it != _config._parentModules.end(); ++it) {
+        if (_mesh.sendSingle(*it, message)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 /********************************************
  * painlessMesh callback
  *******************************************/
@@ -145,6 +164,7 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
     JsonObject &msgJson = jsonBuf.parseObject(msg);
     if (!msgJson.success()) {
         DEBUG_MSG_LN("json parse failed");
+        return;
     }
     // バッテリー切れメッセージ
     if (msgJson.containsKey(KEY_BATTERY_DEAD_MESSAGE)) {
@@ -160,9 +180,7 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
         const char *data = (const char *)msgJson[KEY_PICTURE];
         int inputLen = strlen(data);
         int decLen = base64_dec_len((char *)data, inputLen);
-        DEBUG_MSG_F("receive base64 decodeLen:\n%d", decLen);
         char *dec = (char *)malloc(decLen + 1);
-        DEBUG_MSG_F("receive image:\n%s", data);
         base64_decode(dec, (char *)data, inputLen);
         File img = SPIFFS.open("/image.jpg", "w");
         img.write((const uint8_t *)dec, decLen + 1);
@@ -315,25 +333,6 @@ bool TrapModule::syncCurrentTime() {
 }
 
 /**
- * GPS 取得要求を親モジュールに送信
- **/
-bool TrapModule::sendGetGps() {
-    if (_mesh.getNodeList().size() == 0) {
-        return true;
-    }
-    String message = "{";
-    message += KEY_GET_GPS;
-    message += ":\"GetGps\"}";
-    for (SimpleList<uint32_t>::iterator it = _config._parentModules.begin();
-         it != _config._parentModules.end(); ++it) {
-        if (_mesh.sendSingle(*it, message)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-/**
  * 端末電池切れ通知
  * 過放電を防ぐため送信の成否に関係なく電源を落とす(メッセージ送信をタスク化しない)
  **/
@@ -376,6 +375,57 @@ bool TrapModule::sendTrapFire() {
         }
     }
     return false;
+}
+
+/**
+ * 撮影画像を送信する
+ */
+void TrapModule::sendPicture() {
+    DEBUG_MSG_LN("sendPicture");
+    // 送信先がいなければ何もしないz
+    if (_mesh.getNodeList().size() == 0) {
+        _sendPictureTask.disable();
+        return;
+    }
+    String path = "/image.jpg";
+    if (!SPIFFS.exists(path)) {
+        return;
+    }
+    File file = SPIFFS.open(path, "r");
+    size_t size = file.size();
+    if (size == 0) {
+        file.close();
+        return;
+    }
+    DEBUG_MSG_LN("read picture");
+    char *buf = (char *)malloc(size);
+    file.readBytes(buf, size);
+    file.close();
+    int encLen = base64_enc_len(size);
+    char *enc = (char *)malloc(encLen + 1);
+    base64_encode(enc, buf, size);
+    free(buf);
+    DEBUG_MSG_LN("encoded");
+    // create json message
+    DEBUG_MSG_F("FreeHeepMem:%lu\n", ESP.getFreeHeap());
+    String temp(enc);
+    free(enc);
+    String msg = "{\"";
+    msg += KEY_PICTURE;
+    msg = msg + "\":\"" + temp + "\"}";
+    DEBUG_MSG_F("FreeHeepMem:%lu\n", ESP.getFreeHeap());
+    DEBUG_MSG_F("msgLength:%d\n", msg.length());
+    DEBUG_MSG_LN(msg);
+    if (_mesh.sendBroadcast(msg)) {
+        DEBUG_MSG_LN("send picture success");
+        _sendPictureTask.disable();
+    } else {
+        if (_sendPictureTask.isLastIteration()) {
+            DEBUG_MSG_LN("send picture failed");
+        } else {
+            DEBUG_MSG_LN("retry send picture...");
+        }
+    }
 }
 
 /*************************************
@@ -428,7 +478,7 @@ void TrapModule::trapCheck() {
  * 放電終止電圧を下回っていないかチェックする
  * 起動時間が残り半分以下の状態で電池切れになれば通知に失敗していても電源を切る
  **/
-void TrapModule::checkBatteryCallBack() {
+void TrapModule::checkBattery() {
 #ifdef BATTERY_CHECK_ACTIVE
     int currentBattery = analogRead(A0);
     double realValue = currentBattery * 6;
@@ -451,57 +501,6 @@ void TrapModule::checkBatteryCallBack() {
         _deepSleepTask.enable();
     }
 #endif
-}
-
-/**
- * 撮影画像を送信する
- */
-void TrapModule::sendPicture() {
-    DEBUG_MSG_LN("sendPicture");
-    // 送信先がいなければ何もしないz
-    if (_mesh.getNodeList().size() == 0) {
-        _sendPictureTask.disable();
-        return;
-    }
-    String path = "/image.jpg";
-    if (!SPIFFS.exists(path)) {
-        return;
-    }
-    File file = SPIFFS.open(path, "r");
-    size_t size = file.size();
-    if (size == 0) {
-        file.close();
-        return;
-    }
-    DEBUG_MSG_LN("read picture");
-    char *buf = (char *)malloc(size);
-    file.readBytes(buf, size);
-    file.close();
-    int encLen = base64_enc_len(size);
-    char *enc = (char *)malloc(encLen + 1);
-    base64_encode(enc, buf, size);
-    free(buf);
-    DEBUG_MSG_LN("encoded");
-    // create json message
-    DEBUG_MSG_F("FreeHeepMem:%lu\n", ESP.getFreeHeap());
-    String temp(enc);
-    free(enc);
-    String msg = "{\"";
-    msg += KEY_PICTURE;
-    msg = msg + "\":\"" + temp + "\"}";
-    DEBUG_MSG_F("FreeHeepMem:%lu\n", ESP.getFreeHeap());
-    DEBUG_MSG_F("msgLength:%d\n", msg.length());
-    DEBUG_MSG_LN(msg);
-    if (_mesh.sendBroadcast(msg)) {
-        DEBUG_MSG_LN("send picture success");
-        _sendPictureTask.disable();
-    } else {
-        if (_sendPictureTask.isLastIteration()) {
-            DEBUG_MSG_LN("send picture failed");
-        } else {
-            DEBUG_MSG_LN("retry send picture...");
-        }
-    }
 }
 
 /**

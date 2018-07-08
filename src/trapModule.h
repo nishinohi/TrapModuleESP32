@@ -51,9 +51,12 @@ class TrapModule {
     bool sendDebugMesage(String msg, uint32_t nodeId = 0);
 
   private:
-    // module method
+    // メッセージ送信
     bool syncAllModuleConfigs(const JsonObject &config);
     bool syncCurrentTime();
+    bool sendBatteryDead();
+    bool sendTrapFire();
+    void sendPicture();
     // config
     void updateModuleConfig(const JsonObject &config) {
         _config.updateModuleConfig(config);
@@ -72,10 +75,7 @@ class TrapModule {
     // task
     void blinkLed();
     void trapCheck();
-    void checkBatteryCallBack();
-    void sendPicture();
-    bool sendBatteryDead();
-    bool sendTrapFire();
+    void checkBattery();
     void moduleCheckStart();
 };
 
