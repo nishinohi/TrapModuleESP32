@@ -302,10 +302,10 @@ void TrapMesh::nodeTimeAdjustedCallback(int32_t offset) {
  * メッセージング
  ******************************************************/
 /**
- * 設定値を全モジュールに反映する
+ * 設定値を全モジュールに同期する
  **/
-bool TrapMesh::updateAllModuleConfigs(const JsonObject &config) {
-    DEBUG_MSG_LN("updateAllModuleConfigs");
+bool TrapMesh::syncAllModuleConfigs(const JsonObject &config) {
+    DEBUG_MSG_LN("syncAllModuleConfigs");
     if (!config.success()) {
         DEBUG_MSG_LN("json parse failed");
         return false;
@@ -506,22 +506,6 @@ void TrapMesh::sendPicture() {
             DEBUG_MSG_LN("retry send picture...");
         }
     }
-    // DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
-    // JsonObject &jsonMessage = jsonBuf.parseObject(msg);
-    // if (jsonMessage.containsKey(KEY_PICTURE)) {
-    //     DEBUG_MSG_LN("img key");
-    //     const char *data = (const char *)jsonMessage[KEY_PICTURE];
-    //     int dataLen = strlen(data);
-    //     DEBUG_MSG_F("jsonSize:%d\n", sizeof(data));
-    //     DEBUG_MSG_F("jsonLen:%d\n", dataLen);
-    //     int decLen = base64_dec_len((char *)data, dataLen);
-    //     char *dec = (char *)malloc(decLen + 1);
-    //     base64_decode(dec, (char *)data, dataLen);
-    //     File img2 = SPIFFS.open("/image2.jpg", "w");
-    //     img2.write((const uint8_t *)dec, strlen(data));
-    //     img2.close();
-    // }
-    // DEBUG_MSG_F("FreeHeepMem:%lu\n", ESP.getFreeHeap());
 }
 
 /**

@@ -27,7 +27,7 @@ class TrapMesh {
 
     // module method
     JsonObject &getModuleInfo() { return _config.getModuleInfo(_mesh); };
-    bool updateAllModuleConfigs(const JsonObject &config);
+    bool syncAllModuleConfigs(const JsonObject &config);
     void updateModuleConfig(const JsonObject &config) {
         _config.updateModuleConfig(config);
     };

@@ -66,7 +66,7 @@ void TrapServer::onSetConfig(AsyncWebServerRequest *request) {
         config[KEY_ACTIVE_END] = temp.toInt();
     }
     // 設定された変更値で全モジュールの設定値を更新
-    if (_trapMesh->updateAllModuleConfigs(config)) {
+    if (_trapMesh->syncAllModuleConfigs(config)) {
         _trapMesh->updateModuleConfig(config);
         _trapMesh->saveCurrentModuleConfig();
         String cfg;
