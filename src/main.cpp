@@ -1,8 +1,8 @@
-#include "trapModule.h"
+#include "trapCommon.h"
 #include "trapServer.h"
 
-TrapMesh trapMesh;
-TrapServer trapServer(&trapMesh);
+TrapModule trapModule;
+TrapServer trapServer(&trapModule);
 
 void setup() {
     Serial.begin(115200);
@@ -16,14 +16,16 @@ void setup() {
     pinMode(FORCE_TRAP_MODE_PIN, INPUT);
     pinMode(LED, OUTPUT);
     // モジュール読み込み
-    trapMesh.loadModuleConfig();
+    trapModule.loadModuleConfig();
     // 起動時刻チェック
-    trapMesh.checkWakeTime();
+    trapModule.checkStart();
     // mesh
-    trapMesh.setupMesh();
-    trapMesh.setupTask();
-    trapMesh.initCamera();
+    // ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE 
+    trapModule.setupMesh(ERROR);
     DEBUG_MSG_LN("mesh setup");
+    trapModule.setupTask();
+    DEBUG_MSG_LN("camera setup");
+    trapModule.setupCamera();
     // Server
     trapServer.setupServer();
     DEBUG_MSG_LN("server setup");
@@ -32,5 +34,5 @@ void setup() {
 }
 
 void loop() {
-    trapMesh.update();
+    trapModule.update();
 }

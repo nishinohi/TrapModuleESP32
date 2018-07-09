@@ -4,7 +4,7 @@
  * module method
  **********************************/
 // モジュール情報を取得
-JsonObject &ModuleConfig::getModuleInfo(painlessMesh& mesh) {
+JsonObject &ModuleConfig::getModuleInfo(painlessMesh &mesh) {
     DEBUG_MSG_LN("getModuleInfo");
     DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
     JsonObject &moduleInfo = jsonBuf.createObject();
@@ -258,7 +258,7 @@ void ModuleConfig::addParentModule(uint32_t nodeId) {
  * 親モジュールリストの更新
  * 接続情報更新時に親モジュールがなくなっていればリストから削除
  */
-void ModuleConfig::updateParentModuleList(painlessMesh& mesh) {
+void ModuleConfig::updateParentModuleList(painlessMesh &mesh) {
     SimpleList<uint32_t> nodes = mesh.getNodeList();
     SimpleList<uint32_t>::iterator node = nodes.begin();
     SimpleList<uint32_t>::iterator parentModule = _parentModules.begin();
@@ -354,7 +354,8 @@ void ModuleConfig::setWakeTime() {
 /**
  * DeepSleep 時間を計算する[秒]
  */
-time_t ModuleConfig::calcSleepTime(const time_t &tNow, const time_t &nextWakeTime) {
+time_t ModuleConfig::calcSleepTime(const time_t &tNow,
+                                   const time_t &nextWakeTime) {
     time_t diff = nextWakeTime - tNow;
     // 時刻誤差修正
     _realTime =

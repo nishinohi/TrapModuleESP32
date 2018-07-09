@@ -1,4 +1,7 @@
-#include "trapModule.h"
+#ifndef INCLUDE_GUARD_CAMERA
+#define INCLUDE_GUARD_CAMERA
+
+#include "trapCommon.h"
 #include <HardwareSerial.h>
 
 // camera
@@ -16,7 +19,7 @@
 
 class Camera {
   public:
-    // camera swSerial UART2 (RX=16, TX=17)
+    // camera swSerial UART2 (default GPIO RX=16, TX=17)
     HardwareSerial _camSerial = HardwareSerial(2);
 
   private:
@@ -37,3 +40,5 @@ class Camera {
     void Capture();
     bool GetData(String fileName);
 };
+
+#endif // INCLUDE_GUARD_CAMERA
