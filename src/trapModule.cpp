@@ -34,7 +34,7 @@ void TrapModule::setupTask() {
     }
     // trap check
     _checkTrapTask.set(CHECK_INTERVAL, TASK_FOREVER,
-                       std::bind(&TrapModule::trapCheck, this));
+                       std::bind(&TrapModule::checkTrap, this));
     _mesh.scheduler.addTask(_checkTrapTask);
     // picture
     _sendPictureTask.set(5000, 5, std::bind(&TrapModule::sendPicture, this));
@@ -110,7 +110,7 @@ bool TrapModule::setConfig(const JsonObject &config) {
 
 // 現在時刻設定
 bool TrapModule::setCurrentTime(int hour, int minute, int second, int day,
-                              int month, int year) {
+                                int month, int year) {
     setTime(hour, minute, second, day, month, year);
     return syncCurrentTime();
 }
@@ -452,12 +452,8 @@ void TrapModule::blinkLed() {
  * メッシュネットワークが前回起動時のサイズ以上になるか
  * 起動時間が残り半分以下になれば作動状況を通知
  */
-void TrapModule::trapCheck() {
+void TrapModule::checkTrap() {
 #ifdef TRAP_ACTIVE
-    if (_config._trapFire) {
-        _checkTrapTask.disable();
-        return;
-    }
     if (!_config._trapMode || !digitalRead(TRAP_CHECK_PIN)) {
         return;
     }
@@ -484,12 +480,12 @@ void TrapModule::checkBattery() {
     double realValue = currentBattery * 6;
     realValue = realValue / 1024;
     DEBUG_MSG_F("Current Battery:%.2lf\n", realValue);
-    if (!_config._isBatteryDead && currentBattery > DISCHARGE_END_VOLTAGE) {
+    if (currentBattery > DISCHARGE_END_VOLTAGE) {
         return;
     }
     DEBUG_MSG_LN("!****** Battery Dead ******!");
+    _config._isBatteryDead = true;
     if (_checkBatteryTask.getIterations() == TASK_FOREVER) {
-        _config._isBatteryDead = true;
         _checkBatteryTask.setIterations(SEND_RETRY);
     }
     // 設置モードの場合即時終了
@@ -498,7 +494,7 @@ void TrapModule::checkBattery() {
         return;
     }
     if (sendBatteryDead()) {
-        _deepSleepTask.enable();
+        _deepSleepTask.enableDelayed(SYNC_SLEEP_INTERVAL);
     }
 #endif
 }
@@ -525,7 +521,13 @@ void TrapModule::shiftDeepSleep() {
     DEBUG_MSG_LN("Shift Deep Sleep");
     if (_config._isBatteryDead) {
         DEBUG_MSG_LN("Battery limit!\nshutdown...");
+#ifdef ESP32
+        esp_sleep_enable_ext0_wakeup(GPIO_NUM_2, 1);
+        esp_deep_sleep_start();
+#else
         ESP.deepSleep(0);
+#endif
+        return;
     }
     _config.setWakeTime();
     time_t tNow = now();
@@ -558,11 +560,11 @@ void TrapModule::shiftDeepSleep() {
  * 各種チェックメソッド開始
  */
 void TrapModule::moduleCheckStart() {
-    if (!_checkTrapTask.isEnabled()) {
+    if (!_config._trapFire && !_checkTrapTask.isEnabled()) {
         DEBUG_MSG_LN("Start Trap Check");
         _checkTrapTask.enableDelayed(TRAP_CHECK_DELAYED);
     }
-    if (!_checkBatteryTask.isEnabled()) {
+    if (!_config._isBatteryDead && !_checkBatteryTask.isEnabled()) {
         DEBUG_MSG_LN("Start Battery Check");
         _checkBatteryTask.enableDelayed(BATTERY_CHECK_DELAYED);
     }

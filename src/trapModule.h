@@ -29,7 +29,10 @@ class TrapModule {
     void setupTask();
     void setupCamera() { _config._cameraEnable = _camera.initialize(); };
     bool loadModuleConfig() { return _config.loadModuleConfigFile(); };
-    void checkWakeTime() {
+    void checkStart() {
+        if (_config._isBatteryDead) {
+            shiftDeepSleep();
+        }
         if (_config._trapMode && _config._wakeTime - now() >= 0) {
             shiftDeepSleep();
         }
@@ -74,7 +77,7 @@ class TrapModule {
     void nodeTimeAdjustedCallback(int32_t offset);
     // task
     void blinkLed();
-    void trapCheck();
+    void checkTrap();
     void checkBattery();
     void moduleCheckStart();
 };

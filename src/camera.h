@@ -19,7 +19,7 @@
 
 class Camera {
   public:
-    // camera swSerial UART2 (RX=16, TX=17)
+    // camera swSerial UART2 (default GPIO RX=16, TX=17)
     HardwareSerial _camSerial = HardwareSerial(2);
 
   private:
