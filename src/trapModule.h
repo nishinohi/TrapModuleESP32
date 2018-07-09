@@ -40,7 +40,7 @@ class TrapModule {
     // loop
     void update();
     // モジュール設定値操作
-    bool setConfig(const JsonObject &config);
+    bool setConfig(JsonObject &config);
     String getMeshGraph() { return _mesh.subConnectionJson(); };
     JsonObject &getModuleInfo() { return _config.getModuleInfo(_mesh); };
     bool setCurrentTime(int hour, int minute, int second, int day, int month,

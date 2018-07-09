@@ -100,7 +100,12 @@ void TrapModule::update() {
  * モジュール設定値操作
  *******************************************/
 // モジュールパラメータ設定
-bool TrapModule::setConfig(const JsonObject &config) {
+bool TrapModule::setConfig(JsonObject &config) {
+    if (!config.success()) {
+        DEBUG_MSG_LN("json parse failed");
+        return false;
+    }
+    config[KEY_CONFIG_UPDATE] = true;
     if (syncAllModuleConfigs(config)) {
         updateModuleConfig(config);
         return saveCurrentModuleConfig();
@@ -217,16 +222,8 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
         _config._realTimeDiff = millis();
     }
     // モジュール設定更新メッセージ受信
-    if (msgJson.containsKey(KEY_SLEEP_INTERVAL) ||
-        msgJson.containsKey(KEY_WORK_TIME) ||
-        msgJson.containsKey(KEY_TRAP_MODE) ||
-        msgJson.containsKey(KEY_ACTIVE_START) ||
-        msgJson.containsKey(KEY_ACTIVE_END) ||
-        msgJson.containsKey(KEY_GPS_LAT) || msgJson.containsKey(KEY_GPS_LON) ||
-        msgJson.containsKey(KEY_WAKE_TIME) ||
-        msgJson.containsKey(KEY_CURRENT_TIME)) {
-        DEBUG_MSG_LN("Module config changed");
-        // 罠検知済みフラグは自身の設定値を反映
+    if (msgJson.containsKey(KEY_CONFIG_UPDATE)) {
+        DEBUG_MSG_LN("Module config update");
         updateModuleConfig(msgJson);
         saveCurrentModuleConfig();
     }
@@ -307,10 +304,6 @@ void TrapModule::nodeTimeAdjustedCallback(int32_t offset) {
  **/
 bool TrapModule::syncAllModuleConfigs(const JsonObject &config) {
     DEBUG_MSG_LN("syncAllModuleConfigs");
-    if (!config.success()) {
-        DEBUG_MSG_LN("json parse failed");
-        return false;
-    }
     if (_mesh.getNodeList().size() == 0) {
         return true;
     }
@@ -326,6 +319,7 @@ bool TrapModule::syncCurrentTime() {
     }
     DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
     JsonObject &currentTime = jsonBuf.createObject();
+    currentTime[KEY_CONFIG_UPDATE] = true;
     currentTime[KEY_CURRENT_TIME] = now();
     String msg;
     currentTime.printTo(msg);
