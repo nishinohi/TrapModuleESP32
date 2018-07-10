@@ -114,15 +114,10 @@ bool TrapModule::setConfig(JsonObject &config) {
 }
 
 // 現在時刻設定
-bool TrapModule::setCurrentTime(int hour, int minute, int second, int day,
-                                int month, int year) {
-    setTime(hour, minute, second, day, month, year);
-    return syncCurrentTime();
-}
-
-// 現在時刻設定
 bool TrapModule::setCurrentTime(time_t current) {
     setTime(current);
+    DEBUG_MSG_F("current time:%d/%d/%d %d:%d:%d\n", year(), month(), day(), hour(),
+                minute(), second());
     return syncCurrentTime();
 }
 

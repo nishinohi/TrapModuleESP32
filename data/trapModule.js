@@ -14,17 +14,16 @@ const KEY_GPS_LON = 'GpsLon';
 const KEY_MESH_GRAPH = 'MeshGraph';
 const KEY_ACTIVE_START = 'ActiveStart';
 const KEY_ACTIVE_END = 'ActiveEnd';
-const KEY_YEAR = 'Year';
-const KEY_MONTH = 'Month';
-const KEY_DAY = 'Day';
-const KEY_HOUR = 'Hour';
-const KEY_MINUTE = 'Minute';
-const KEY_SECOND = 'Second';
+const KEY_CURRENT_TIME = 'CurrentTime';
 const KEY_PICTURE_FORMAT = 'PictureFormat'
 
 var sigmaUuid = 0;
 var sigmaObj;
 var sliderObj;
+
+// 現在時刻
+var timerId = -1;
+var localEpoch = 0;
 
 window.onload = function () {
     let succesPop = document.querySelector('.successBox');
@@ -210,14 +209,9 @@ function getMeshGraph() {
  */
 function setCurrentTime() {
     let current = new Date();
-    let currentTime = {
-        Year: current.getFullYear(),
-        Month: current.getMonth() + 1, // 月は 0 - 11(1月 - 12月) で返ってくる
-        Day: current.getDate(),
-        Hour: current.getHours(),
-        Minute: current.getMinutes(),
-        Second: current.getSeconds()
-    };
+    // モジュールは現在時刻を UTC(sec) で管理しているので UTC での表示時刻が local での表示時刻と一致するようにずらす
+    let tempLocalEpoch = parseInt((current.getTime() - (current.getTimezoneOffset() * 60 * 1000)) / 1000);
+    let currentTime = { CurrentTime: tempLocalEpoch };
     postAndDoAfter(currentTime, updateTime, setCurrentTime.name);
 }
 
@@ -309,6 +303,10 @@ function updateModuleInfo(response) {
                 break;
             case KEY_MESH_GRAPH:
                 createMeshGraph(config[key]);
+                break;
+            case KEY_CURRENT_TIME:
+                updateTime(config[key]);
+                break;
             default:
                 document.getElementById(key).textContent = config[key];
         }
@@ -372,10 +370,16 @@ function updateImage(src) {
  */
 function updateTime(param) {
     let moduleTime = document.getElementById('CurrentTime').firstElementChild;
-    if (moduleTime != null && (moduleTime.textContent == 'NaN' || moduleTime.textContent == null)) {
-        setInterval(function () {
-            let now = new Date();
-            moduleTime.textContent = now.toLocaleTimeString();
+    if (moduleTime != null) {
+        if (timerId !== -1) {
+            clearInterval(timerId);
+        }
+        // モジュールは UTC Epoch(sec)で値を保持しているので local time に変換
+        localEpoch = param === "" ? 0 : param * 1000 + (new Date().getTimezoneOffset() * 60 * 1000);
+        timerId = setInterval(function () {
+            let now = param === "" ? new Date() : new Date(localEpoch);
+            moduleTime.textContent = now.getFullYear().toString() + "/" + (now.getMonth() + 1).toString() + "/" + now.getDay().toString() + " " + now.toLocaleTimeString();
+            localEpoch = param === "" ? localEpoch : localEpoch + 1000;
         }, 1000);
     }
 }

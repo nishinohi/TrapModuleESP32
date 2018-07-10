@@ -55,12 +55,6 @@
 #define KEY_MESH_GRAPH "MeshGraph"
 #define KEY_SYNC_SLEEP "SyncSleep"
 #define KEY_REAL_TIME "RealTime"
-#define KEY_YEAR "Year"
-#define KEY_MONTH "Month"
-#define KEY_DAY "Day"
-#define KEY_HOUR "Hour"
-#define KEY_MINUTE "Minute"
-#define KEY_SECOND "Second"
 #define KEY_CAMERA_ENABLE "CameraEnable"
 #define KEY_PICTURE_FORMAT "PictureFormat"
 // デフォルト設定値

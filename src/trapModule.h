@@ -43,8 +43,6 @@ class TrapModule {
     bool setConfig(JsonObject &config);
     String getMeshGraph() { return _mesh.subConnectionJson(); };
     JsonObject &getModuleInfo() { return _config.getModuleInfo(_mesh); };
-    bool setCurrentTime(int hour, int minute, int second, int day, int month,
-                        int year);
     bool setCurrentTime(time_t current);
     bool initGps();
     bool sendGetGps();
