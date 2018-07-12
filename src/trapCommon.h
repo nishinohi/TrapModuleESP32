@@ -93,6 +93,8 @@
 // camera 
 #define DEF_IMG_PATH "/image.jpg"
 // multi task
+#define TASK_MEMORY 4096
 #define TASK_DELAY(delayMsec) vTaskDelay((delayMsec) / portTICK_RATE_MS)
+#define CAMERA_TASK_NAME "cameraTask"
 
 #endif // INCLUDE_GUARD_COMMON

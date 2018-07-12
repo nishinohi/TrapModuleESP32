@@ -48,14 +48,50 @@ void TrapModule::setupTask() {
 /********************************************
  * Camera メソッド
  *******************************************/
+/**
+ * カメラスナップショット要求
+ * TODO: タスク完了後の bool 値を判定に使用したい
+ */
 bool TrapModule::snapCamera(int picFmt) {
-    // _mesh.stop();
     DEBUG_MSG_LN("snapCamera");
-    bool isSnap = _camera.saveCameraData(picFmt);
-    // setupMesh();
-    _sendPictureTask.setIterations(5);
-    _sendPictureTask.enableDelayed(5000);
-    return isSnap;
+    if (!_config._cameraEnable) {
+        DEBUG_MSG_LN("camera cannot use");
+        return false;
+    }
+
+    if (strncmp(pcTaskGetTaskName(_taskHandle[0]), CAMERA_TASK_NAME,
+                strlen(CAMERA_TASK_NAME)) != 0) {
+        // camera task has not created
+        xTaskCreatePinnedToCore(TrapModule::snapCameraTask, CAMERA_TASK_NAME,
+                                TASK_MEMORY, this, 2, &_taskHandle[0], 0);
+        return true;
+    } else {
+        if (eSuspended == eTaskGetState(_taskHandle[0])) {
+            vTaskResume(_taskHandle[0]);
+            return true;
+        }
+    }
+    // camera task is runnning
+    return false;
+}
+
+/**
+ * カメラ撮影タスク
+ */
+void TrapModule::snapCameraTask(void *arg) {
+    TrapModule *trapModule = reinterpret_cast<TrapModule *>(arg);
+    while (1) {
+        if (trapModule->_camera.saveCameraData(OV528_SIZE_QVGA)) {
+            DEBUG_MSG_LN("snap success");
+            // trapModule->_sendPictureTask.setIterations(5);
+            // trapModule->_sendPictureTask.enable();
+        } else {
+            DEBUG_MSG_LN("snap failed");
+        }
+        DEBUG_MSG_LN("camera task suspend");
+        vTaskSuspend(trapModule->_taskHandle[0]);
+        TASK_DELAY(1);
+    }
 }
 
 /********************************************
@@ -116,8 +152,8 @@ bool TrapModule::setConfig(JsonObject &config) {
 // 現在時刻設定
 bool TrapModule::setCurrentTime(time_t current) {
     setTime(current);
-    DEBUG_MSG_F("current time:%d/%d/%d %d:%d:%d\n", year(), month(), day(), hour(),
-                minute(), second());
+    DEBUG_MSG_F("current time:%d/%d/%d %d:%d:%d\n", year(), month(), day(),
+                hour(), minute(), second());
     return syncCurrentTime();
 }
 

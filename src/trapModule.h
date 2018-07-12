@@ -21,6 +21,8 @@ class TrapModule {
     Task _checkBatteryTask; // バッテリーチェック
     Task _sendPictureTask;  // 写真撮影フラグ
 
+    TaskHandle_t _taskHandle[1];
+
   public:
     TrapModule(){};
     ~TrapModule(){};
@@ -48,6 +50,7 @@ class TrapModule {
     bool sendGetGps();
     // カメラ機能
     bool snapCamera(int picFmt = -1);
+    static void snapCameraTask(void *arg);
     // debug 機能
     bool sendDebugMesage(String msg, uint32_t nodeId = 0);
 

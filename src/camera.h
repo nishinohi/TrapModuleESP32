@@ -23,7 +23,6 @@ class Camera {
     HardwareSerial _camSerial = HardwareSerial(2);
 
   private:
-    bool _isCaptured = false;
     unsigned long _picTotalLen = 0;     // picture length
     byte _cameraAddr = (CAM_ADDR << 5); // addr
 
