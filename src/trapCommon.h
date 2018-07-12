@@ -90,5 +90,9 @@
 #define DISCHARGE_END_VOLTAGE 610	// 放電終止電圧(1V = 1024)として 1/6 に分圧した場合の読み取り値
 // GPS ロケーション文字列長
 #define GPS_STR_LEN 16
+// camera 
+#define DEF_IMG_PATH "/image.jpg"
+// multi task
+#define TASK_DELAY(delayMsec) vTaskDelay((delayMsec) / portTICK_RATE_MS)
 
 #endif // INCLUDE_GUARD_COMMON

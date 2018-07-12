@@ -51,7 +51,7 @@ void TrapModule::setupTask() {
 bool TrapModule::snapCamera(int picFmt) {
     // _mesh.stop();
     DEBUG_MSG_LN("snapCamera");
-    bool isSnap = _camera.saveCameraData("/image.jpg", picFmt);
+    bool isSnap = _camera.saveCameraData(picFmt);
     // setupMesh();
     _sendPictureTask.setIterations(5);
     _sendPictureTask.enableDelayed(5000);
@@ -182,7 +182,7 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
         int decLen = base64_dec_len((char *)data, inputLen);
         char *dec = (char *)malloc(decLen + 1);
         base64_decode(dec, (char *)data, inputLen);
-        File img = SPIFFS.open("/image.jpg", "w");
+        File img = SPIFFS.open(DEF_IMG_PATH, "w");
         img.write((const uint8_t *)dec, decLen + 1);
         img.close();
         free(dec);
@@ -376,11 +376,10 @@ void TrapModule::sendPicture() {
         _sendPictureTask.disable();
         return;
     }
-    String path = "/image.jpg";
-    if (!SPIFFS.exists(path)) {
+    if (!SPIFFS.exists(DEF_IMG_PATH)) {
         return;
     }
-    File file = SPIFFS.open(path, "r");
+    File file = SPIFFS.open(DEF_IMG_PATH, "r");
     size_t size = file.size();
     if (size == 0) {
         file.close();

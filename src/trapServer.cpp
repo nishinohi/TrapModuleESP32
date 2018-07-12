@@ -128,7 +128,7 @@ void TrapServer::onSnapShot(AsyncWebServerRequest *request) {
         picFmt = temp.toInt();
     }
     if (_trapModule->snapCamera(picFmt)) {
-        request->send(200, "image/jpeg", "image.jpg");
+        request->send(200, "image/jpeg", DEF_IMG_PATH);
         return;
     }
     request->send(500);

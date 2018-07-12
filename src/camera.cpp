@@ -3,28 +3,28 @@
 /**
  * save picture by default name
  */
-bool Camera::saveCameraData(String fileName, int picFmt) {
+bool Camera::saveCameraData(int picFmt) {
     picFmt = picFmt != -1 ? picFmt : OV528_SIZE_QQVGA;
-    if (SPIFFS.exists(fileName)) {
+    if (SPIFFS.exists(DEF_IMG_PATH)) {
         DEBUG_MSG_LN("delete old image");
-        SPIFFS.remove(fileName);
+        SPIFFS.remove(DEF_IMG_PATH);
     }
     preCapture(picFmt);
     Capture();
-    return GetData(fileName);
+    return GetData(DEF_IMG_PATH);
 }
 
 /*********************************************************************/
 void Camera::clearRxBuf() {
     while (_camSerial.available()) {
-        yield();
+        TASK_DELAY(1);
         _camSerial.read();
     }
 }
 /*********************************************************************/
 void Camera::sendCmd(char cmd[], int cmd_len) {
     for (int i = 0; i < cmd_len; i++) {
-        yield();
+        TASK_DELAY(1);
         _camSerial.write(cmd[i]);
     }
 }
@@ -35,7 +35,7 @@ uint16_t Camera::readBytes(uint8_t buf[], uint16_t len, uint16_t timeout_ms) {
     for (i = 0; i < len; i++) {
         while (_camSerial.available() == 0) {
             // delayMicroseconds(10);
-            yield();
+            TASK_DELAY(1);
             if (++subms >= 100) {
                 if (timeout_ms == 0) {
                     return i;
@@ -57,7 +57,7 @@ bool Camera::initialize() {
     unsigned long timeout = 3000;
     unsigned long current = millis();
     while (millis() - current < timeout) {
-        yield();
+        TASK_DELAY(1);
         sendCmd(cmd, 6);
         if (readBytes((uint8_t *)resp, 6, 1000) != 6) {
             Serial.print(".");
@@ -89,7 +89,7 @@ bool Camera::preCapture(int picFmt) {
     unsigned long timeout = 3000;
     unsigned long current = millis();
     while (millis() - current < timeout) {
-        yield();
+        TASK_DELAY(1);
         clearRxBuf();
         sendCmd(cmd, 6);
         if (readBytes((uint8_t *)resp, 6, 100) != 6) {
@@ -113,7 +113,7 @@ void Camera::Capture() {
     unsigned char resp[6];
 
     while (1) {
-        yield();
+        TASK_DELAY(1);
         clearRxBuf();
         sendCmd(cmd, 6);
         if (readBytes((uint8_t *)resp, 6, 100) != 6)
@@ -128,7 +128,7 @@ void Camera::Capture() {
     cmd[4] = 0;
     cmd[5] = 0;
     while (1) {
-        yield();
+        TASK_DELAY(1);
         clearRxBuf();
         sendCmd(cmd, 6);
         if (readBytes((uint8_t *)resp, 6, 100) != 6)
@@ -181,7 +181,7 @@ bool Camera::GetData(String fileName) {
         int retry_cnt = 0;
     retry:
         // delay(10);
-        yield();
+        TASK_DELAY(1);
         clearRxBuf();
         sendCmd(cmd, 6);
         uint16_t cnt = readBytes((uint8_t *)pkt, PIC_PKT_LEN, 200);

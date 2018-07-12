@@ -30,7 +30,7 @@ class Camera {
   public:
     Camera() { _camSerial.begin(115200); };
     bool initialize();
-    bool saveCameraData(String fileName, int picFmt);
+    bool saveCameraData(int pictFmt);
 
   private:
     void clearRxBuf();
