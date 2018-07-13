@@ -13,7 +13,7 @@
 // data length of each read, dont set this too big because ram is limited
 #define PIC_PKT_LEN 500
 #define CAM_ADDR 0
-#define PIC_FMT OV528_SIZE_QQVGA
+#define PIC_FMT OV528_SIZE_QVGA
 #define cameraRX 5
 #define cameraTX 4
 
@@ -23,14 +23,15 @@ class Camera {
     HardwareSerial _camSerial = HardwareSerial(2);
 
   private:
-    bool _isCaptured = false;
-    unsigned long _picTotalLen = 0;     // picture length
+    unsigned long _picTotalLen = 0; // picture length
+    int _resolution = OV528_SIZE_QVGA;
     byte _cameraAddr = (CAM_ADDR << 5); // addr
 
   public:
     Camera() { _camSerial.begin(115200); };
     bool initialize();
-    bool saveCameraData(String fileName, int picFmt);
+    bool saveCameraData();
+    void setResolution(int resolution) { _resolution = resolution; };
 
   private:
     void clearRxBuf();

@@ -48,14 +48,55 @@ void TrapModule::setupTask() {
 /********************************************
  * Camera メソッド
  *******************************************/
-bool TrapModule::snapCamera(int picFmt) {
-    // _mesh.stop();
+/**
+ * カメラスナップショット要求
+ * TODO: タスク完了後の bool 値を判定に使用したい
+ */
+bool TrapModule::snapCamera(int resolution) {
     DEBUG_MSG_LN("snapCamera");
-    bool isSnap = _camera.saveCameraData("/image.jpg", picFmt);
-    // setupMesh();
-    _sendPictureTask.setIterations(5);
-    _sendPictureTask.enableDelayed(5000);
-    return isSnap;
+    if (!_config._cameraEnable) {
+        DEBUG_MSG_LN("camera cannot use");
+        return false;
+    }
+    // 画像転送タスク実行中はカメラ撮影は実行しない
+    if (_sendPictureTask.isEnabled()) {
+        DEBUG_MSG_LN("camera cannot use because picture send task is running");
+        return false;
+    }
+    _camera.setResolution(resolution);
+    // タスク作成前の場合はタスクを作成
+    if (strncmp(pcTaskGetTaskName(_taskHandle[0]), CAMERA_TASK_NAME,
+                strlen(CAMERA_TASK_NAME)) != 0) {
+        xTaskCreatePinnedToCore(TrapModule::snapCameraTask, CAMERA_TASK_NAME,
+                                TASK_MEMORY, this, 2, &_taskHandle[0], 0);
+        return true;
+    } else {
+        if (eTaskGetState(_taskHandle[0]) == eSuspended) {
+            vTaskResume(_taskHandle[0]);
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * カメラ撮影タスク
+ */
+void TrapModule::snapCameraTask(void *arg) {
+    TrapModule *trapModule = reinterpret_cast<TrapModule *>(arg);
+    while (1) {
+        if (trapModule->_camera.saveCameraData()) {
+            DEBUG_MSG_LN("snap success");
+            // メッセージ送信タスク実行中でなければ送信タスク開始
+            trapModule->_sendPictureTask.setIterations(5);
+            trapModule->_sendPictureTask.enable();
+        } else {
+            DEBUG_MSG_LN("snap failed");
+        }
+        DEBUG_MSG_LN("camera task suspend");
+        vTaskSuspend(trapModule->_taskHandle[0]);
+        TASK_DELAY(1);
+    }
 }
 
 /********************************************
@@ -100,7 +141,12 @@ void TrapModule::update() {
  * モジュール設定値操作
  *******************************************/
 // モジュールパラメータ設定
-bool TrapModule::setConfig(const JsonObject &config) {
+bool TrapModule::setConfig(JsonObject &config) {
+    if (!config.success()) {
+        DEBUG_MSG_LN("json parse failed");
+        return false;
+    }
+    config[KEY_CONFIG_UPDATE] = true;
     if (syncAllModuleConfigs(config)) {
         updateModuleConfig(config);
         return saveCurrentModuleConfig();
@@ -109,15 +155,10 @@ bool TrapModule::setConfig(const JsonObject &config) {
 }
 
 // 現在時刻設定
-bool TrapModule::setCurrentTime(int hour, int minute, int second, int day,
-                                int month, int year) {
-    setTime(hour, minute, second, day, month, year);
-    return syncCurrentTime();
-}
-
-// 現在時刻設定
 bool TrapModule::setCurrentTime(time_t current) {
     setTime(current);
+    DEBUG_MSG_F("current time:%d/%d/%d %d:%d:%d\n", year(), month(), day(),
+                hour(), minute(), second());
     return syncCurrentTime();
 }
 
@@ -182,7 +223,7 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
         int decLen = base64_dec_len((char *)data, inputLen);
         char *dec = (char *)malloc(decLen + 1);
         base64_decode(dec, (char *)data, inputLen);
-        File img = SPIFFS.open("/image.jpg", "w");
+        File img = SPIFFS.open(DEF_IMG_PATH, "w");
         img.write((const uint8_t *)dec, decLen + 1);
         img.close();
         free(dec);
@@ -217,16 +258,8 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
         _config._realTimeDiff = millis();
     }
     // モジュール設定更新メッセージ受信
-    if (msgJson.containsKey(KEY_SLEEP_INTERVAL) ||
-        msgJson.containsKey(KEY_WORK_TIME) ||
-        msgJson.containsKey(KEY_TRAP_MODE) ||
-        msgJson.containsKey(KEY_ACTIVE_START) ||
-        msgJson.containsKey(KEY_ACTIVE_END) ||
-        msgJson.containsKey(KEY_GPS_LAT) || msgJson.containsKey(KEY_GPS_LON) ||
-        msgJson.containsKey(KEY_WAKE_TIME) ||
-        msgJson.containsKey(KEY_CURRENT_TIME)) {
-        DEBUG_MSG_LN("Module config changed");
-        // 罠検知済みフラグは自身の設定値を反映
+    if (msgJson.containsKey(KEY_CONFIG_UPDATE)) {
+        DEBUG_MSG_LN("Module config update");
         updateModuleConfig(msgJson);
         saveCurrentModuleConfig();
     }
@@ -307,10 +340,6 @@ void TrapModule::nodeTimeAdjustedCallback(int32_t offset) {
  **/
 bool TrapModule::syncAllModuleConfigs(const JsonObject &config) {
     DEBUG_MSG_LN("syncAllModuleConfigs");
-    if (!config.success()) {
-        DEBUG_MSG_LN("json parse failed");
-        return false;
-    }
     if (_mesh.getNodeList().size() == 0) {
         return true;
     }
@@ -326,6 +355,7 @@ bool TrapModule::syncCurrentTime() {
     }
     DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
     JsonObject &currentTime = jsonBuf.createObject();
+    currentTime[KEY_CONFIG_UPDATE] = true;
     currentTime[KEY_CURRENT_TIME] = now();
     String msg;
     currentTime.printTo(msg);
@@ -387,11 +417,10 @@ void TrapModule::sendPicture() {
         _sendPictureTask.disable();
         return;
     }
-    String path = "/image.jpg";
-    if (!SPIFFS.exists(path)) {
+    if (!SPIFFS.exists(DEF_IMG_PATH)) {
         return;
     }
-    File file = SPIFFS.open(path, "r");
+    File file = SPIFFS.open(DEF_IMG_PATH, "r");
     size_t size = file.size();
     if (size == 0) {
         file.close();

@@ -21,6 +21,8 @@ class TrapModule {
     Task _checkBatteryTask; // バッテリーチェック
     Task _sendPictureTask;  // 写真撮影フラグ
 
+    TaskHandle_t _taskHandle[1];
+
   public:
     TrapModule(){};
     ~TrapModule(){};
@@ -40,16 +42,15 @@ class TrapModule {
     // loop
     void update();
     // モジュール設定値操作
-    bool setConfig(const JsonObject &config);
+    bool setConfig(JsonObject &config);
     String getMeshGraph() { return _mesh.subConnectionJson(); };
     JsonObject &getModuleInfo() { return _config.getModuleInfo(_mesh); };
-    bool setCurrentTime(int hour, int minute, int second, int day, int month,
-                        int year);
     bool setCurrentTime(time_t current);
     bool initGps();
     bool sendGetGps();
     // カメラ機能
-    bool snapCamera(int picFmt = -1);
+    bool snapCamera(int resolution = -1);
+    static void snapCameraTask(void *arg);
     // debug 機能
     bool sendDebugMesage(String msg, uint32_t nodeId = 0);
 

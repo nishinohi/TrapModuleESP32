@@ -104,26 +104,13 @@ void TrapServer::onGetMeshGraph(AsyncWebServerRequest *request) {
  */
 void TrapServer::onSetCurrentTime(AsyncWebServerRequest *request) {
     DEBUG_MSG_LN("onSetCurrentTime");
-    if ((request->arg(KEY_YEAR) == NULL || request->arg(KEY_YEAR).length()) ==
-            0 ||
-        (request->arg(KEY_MONTH) == NULL || request->arg(KEY_MONTH).length()) ==
-            0 ||
-        (request->arg(KEY_DAY) == NULL || request->arg(KEY_DAY).length()) ==
-            0 ||
-        (request->arg(KEY_HOUR) == NULL || request->arg(KEY_HOUR).length()) ==
-            0 ||
-        (request->arg(KEY_MINUTE) == NULL ||
-         request->arg(KEY_MINUTE).length()) == 0 ||
-        (request->arg(KEY_SECOND) == NULL ||
-         request->arg(KEY_SECOND).length()) == 0) {
+    if ((request->arg(KEY_CURRENT_TIME) == NULL ||
+         request->arg(KEY_CURRENT_TIME).length()) == 0) {
         DEBUG_MSG_LN("onSetCurrentTime parse Error");
         request->send(500);
         return;
     }
-    if (_trapModule->setCurrentTime(
-            request->arg(KEY_HOUR).toInt(), request->arg(KEY_MINUTE).toInt(),
-            request->arg(KEY_SECOND).toInt(), request->arg(KEY_DAY).toInt(),
-            request->arg(KEY_MONTH).toInt(), request->arg(KEY_YEAR).toInt())) {
+    if (_trapModule->setCurrentTime(request->arg(KEY_CURRENT_TIME).toInt())) {
         request->send(200);
     } else {
         request->send(500);
@@ -141,7 +128,7 @@ void TrapServer::onSnapShot(AsyncWebServerRequest *request) {
         picFmt = temp.toInt();
     }
     if (_trapModule->snapCamera(picFmt)) {
-        request->send(200, "image/jpeg", "image.jpg");
+        request->send(200, "image/jpeg", DEF_IMG_PATH);
         return;
     }
     request->send(500);

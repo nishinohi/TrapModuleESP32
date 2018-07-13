@@ -18,6 +18,8 @@ JsonObject &ModuleConfig::getModuleInfo(painlessMesh &mesh) {
     moduleInfo[KEY_ACTIVE_START] = _activeStart;
     moduleInfo[KEY_ACTIVE_END] = _activeEnd;
     moduleInfo[KEY_CAMERA_ENABLE] = _cameraEnable;
+    bool isTimeSet = timeStatus() != timeStatus_t::timeNotSet;
+    moduleInfo[KEY_CURRENT_TIME] = isTimeSet ? now() : DEF_CURRENT_TIME;
     JsonArray &nodeList = moduleInfo.createNestedArray(KEY_NODE_LIST);
     SimpleList<uint32_t> nodes = mesh.getNodeList();
     for (SimpleList<uint32_t>::iterator it = nodes.begin(); it != nodes.end();

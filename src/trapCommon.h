@@ -16,7 +16,7 @@
 #define DEBUG_MSG(...)
 #endif
 // 罠検知設定
-#define TRAP_ACTIVE
+// #define TRAP_ACTIVE
 #define TRAP_CHECK_PIN 14
 // 罠設置モードでの強制起動用
 #define FORCE_TRAP_MODE_PIN 32
@@ -55,12 +55,6 @@
 #define KEY_MESH_GRAPH "MeshGraph"
 #define KEY_SYNC_SLEEP "SyncSleep"
 #define KEY_REAL_TIME "RealTime"
-#define KEY_YEAR "Year"
-#define KEY_MONTH "Month"
-#define KEY_DAY "Day"
-#define KEY_HOUR "Hour"
-#define KEY_MINUTE "Minute"
-#define KEY_SECOND "Second"
 #define KEY_CAMERA_ENABLE "CameraEnable"
 #define KEY_PICTURE_FORMAT "PictureFormat"
 // デフォルト設定値
@@ -92,9 +86,15 @@
 #define SYNC_SLEEP_INTERVAL 3000 // // 同期 DeepSleep 遅延時間[msec]
 #define SEND_RETRY 3 // メッセージ送信リトライ数
 // バッテリー関連
-#define BATTERY_CHECK_ACTIVE	// バッテリー残量チェックを行わない場合（分圧用抵抗が無いなど）はこの行をコメントアウト
+// #define BATTERY_CHECK_ACTIVE	// バッテリー残量チェックを行わない場合（分圧用抵抗が無いなど）はこの行をコメントアウト
 #define DISCHARGE_END_VOLTAGE 610	// 放電終止電圧(1V = 1024)として 1/6 に分圧した場合の読み取り値
 // GPS ロケーション文字列長
 #define GPS_STR_LEN 16
+// camera 
+#define DEF_IMG_PATH "/image.jpg"
+// multi task
+#define TASK_MEMORY 4096
+#define TASK_DELAY(delayMsec) vTaskDelay((delayMsec) / portTICK_RATE_MS)
+#define CAMERA_TASK_NAME "cameraTask"
 
 #endif // INCLUDE_GUARD_COMMON
