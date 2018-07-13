@@ -3,8 +3,8 @@
 /**
  * save picture by default name
  */
-bool Camera::saveCameraData(int picFmt) {
-    picFmt = picFmt != -1 ? picFmt : OV528_SIZE_QQVGA;
+bool Camera::saveCameraData() {
+    int picFmt = _resolution != -1 ? _resolution : OV528_SIZE_QVGA;
     if (SPIFFS.exists(DEF_IMG_PATH)) {
         DEBUG_MSG_LN("delete old image");
         SPIFFS.remove(DEF_IMG_PATH);

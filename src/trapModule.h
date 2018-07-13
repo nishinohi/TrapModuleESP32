@@ -49,7 +49,7 @@ class TrapModule {
     bool initGps();
     bool sendGetGps();
     // カメラ機能
-    bool snapCamera(int picFmt = -1);
+    bool snapCamera(int resolution = -1);
     static void snapCameraTask(void *arg);
     // debug 機能
     bool sendDebugMesage(String msg, uint32_t nodeId = 0);
