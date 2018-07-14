@@ -8,14 +8,13 @@ void TrapModule::setupMesh(const uint16_t types) {
     // set before init() so that you can see startup messages
     _mesh.setDebugMsgTypes(types);
     _mesh.init(MESH_SSID, MESH_PASSWORD, MESH_PORT);
-    _mesh.onReceive(std::bind(&TrapModule::receivedCallback, this,
-                              std::placeholders::_1, std::placeholders::_2));
-    _mesh.onNewConnection(std::bind(&TrapModule::newConnectionCallback, this,
-                                    std::placeholders::_1));
-    _mesh.onChangedConnections(
-        std::bind(&TrapModule::changedConnectionCallback, this));
-    _mesh.onNodeTimeAdjusted(std::bind(&TrapModule::nodeTimeAdjustedCallback,
-                                       this, std::placeholders::_1));
+    _mesh.onReceive(std::bind(&TrapModule::receivedCallback, this, std::placeholders::_1,
+                              std::placeholders::_2));
+    _mesh.onNewConnection(
+        std::bind(&TrapModule::newConnectionCallback, this, std::placeholders::_1));
+    _mesh.onChangedConnections(std::bind(&TrapModule::changedConnectionCallback, this));
+    _mesh.onNodeTimeAdjusted(
+        std::bind(&TrapModule::nodeTimeAdjustedCallback, this, std::placeholders::_1));
 }
 
 // 実施タスクセットアップ
@@ -26,15 +25,13 @@ void TrapModule::setupTask() {
     _mesh.scheduler.addTask(_blinkNodesTask);
     _blinkNodesTask.enable();
     // battery check interval
-    _checkBatteryTask.set(CHECK_INTERVAL, TASK_FOREVER,
-                          std::bind(&TrapModule::checkBattery, this));
+    _checkBatteryTask.set(CHECK_INTERVAL, TASK_FOREVER, std::bind(&TrapModule::checkBattery, this));
     _mesh.scheduler.addTask(_checkBatteryTask);
     if (!_config._trapMode) {
         _checkBatteryTask.enable();
     }
     // trap check
-    _checkTrapTask.set(CHECK_INTERVAL, TASK_FOREVER,
-                       std::bind(&TrapModule::checkTrap, this));
+    _checkTrapTask.set(CHECK_INTERVAL, TASK_FOREVER, std::bind(&TrapModule::checkTrap, this));
     _mesh.scheduler.addTask(_checkTrapTask);
     // picture
     _sendPictureTask.set(5000, 5, std::bind(&TrapModule::sendPicture, this));
@@ -65,10 +62,10 @@ bool TrapModule::snapCamera(int resolution) {
     }
     _camera.setResolution(resolution);
     // タスク作成前の場合はタスクを作成
-    if (strncmp(pcTaskGetTaskName(_taskHandle[0]), CAMERA_TASK_NAME,
-                strlen(CAMERA_TASK_NAME)) != 0) {
-        xTaskCreatePinnedToCore(TrapModule::snapCameraTask, CAMERA_TASK_NAME,
-                                TASK_MEMORY, this, 2, &_taskHandle[0], 0);
+    if (strncmp(pcTaskGetTaskName(_taskHandle[0]), CAMERA_TASK_NAME, strlen(CAMERA_TASK_NAME)) !=
+        0) {
+        xTaskCreatePinnedToCore(TrapModule::snapCameraTask, CAMERA_TASK_NAME, TASK_MEMORY, this, 2,
+                                &_taskHandle[0], 0);
         return true;
     } else {
         if (eTaskGetState(_taskHandle[0]) == eSuspended) {
@@ -115,8 +112,7 @@ void TrapModule::update() {
         _config._isTrapStart = false;
     }
     // メッシュ待機限界時間が経過したら罠とバッテリーチェック開始
-    if (_config._trapMode &&
-        now() - _config._wakeTime > _config._workTime - MESH_WAIT_LIMIT &&
+    if (_config._trapMode && now() - _config._wakeTime > _config._workTime - MESH_WAIT_LIMIT &&
         !_checkTrapTask.isEnabled() && !_checkBatteryTask.isEnabled()) {
         DEBUG_MSG_LN("mesh wait limit.");
         moduleCheckStart();
@@ -157,8 +153,8 @@ bool TrapModule::setConfig(JsonObject &config) {
 // 現在時刻設定
 bool TrapModule::setCurrentTime(time_t current) {
     setTime(current);
-    DEBUG_MSG_F("current time:%d/%d/%d %d:%d:%d\n", year(), month(), day(),
-                hour(), minute(), second());
+    DEBUG_MSG_F("current time:%d/%d/%d %d:%d:%d\n", year(), month(), day(), hour(), minute(),
+                second());
     return syncCurrentTime();
 }
 
@@ -272,8 +268,8 @@ void TrapModule::newConnectionCallback(uint32_t nodeId) {
     // Reset blink task
     _config._ledOnFlag = false;
     _blinkNodesTask.setIterations((_mesh.getNodeList().size() + 1) * 2);
-    _blinkNodesTask.enableDelayed(
-        BLINK_PERIOD - (_mesh.getNodeTime() % (BLINK_PERIOD * 1000)) / 1000);
+    _blinkNodesTask.enableDelayed(BLINK_PERIOD -
+                                  (_mesh.getNodeTime() % (BLINK_PERIOD * 1000)) / 1000);
     DEBUG_MSG_F("--> startHere: New Connection, nodeId = %u\n", nodeId);
 
     SimpleList<uint32_t> nodes = _mesh.getNodeList();
@@ -303,8 +299,8 @@ void TrapModule::changedConnectionCallback() {
     // Reset blink task
     _config._ledOnFlag = false;
     _blinkNodesTask.setIterations((_mesh.getNodeList().size() + 1) * 2);
-    _blinkNodesTask.enableDelayed(
-        BLINK_PERIOD - (_mesh.getNodeTime() % (BLINK_PERIOD * 1000)) / 1000);
+    _blinkNodesTask.enableDelayed(BLINK_PERIOD -
+                                  (_mesh.getNodeTime() % (BLINK_PERIOD * 1000)) / 1000);
 
     SimpleList<uint32_t> nodes = _mesh.getNodeList();
     // 罠モード時に前回起動時のメッシュ数になれば罠検知とバッテリーチェック開始
@@ -470,9 +466,8 @@ void TrapModule::blinkLed() {
     _blinkNodesTask.delay(BLINK_DURATION);
     if (_blinkNodesTask.isLastIteration()) {
         _blinkNodesTask.setIterations((_mesh.getNodeList().size() + 1) * 2);
-        _blinkNodesTask.enableDelayed(
-            BLINK_PERIOD -
-            (_mesh.getNodeTime() % (BLINK_PERIOD * 1000)) / 1000);
+        _blinkNodesTask.enableDelayed(BLINK_PERIOD -
+                                      (_mesh.getNodeTime() % (BLINK_PERIOD * 1000)) / 1000);
     }
 }
 
@@ -560,17 +555,15 @@ void TrapModule::shiftDeepSleep() {
     }
     _config.setWakeTime();
     time_t tNow = now();
-    _config._currentTime =
-        tNow + _config.calcSleepTime(tNow, _config._wakeTime);
+    _config._currentTime = tNow + _config.calcSleepTime(tNow, _config._wakeTime);
     saveCurrentModuleConfig();
 #ifdef DEBUG_ESP_PORT
     time_t temp = now();
     setTime(_config._wakeTime);
-    DEBUG_MSG_F("wakeTime:%d/%d/%d %d:%d:%d\n", year(), month(), day(), hour(),
-                minute(), second());
+    DEBUG_MSG_F("wakeTime:%d/%d/%d %d:%d:%d\n", year(), month(), day(), hour(), minute(), second());
     setTime(_config._currentTime);
-    DEBUG_MSG_F("currentTime:%d/%d/%d %d:%d:%d\n", year(), month(), day(),
-                hour(), minute(), second());
+    DEBUG_MSG_F("currentTime:%d/%d/%d %d:%d:%d\n", year(), month(), day(), hour(), minute(),
+                second());
     setTime(temp);
 #endif
     // calcSleepTime() の返り値をそのままESP.deepSleep()の返り値にすると変になる

@@ -63,13 +63,13 @@ bool Camera::initialize() {
             Serial.print(".");
             continue;
         }
-        if (resp[0] == 0xaa && resp[1] == (0x0e | _cameraAddr) &&
-            resp[2] == 0x0d && resp[4] == 0 && resp[5] == 0) {
+        if (resp[0] == 0xaa && resp[1] == (0x0e | _cameraAddr) && resp[2] == 0x0d && resp[4] == 0 &&
+            resp[5] == 0) {
             if (readBytes((uint8_t *)resp, 6, 500) != 6) {
                 continue;
             }
-            if (resp[0] == 0xaa && resp[1] == (0x0d | _cameraAddr) &&
-                resp[2] == 0 && resp[3] == 0 && resp[4] == 0 && resp[5] == 0) {
+            if (resp[0] == 0xaa && resp[1] == (0x0d | _cameraAddr) && resp[2] == 0 &&
+                resp[3] == 0 && resp[4] == 0 && resp[5] == 0) {
                 cmd[1] = 0x0e | _cameraAddr;
                 cmd[2] = 0x0d;
                 sendCmd(cmd, 6);
@@ -95,8 +95,8 @@ bool Camera::preCapture(int picFmt) {
         if (readBytes((uint8_t *)resp, 6, 100) != 6) {
             continue;
         }
-        if (resp[0] == 0xaa && resp[1] == (0x0e | _cameraAddr) &&
-            resp[2] == 0x01 && resp[4] == 0 && resp[5] == 0) {
+        if (resp[0] == 0xaa && resp[1] == (0x0e | _cameraAddr) && resp[2] == 0x01 && resp[4] == 0 &&
+            resp[5] == 0) {
             return true;
         }
     }
@@ -104,12 +104,7 @@ bool Camera::preCapture(int picFmt) {
 }
 
 void Camera::Capture() {
-    char cmd[] = {0xaa,
-                  0x06 | _cameraAddr,
-                  0x08,
-                  PIC_PKT_LEN & 0xff,
-                  (PIC_PKT_LEN >> 8) & 0xff,
-                  0};
+    char cmd[] = {0xaa, 0x06 | _cameraAddr, 0x08, PIC_PKT_LEN & 0xff, (PIC_PKT_LEN >> 8) & 0xff, 0};
     unsigned char resp[6];
 
     while (1) {
@@ -118,8 +113,8 @@ void Camera::Capture() {
         sendCmd(cmd, 6);
         if (readBytes((uint8_t *)resp, 6, 100) != 6)
             continue;
-        if (resp[0] == 0xaa && resp[1] == (0x0e | _cameraAddr) &&
-            resp[2] == 0x06 && resp[4] == 0 && resp[5] == 0)
+        if (resp[0] == 0xaa && resp[1] == (0x0e | _cameraAddr) && resp[2] == 0x06 && resp[4] == 0 &&
+            resp[5] == 0)
             break;
     }
     cmd[1] = 0x05 | _cameraAddr;
@@ -133,8 +128,8 @@ void Camera::Capture() {
         sendCmd(cmd, 6);
         if (readBytes((uint8_t *)resp, 6, 100) != 6)
             continue;
-        if (resp[0] == 0xaa && resp[1] == (0x0e | _cameraAddr) &&
-            resp[2] == 0x05 && resp[4] == 0 && resp[5] == 0)
+        if (resp[0] == 0xaa && resp[1] == (0x0e | _cameraAddr) && resp[2] == 0x05 && resp[4] == 0 &&
+            resp[5] == 0)
             break;
     }
     cmd[1] = 0x04 | _cameraAddr;
@@ -144,13 +139,12 @@ void Camera::Capture() {
         sendCmd(cmd, 6);
         if (readBytes((uint8_t *)resp, 6, 100) != 6)
             continue;
-        if (resp[0] == 0xaa && resp[1] == (0x0e | _cameraAddr) &&
-            resp[2] == 0x04 && resp[4] == 0 && resp[5] == 0) {
+        if (resp[0] == 0xaa && resp[1] == (0x0e | _cameraAddr) && resp[2] == 0x04 && resp[4] == 0 &&
+            resp[5] == 0) {
             if (readBytes((uint8_t *)resp, 6, 1000) != 6) {
                 continue;
             }
-            if (resp[0] == 0xaa && resp[1] == (0x0a | _cameraAddr) &&
-                resp[2] == 0x01) {
+            if (resp[0] == 0xaa && resp[1] == (0x0a | _cameraAddr) && resp[2] == 0x01) {
                 _picTotalLen = (resp[3]) | (resp[4] << 8) | (resp[5] << 16);
                 DEBUG_MSG("_picTotalLen:");
                 DEBUG_MSG_LN(_picTotalLen);

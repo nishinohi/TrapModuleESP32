@@ -50,8 +50,7 @@ class ModuleConfig {
   private:
     void setDefaultModuleConfig();
     template <class T>
-    void setParameter(T &targetParam, const T &setParam, const int maxV,
-                      const int minV);
+    void setParameter(T &targetParam, const T &setParam, const int maxV, const int minV);
     bool saveModuleConfig(const JsonObject &config);
     void updateGpsInfo(const char *lat, const char *lon);
 };

@@ -1,8 +1,8 @@
 #ifndef INCLUDE_GUARD_SERVER
 #define INCLUDE_GUARD_SERVER
 
-#include "trapModule.h"
 #include "trapCommon.h"
+#include "trapModule.h"
 #include <ESPAsyncWebServer.h>
 
 class TrapServer {

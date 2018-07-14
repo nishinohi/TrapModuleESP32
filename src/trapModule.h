@@ -62,12 +62,8 @@ class TrapModule {
     bool sendTrapFire();
     void sendPicture();
     // config
-    void updateModuleConfig(const JsonObject &config) {
-        _config.updateModuleConfig(config);
-    };
-    bool saveCurrentModuleConfig() {
-        return _config.saveCurrentModuleConfig();
-    };
+    void updateModuleConfig(const JsonObject &config) { _config.updateModuleConfig(config); };
+    bool saveCurrentModuleConfig() { return _config.saveCurrentModuleConfig(); };
 
     // ハードウェア機能
     void shiftDeepSleep();
