@@ -47,7 +47,7 @@ class TrapModule {
     JsonObject &getModuleInfo() { return _config.getModuleInfo(_mesh); };
     bool setCurrentTime(time_t current);
     bool initGps();
-    bool sendGetGps();
+    bool getGps();
     // カメラ機能
     bool snapCamera(int resolution = -1);
     static void snapCameraTask(void *arg);
@@ -61,10 +61,10 @@ class TrapModule {
     bool sendBatteryDead();
     bool sendTrapFire();
     void sendPicture();
+    bool sendGetGps();
     // config
     void updateModuleConfig(const JsonObject &config) { _config.updateModuleConfig(config); };
     bool saveCurrentModuleConfig() { return _config.saveCurrentModuleConfig(); };
-
     // ハードウェア機能
     void shiftDeepSleep();
     // mesh
