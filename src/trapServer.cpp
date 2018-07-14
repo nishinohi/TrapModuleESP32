@@ -6,27 +6,21 @@
 void TrapServer::setupServer() {
     server.on("/setConfig", HTTP_POST,
               std::bind(&TrapServer::onSetConfig, this, std::placeholders::_1));
-    server.on(
-        "/getModuleInfo", HTTP_GET,
-        std::bind(&TrapServer::onGetModuleInfo, this, std::placeholders::_1));
-    server.on(
-        "/getMeshGraph", HTTP_GET,
-        std::bind(&TrapServer::onGetMeshGraph, this, std::placeholders::_1));
-    server.on(
-        "/setCurrentTime", HTTP_POST,
-        std::bind(&TrapServer::onSetCurrentTime, this, std::placeholders::_1));
+    server.on("/getModuleInfo", HTTP_GET,
+              std::bind(&TrapServer::onGetModuleInfo, this, std::placeholders::_1));
+    server.on("/getMeshGraph", HTTP_GET,
+              std::bind(&TrapServer::onGetMeshGraph, this, std::placeholders::_1));
+    server.on("/setCurrentTime", HTTP_POST,
+              std::bind(&TrapServer::onSetCurrentTime, this, std::placeholders::_1));
     server.on("/snapShot", HTTP_POST,
               std::bind(&TrapServer::onSnapShot, this, std::placeholders::_1));
-    server.on(
-        "/sendMessage", HTTP_POST,
-        std::bind(&TrapServer::onSendMessage, this, std::placeholders::_1));
+    server.on("/sendMessage", HTTP_POST,
+              std::bind(&TrapServer::onSendMessage, this, std::placeholders::_1));
     server.on("/initGps", HTTP_POST,
               std::bind(&TrapServer::onInitGps, this, std::placeholders::_1));
-    server.on("/getGps", HTTP_GET,
-              std::bind(&TrapServer::onGetGps, this, std::placeholders::_1));
+    server.on("/getGps", HTTP_GET, std::bind(&TrapServer::onGetGps, this, std::placeholders::_1));
     server.serveStatic("/", SPIFFS, "/").setDefaultFile("index.html");
-    server.onNotFound(
-        [](AsyncWebServerRequest *request) { request->send(404); });
+    server.onNotFound([](AsyncWebServerRequest *request) { request->send(404); });
 }
 
 /**********************************
@@ -104,8 +98,7 @@ void TrapServer::onGetMeshGraph(AsyncWebServerRequest *request) {
  */
 void TrapServer::onSetCurrentTime(AsyncWebServerRequest *request) {
     DEBUG_MSG_LN("onSetCurrentTime");
-    if ((request->arg(KEY_CURRENT_TIME) == NULL ||
-         request->arg(KEY_CURRENT_TIME).length()) == 0) {
+    if ((request->arg(KEY_CURRENT_TIME) == NULL || request->arg(KEY_CURRENT_TIME).length()) == 0) {
         DEBUG_MSG_LN("onSetCurrentTime parse Error");
         request->send(500);
         return;

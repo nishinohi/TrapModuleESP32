@@ -20,7 +20,7 @@ void setup() {
     // 起動時刻チェック
     trapModule.checkStart();
     // mesh
-    // ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE 
+    // ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE
     trapModule.setupMesh(ERROR);
     DEBUG_MSG_LN("mesh setup");
     trapModule.setupTask();
@@ -33,6 +33,4 @@ void setup() {
     DEBUG_MSG_LN("server start");
 }
 
-void loop() {
-    trapModule.update();
-}
+void loop() { trapModule.update(); }

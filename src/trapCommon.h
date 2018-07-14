@@ -7,9 +7,9 @@
 // デバッグ
 #define DEBUG_ESP_PORT Serial
 #ifdef DEBUG_ESP_PORT
-#define DEBUG_MSG_LN(...) DEBUG_ESP_PORT.println( __VA_ARGS__ )
-#define DEBUG_MSG_F(...) DEBUG_ESP_PORT.printf( __VA_ARGS__ )
-#define DEBUG_MSG(...) DEBUG_ESP_PORT.print( __VA_ARGS__ )
+#define DEBUG_MSG_LN(...) DEBUG_ESP_PORT.println(__VA_ARGS__)
+#define DEBUG_MSG_F(...) DEBUG_ESP_PORT.printf(__VA_ARGS__)
+#define DEBUG_MSG(...) DEBUG_ESP_PORT.print(__VA_ARGS__)
 #else
 #define DEBUG_MSG_LN(...)
 #define DEBUG_MSG_F(...)
@@ -22,8 +22,8 @@
 #define FORCE_TRAP_MODE_PIN 32
 // 接続モジュール数確認用LED
 #define LED 13
-#define BLINK_PERIOD 3000 // milliseconds until cycle repeat
-#define BLINK_DURATION  100  // milliseconds LED is on for
+#define BLINK_PERIOD 3000  // milliseconds until cycle repeat
+#define BLINK_DURATION 100 // milliseconds LED is on for
 // メッシュネットワーク設定
 #define MESH_SSID "trapModule"
 #define MESH_PASSWORD "123456789"
@@ -58,10 +58,10 @@
 #define KEY_CAMERA_ENABLE "CameraEnable"
 #define KEY_PICTURE_FORMAT "PictureFormat"
 // デフォルト設定値
-#define DEF_SLEEP_INTERVAL 3600	// 60分間隔起動[sec]
-#define DEF_WORK_TIME 180	// 3分間稼働[sec]
-#define DEF_TRAP_MODE false // 設置モード
-#define DEF_TRAP_FIRE false // 罠作動済みフラグ
+#define DEF_SLEEP_INTERVAL 3600 // 60分間隔起動[sec]
+#define DEF_WORK_TIME 180       // 3分間稼働[sec]
+#define DEF_TRAP_MODE false     // 設置モード
+#define DEF_TRAP_FIRE false     // 罠作動済みフラグ
 #define DEF_GPS_LAT "\0"
 #define DEF_GPS_LON "\0"
 #define DEF_ACTIVE_START 0
@@ -73,24 +73,25 @@
 #ifdef ESP32
 #define MAX_SLEEP_INTERVAL 86400 // ESP32 の場合停止時間は24時間でも大丈夫
 #else
-#define MAX_SLEEP_INTERVAL 4200	// 70分[sec] 最大Sleep時間（本当は71.5分まで可能だが安全のため）
+#define MAX_SLEEP_INTERVAL 4200 // 70分[sec] 最大Sleep時間（本当は71.5分まで可能だが安全のため）
 #endif
-#define MIN_SLEEP_INTERVAL 10	// 10分[sec]
-#define MIN_WORK_TIME 30	// 1分[sec]（これ以上短いと設定変更するためにアクセスする暇がない）
-#define MAX_WORK_TIME 600	// 10分[sec]
+#define MIN_SLEEP_INTERVAL 10 // 10分[sec]
+#define MIN_WORK_TIME 30 // 1分[sec]（これ以上短いと設定変更するためにアクセスする暇がない）
+#define MAX_WORK_TIME 600 // 10分[sec]
 #define MESH_WAIT_LIMIT 20 // メッシュネットワーク構築待機限界時間(_workTime - 20[sec])
 // Task 関連
-#define CHECK_INTERVAL 2000 // モジュール監視間隔[msec]
-#define TRAP_CHECK_DELAYED 3000 // 罠作動チェック間隔[msec]
-#define BATTERY_CHECK_DELAYED 4000	// バッテリー残量チェック間隔(msec)
-#define SYNC_SLEEP_INTERVAL 3000 // // 同期 DeepSleep 遅延時間[msec]
-#define SEND_RETRY 3 // メッセージ送信リトライ数
+#define CHECK_INTERVAL 2000        // モジュール監視間隔[msec]
+#define TRAP_CHECK_DELAYED 3000    // 罠作動チェック間隔[msec]
+#define BATTERY_CHECK_DELAYED 4000 // バッテリー残量チェック間隔(msec)
+#define SYNC_SLEEP_INTERVAL 3000   // // 同期 DeepSleep 遅延時間[msec]
+#define SEND_RETRY 3               // メッセージ送信リトライ数
 // バッテリー関連
-// #define BATTERY_CHECK_ACTIVE	// バッテリー残量チェックを行わない場合（分圧用抵抗が無いなど）はこの行をコメントアウト
-#define DISCHARGE_END_VOLTAGE 610	// 放電終止電圧(1V = 1024)として 1/6 に分圧した場合の読み取り値
+// #define BATTERY_CHECK_ACTIVE	//
+// バッテリー残量チェックを行わない場合（分圧用抵抗が無いなど）はこの行をコメントアウト
+#define DISCHARGE_END_VOLTAGE 610 // 放電終止電圧(1V = 1024)として 1/6 に分圧した場合の読み取り値
 // GPS ロケーション文字列長
 #define GPS_STR_LEN 16
-// camera 
+// camera
 #define DEF_IMG_PATH "/image.jpg"
 // multi task
 #define TASK_MEMORY 4096
