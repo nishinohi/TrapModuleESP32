@@ -169,7 +169,7 @@ void TrapServer::onInitGps(AsyncWebServerRequest *request) {
  */
 void TrapServer::onGetGps(AsyncWebServerRequest *request) {
     DEBUG_MSG_LN("onGetGps");
-    if (_trapModule->sendGetGps()) {
+    if (_trapModule->getGps()) {
         request->send(200);
     } else {
         request->send(500);

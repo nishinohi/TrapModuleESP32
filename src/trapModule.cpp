@@ -112,16 +112,16 @@ void TrapModule::update() {
         _config._isTrapStart = false;
     }
     // メッシュ待機限界時間が経過したら罠とバッテリーチェック開始
-    if (_config._trapMode && now() - _config._wakeTime > _config._workTime - MESH_WAIT_LIMIT &&
-        !_checkTrapTask.isEnabled() && !_checkBatteryTask.isEnabled()) {
+    if (now() - _config._wakeTime > _config._workTime - MESH_WAIT_LIMIT) {
         DEBUG_MSG_LN("mesh wait limit.");
         moduleCheckStart();
     }
     // 稼働時間超過により強制 DeepSleep
-    if (_config._trapMode && now() - _config._wakeTime > _config._workTime &&
-        !_deepSleepTask.isEnabled()) {
+    if (_config._trapMode && now() - _config._wakeTime > _config._workTime) {
         DEBUG_MSG_LN("work time limit.");
-        _deepSleepTask.enableDelayed(SYNC_SLEEP_INTERVAL);
+        if (!_deepSleepTask.isEnabled()) {
+            _deepSleepTask.enableDelayed(SYNC_SLEEP_INTERVAL);
+        }
         _config._nodeNum = _mesh.getNodeList().size();
     }
     // 確認用 LED
@@ -169,6 +169,12 @@ bool TrapModule::initGps() {
     message += ":\"InitGps\"}";
     return _mesh.sendBroadcast(message);
 }
+
+/**
+ * GPS 取得
+ * 子機では GPS 取得要求を親機に送信するだけ
+ */
+bool TrapModule::getGps() { return sendGetGps(); }
 
 /**
  * GPS 取得要求を親モジュールに送信
@@ -274,7 +280,7 @@ void TrapModule::newConnectionCallback(uint32_t nodeId) {
 
     SimpleList<uint32_t> nodes = _mesh.getNodeList();
     // 罠モード時に前回起動時のメッシュ数になれば罠検知とバッテリーチェック開始
-    if (_config._trapMode && nodes.size() >= _config._nodeNum) {
+    if (nodes.size() >= _config._nodeNum) {
         moduleCheckStart();
     }
     // 設置モードの場合メッシュノード数更新
@@ -304,7 +310,7 @@ void TrapModule::changedConnectionCallback() {
 
     SimpleList<uint32_t> nodes = _mesh.getNodeList();
     // 罠モード時に前回起動時のメッシュ数になれば罠検知とバッテリーチェック開始
-    if (_config._trapMode && nodes.size() >= _config._nodeNum) {
+    if (nodes.size() >= _config._nodeNum) {
         moduleCheckStart();
     }
     // 設置モードの場合メッシュノード数更新
@@ -582,6 +588,10 @@ void TrapModule::shiftDeepSleep() {
  * 各種チェックメソッド開始
  */
 void TrapModule::moduleCheckStart() {
+    if (!_config._trapMode) {
+        DEBUG_MSG_LN("module check can start only when trap mode is active");
+        return;
+    }
     if (!_config._trapFire && !_checkTrapTask.isEnabled()) {
         DEBUG_MSG_LN("Start Trap Check");
         _checkTrapTask.enableDelayed(TRAP_CHECK_DELAYED);
