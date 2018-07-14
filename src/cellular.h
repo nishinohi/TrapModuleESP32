@@ -1,3 +1,6 @@
+#ifndef INCLUDE_GUARD_CELLULAR
+#define INCLUDE_GUARD_CELLULAR
+
 #include "trapModule.h"
 #include <Adafruit_FONA.h>
 #include <Adafruit_MQTT.h>
@@ -52,7 +55,11 @@ class Cellular {
     bool _fonaStart = false;
 
   public:
-    Cellular() { _celllarSerial.begin(115200, SERIAL_8N1, FONA_RX, FONA_TX); };
+    Cellular() {
+        _celllarSerial.begin(115200, SERIAL_8N1, FONA_RX, FONA_TX);
+        pinMode(GPS_ANTENA, OUTPUT);
+        digitalWrite(GPS_ANTENA, LOW);
+    };
 
     bool fonaSetup();
     bool fonaOpenNetwork(uint8_t tryCount);
@@ -62,3 +69,5 @@ class Cellular {
     bool connectMqttServer(uint8_t tryCount);
     bool pushMqtt(const char *topic, const char *message);
 };
+
+#endif // INCLUDE_GUARD_CELLULAR
