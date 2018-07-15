@@ -73,19 +73,7 @@ bool TrapModule::snapCamera(int resolution) {
         return false;
     }
     _camera.setResolution(resolution);
-    // タスク作成前の場合はタスクを作成
-    if (strncmp(pcTaskGetTaskName(_taskHandle[0]), CAMERA_TASK_NAME, strlen(CAMERA_TASK_NAME)) !=
-        0) {
-        xTaskCreatePinnedToCore(TrapModule::snapCameraTask, CAMERA_TASK_NAME, TASK_MEMORY, this, 2,
-                                &_taskHandle[0], 0);
-        return true;
-    } else {
-        if (eTaskGetState(_taskHandle[0]) == eSuspended) {
-            vTaskResume(_taskHandle[0]);
-            return true;
-        }
-    }
-    return false;
+    return beginMultiTask(CAMERA_TASK_NAME, TrapModule::snapCameraTask, _taskHandle[0], this, (uint8_t)2);
 }
 
 /**
@@ -192,19 +180,7 @@ bool TrapModule::initGps() {
  */
 bool TrapModule::getGps() {
     DEBUG_MSG_LN("onGetGps");
-    // タスク作成前の場合はタスクを作成
-    if (strncmp(pcTaskGetTaskName(_taskHandle[1]), CELLULAR_TASK_NAME,
-                strlen(CELLULAR_TASK_NAME)) != 0) {
-        xTaskCreatePinnedToCore(TrapModule::getGpsTask, CELLULAR_TASK_NAME, TASK_MEMORY, this, 3,
-                                &_taskHandle[1], 0);
-        return true;
-    } else {
-        if (eTaskGetState(_taskHandle[1]) == eSuspended) {
-            vTaskResume(_taskHandle[1]);
-            return true;
-        }
-    }
-    return true;
+    return beginMultiTask(CELLULAR_TASK_NAME, TrapModule::getGpsTask, _taskHandle[1], this, 3);
 }
 
 /**
@@ -747,14 +723,21 @@ bool TrapModule::sendDebugMesage(String msg, uint32_t nodeId) {
 /*************************************
  * Util
  ************************************/
-void startMultiTask(char *taskName, TaskFunction_t *func, TaskHandle_t *taskHandle, void **arg,
-                    uint8_t priority) {
+/**
+ * 任意のタスクを開始
+ */
+bool TrapModule::beginMultiTask(const char *taskName, TaskFunction_t func, TaskHandle_t taskHandle, void *arg,
+                    const uint8_t priority, const uint8_t core) {
     // タスク作成前の場合はタスクを作成
-    if (strncmp(pcTaskGetTaskName(*taskHandle), taskName, strlen(taskName)) != 0) {
-        xTaskCreatePinnedToCore(*func, taskName, TASK_MEMORY, *arg, priority, &(*taskHandle), 0);
+    if (strncmp(pcTaskGetTaskName(taskHandle), taskName, strlen(taskName)) != 0) {
+        xTaskCreatePinnedToCore(func, taskName, TASK_MEMORY, arg, priority, &(taskHandle), core);
+        return true;
     } else {
-        if (eTaskGetState(*taskHandle) == eSuspended) {
-            vTaskResume(*taskHandle);
+        if (eTaskGetState(taskHandle) == eSuspended) {
+            vTaskResume(taskHandle);
         }
+        return true;
     }
+    return false;
 }
+

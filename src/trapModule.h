@@ -1,8 +1,8 @@
 #ifndef INCLUDE_GUARD_TRAPMODULE
 #define INCLUDE_GUARD_TRAPMODULE
 
-#include "cellular.h"
 #include "camera.h"
+#include "cellular.h"
 #include "moduleConfig.h"
 #include "trapCommon.h"
 #include <ArduinoBase64.h>
@@ -89,6 +89,9 @@ class TrapModule {
     void checkTrap();
     void checkBattery();
     void moduleCheckStart();
+    // util
+    bool beginMultiTask(const char *taskName, TaskFunction_t func, TaskHandle_t taskHandle,
+                        void *arg, const uint8_t priority, const uint8_t core = 0);
 };
 
 #endif // INCLUDE_GUARD_TRAPMODULE
