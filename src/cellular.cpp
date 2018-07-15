@@ -51,25 +51,24 @@ bool Cellular::fonaOpenNetwork(uint8_t tryCount) {
 /**
  * 罠モジュール情報を送信する
  */
-void Cellular::sendTrapModuleInfo() {
-    // if (_firedModules.size() == 0 && !_trapFire) {
-    //     return;
-    // }
-    // // 作動した罠の通知を送信する
-    // _fonaStart = fonaSetup();
-    // if (!_fonaStart) {
-    //     return;
-    // }
-    // // 罠モジュール情報送信
-    // if (fonaOpenNetwork(5) && connectMqttServer(5)) {
-    //     pushTrapFireInfo();
-    //     pushGPSData();
-    // }
-    // // shutdown _fona
-    // if (!_fona.shutdown()) {
-    //     _fona.shutdown(true);
-    //     _fonaStart = false;
-    // }
+void Cellular::sendTrapModuleInfo(String& contents) {
+    // 作動した罠の通知を送信する
+    _fonaStart = fonaSetup();
+    if (!_fonaStart) {
+        return;
+    }
+    // 罠モジュール情報送信
+    if (fonaOpenNetwork(5) && connectMqttServer(5)) {
+        String topic = TEST_TOPIC;
+        topic.concat(_imsi);
+        topic.concat("/");
+        pushMqtt(topic.c_str(), contents.c_str());
+    }
+    // shutdown _fona
+    if (!_fona.shutdown()) {
+        _fona.shutdown(true);
+        _fonaStart = false;
+    }
 }
 
 /**
@@ -155,7 +154,9 @@ bool Cellular::connectMqttServer(uint8_t tryCount) {
 /**
  * MQTT メッセージ送信
  */
-bool Cellular::pushMqtt(const char *topic, const char *message) {
+bool Cellular::pushMqtt(const char *topic, const char *contents) {
+    DEBUG_MSG_F("topic:%s\n", topic);
+    DEBUG_MSG_F("contents:%s\n", contents);
     Adafruit_MQTT_Publish pushPublisher = Adafruit_MQTT_Publish(&_mqtt, topic);
-    return pushPublisher.publish(message);
+    return pushPublisher.publish(contents);
 }

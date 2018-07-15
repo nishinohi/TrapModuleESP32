@@ -62,6 +62,9 @@ class TrapModule {
     bool sendDebugMesage(String msg, uint32_t nodeId = 0);
 
   private:
+    // server に情報送信
+    bool sendTrapStartInfo();
+    bool sendTrapUpdateInfo();
     // メッセージ送信
     bool syncAllModuleConfigs(const JsonObject &config);
     bool syncCurrentTime();

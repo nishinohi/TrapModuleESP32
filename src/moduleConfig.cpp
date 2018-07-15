@@ -397,3 +397,22 @@ void ModuleConfig::addFiredModules(uint32_t nodeId) {
 	DEBUG_MSG_F("added fired module:%lu\n", nodeId);
 	_firedModules.push_back(nodeId);
 }
+
+/***********************************
+ * 親機用メソッド
+ **********************************/
+/**
+ * 罠モード開始時の設定値等を含んだ情報を取得
+ */
+JsonObject &ModuleConfig::getTrapStartInfo(painlessMesh &mesh) {
+    JsonObject &info = getModuleInfo(mesh);
+    return info;
+}
+
+/**
+ * 稼働中の各種情報を取得
+ */
+JsonObject &ModuleConfig::getTrapUpdateInfo(painlessMesh &mesh) {
+    JsonObject &info = getModuleInfo(mesh);
+    return info;
+}

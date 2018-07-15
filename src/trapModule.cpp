@@ -607,7 +607,11 @@ void TrapModule::shiftDeepSleep() {
     }
     yield();
     // 検知情報などのモジュール情報を送信
-    // sendTrapModuleInfo();
+    if (_config._isTrapStart) {
+        sendTrapStartInfo();
+    } else {
+        sendTrapUpdateInfo();
+    }
     DEBUG_MSG_LN("Shift Deep Sleep");
     if (_config._isBatteryDead) {
         DEBUG_MSG_LN("Battery limit!\nshutdown...");
@@ -717,6 +721,24 @@ void TrapModule::snapCameraTask(void *arg) {
 }
 
 /*************************************
+ * MQTT
+ ************************************/
+/**
+ * 罠モード開始時の設定値等を含んだ情報をサーバーに送信
+ */
+bool TrapModule::sendTrapStartInfo() {
+    
+    return true;
+}
+
+/**
+ * 稼働中の各種情報を送信
+ */
+bool TrapModule::sendTrapUpdateInfo() {
+    return true;
+}
+
+/*************************************
  * Debug
  ************************************/
 // debug メッセージ送信
@@ -738,8 +760,8 @@ bool TrapModule::sendDebugMesage(String msg, uint32_t nodeId) {
 /**
  * 任意のタスクを開始
  */
-bool TrapModule::beginMultiTask(const char *taskName, TaskFunction_t func, TaskHandle_t taskHandle, void *arg,
-                    const uint8_t priority, const uint8_t core) {
+bool TrapModule::beginMultiTask(const char *taskName, TaskFunction_t func, TaskHandle_t taskHandle,
+                                void *arg, const uint8_t priority, const uint8_t core) {
     // タスク作成前の場合はタスクを作成
     if (strncmp(pcTaskGetTaskName(taskHandle), taskName, strlen(taskName)) != 0) {
         xTaskCreatePinnedToCore(func, taskName, TASK_MEMORY, arg, priority, &(taskHandle), core);
@@ -752,4 +774,3 @@ bool TrapModule::beginMultiTask(const char *taskName, TaskFunction_t func, TaskH
     }
     return false;
 }
-

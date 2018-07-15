@@ -24,6 +24,8 @@
 #define FONA_TX 33
 #define FONA_RST 25
 #define GPS_ANTENA 2
+// mqtt topic
+#define TEST_TOPIC "/tm/test/"
 
 class Cellular {
   private:
@@ -53,7 +55,7 @@ class Cellular {
     };
     ~Cellular(){};
 
-    void sendTrapModuleInfo();
+    void sendTrapModuleInfo(String& contents);
 
   private:
     bool fonaSetup();

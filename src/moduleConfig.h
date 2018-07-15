@@ -47,6 +47,9 @@ class ModuleConfig {
     void updateParentModuleList(painlessMesh &mesh);
     bool loadModuleConfigFile();
     void addFiredModules(uint32_t nodeId);
+    // 親機用
+    JsonObject &getTrapStartInfo(painlessMesh &mesh);
+    JsonObject &getTrapUpdateInfo(painlessMesh &mesh);
 
   private:
     void setDefaultModuleConfig();
