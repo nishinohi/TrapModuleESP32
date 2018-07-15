@@ -378,7 +378,7 @@ function updateTime(param) {
         localEpoch = param === "" ? 0 : param * 1000 + (new Date().getTimezoneOffset() * 60 * 1000);
         timerId = setInterval(function () {
             let now = param === "" ? new Date() : new Date(localEpoch);
-            moduleTime.textContent = now.getFullYear().toString() + "/" + (now.getMonth() + 1).toString() + "/" + now.getDay().toString() + " " + now.toLocaleTimeString();
+            moduleTime.textContent = now.getFullYear().toString() + "/" + (now.getMonth() + 1).toString() + "/" + now.getDate().toString() + " " + now.toLocaleTimeString();
             localEpoch = param === "" ? localEpoch : localEpoch + 1000;
         }, 1000);
     }
