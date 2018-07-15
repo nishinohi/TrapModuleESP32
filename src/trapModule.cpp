@@ -70,14 +70,14 @@ void TrapModule::update() {
     }
     // 罠モード始動
     if (_config._isTrapStart) {
-        DEBUG_MSG_LN("Trap start");
-        // 罠モード開始直後に deepSleepを開始すると http
-        // 接続が未完のまま落ちるので少し待つ
-        _deepSleepTask.enableDelayed(SYNC_SLEEP_INTERVAL);
-        _config._isTrapStart = false;
+        if (!_deepSleepTask.isEnabled()) {
+            DEBUG_MSG_LN("Trap start");
+            // 罠モード開始直後に deepSleep すると http 接続が未完のまま落ちるので少し待つ
+            _deepSleepTask.enableDelayed(SYNC_SLEEP_INTERVAL);
+        }
     }
-    // 罠モードでなければこの先の処理は考えなくて良い
-    if (!_config._trapMode) {
+    // 設置モードか罠モード作動開始状態の場合は以降の処理は無視
+    if (!_config._trapMode || _config._isTrapStart) {
         return;
     }
     // メッシュ待機限界時間が経過したら罠とバッテリーチェック開始
