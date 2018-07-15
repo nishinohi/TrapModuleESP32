@@ -16,10 +16,10 @@ class ModuleConfig {
     char _lat[GPS_STR_LEN] = DEF_GPS_LAT;
     char _lon[GPS_STR_LEN] = DEF_GPS_LON;
     SimpleList<uint32_t> _parentModules;    // 親モジュールリスト
+    SimpleList<uint32_t> _firedModules;     // 罠作動モジュールリスト
     uint8_t _nodeNum = DEF_NODE_NUM;        // 前回起動時のノード数
     time_t _wakeTime = DEF_WAKE_TIME;       // 次回起動時刻
     time_t _currentTime = DEF_CURRENT_TIME; // 現在時刻
-
     // フラグ関連
     bool _isTrapStart = false;   // 罠起動モード移行フラグ
     bool _ledOnFlag = false;     // LED点滅フラグ
@@ -46,6 +46,7 @@ class ModuleConfig {
     void addParentModule(uint32_t nodeId);
     void updateParentModuleList(painlessMesh &mesh);
     bool loadModuleConfigFile();
+    void addFiredModules(uint32_t nodeId);
 
   private:
     void setDefaultModuleConfig();

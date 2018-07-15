@@ -1,6 +1,7 @@
 #ifndef INCLUDE_GUARD_TRAPMODULE
 #define INCLUDE_GUARD_TRAPMODULE
 
+#include "cellular.h"
 #include "camera.h"
 #include "moduleConfig.h"
 #include "trapCommon.h"
@@ -12,6 +13,7 @@ class TrapModule {
   private:
     ModuleConfig _config;
     Camera _camera;
+    Cellular _cellular;
     painlessMesh _mesh;
 
     // タスク関連
@@ -20,8 +22,12 @@ class TrapModule {
     Task _blinkNodesTask;   // LED タスク
     Task _checkBatteryTask; // バッテリーチェック
     Task _sendPictureTask;  // 写真撮影フラグ
-
-    TaskHandle_t _taskHandle[1];
+    // 親モジュール機能
+    Task _sendGPSDataTask;          // GPS 送信タスク
+    Task _sendSyncSleepTask;        // 同期停止メッセージ送信タスク
+    Task _sendParentModuleInfoTask; // 親モジュール情報送信タスク
+    // マルチタスクハンドラ
+    TaskHandle_t _taskHandle[2]; // 0:カメラタスク、1:Cellular タスク
 
   public:
     TrapModule(){};
@@ -48,6 +54,7 @@ class TrapModule {
     bool setCurrentTime(time_t current);
     bool initGps();
     bool getGps();
+    static void getGpsTask(void *arg);
     // カメラ機能
     bool snapCamera(int resolution = -1);
     static void snapCameraTask(void *arg);
@@ -62,6 +69,11 @@ class TrapModule {
     bool sendTrapFire();
     void sendPicture();
     bool sendGetGps();
+    // 親限定メッセージ送信
+    void sendSyncSleep();
+    void sendGpsData();
+    void getGpsData();
+    void sendParentModuleInfo();
     // config
     void updateModuleConfig(const JsonObject &config) { _config.updateModuleConfig(config); };
     bool saveCurrentModuleConfig() { return _config.saveCurrentModuleConfig(); };

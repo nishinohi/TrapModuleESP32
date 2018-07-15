@@ -18,12 +18,11 @@
 // 罠検知設定
 // #define TRAP_ACTIVE
 #define TRAP_CHECK_PIN 14
-// 罠設置モードでの強制起動用
-#define FORCE_TRAP_MODE_PIN 32
+#define FORCE_TRAP_MODE_PIN 32 // 罠設置モードでの強制起動用
 // 接続モジュール数確認用LED
 #define LED 13
-#define BLINK_PERIOD 3000  // milliseconds until cycle repeat
-#define BLINK_DURATION 100 // milliseconds LED is on for
+#define BLINK_PERIOD 3000  // until cycle repeat[msec]
+#define BLINK_DURATION 100 // LED is on for[msec]
 // メッシュネットワーク設定
 #define MESH_SSID "trapModule"
 #define MESH_PASSWORD "123456789"
@@ -86,16 +85,26 @@
 #define SYNC_SLEEP_INTERVAL 3000   // // 同期 DeepSleep 遅延時間[msec]
 #define SEND_RETRY 3               // メッセージ送信リトライ数
 // バッテリー関連
-// #define BATTERY_CHECK_ACTIVE	//
-// バッテリー残量チェックを行わない場合（分圧用抵抗が無いなど）はこの行をコメントアウト
+// #define BATTERY_CHECK_ACTIVE
 #define DISCHARGE_END_VOLTAGE 610 // 放電終止電圧(1V = 1024)として 1/6 に分圧した場合の読み取り値
-// GPS ロケーション文字列長
-#define GPS_STR_LEN 16
+#define GPS_STR_LEN 16 // GPS ロケーション文字列長
 // camera
 #define DEF_IMG_PATH "/image.jpg"
 // multi task
 #define TASK_MEMORY 4096
 #define TASK_DELAY(delayMsec) vTaskDelay((delayMsec) / portTICK_RATE_MS)
 #define CAMERA_TASK_NAME "cameraTask"
+
+// 親モジュール
+#define CHILDREN_MAX 32                  // 罠作動モジュール保存最大数
+#define GPS_TRY_COUNT 20                 // GPS 取得試行回数
+#define GPS_GET_INTERVAL 10000           // GPS データ取得間隔[msec]
+#define GPS_SEND_COUNT 5                 // GPS 送信試行回数
+#define GPS_SEND_INTERVAL 5000           // GPS データ送信間隔[msec]
+#define SEND_PARENT_INTERVAL 3000        // 親モジュール情報送信間隔
+#define SEND_SYNC_SLEEP_INTERVAL 20000   // 同期停止メッセージ送信感覚
+#define IMSI_LEN 16                      // ISMI(15桁の数字 + 1(終端文字))
+#define KEY_FIRED_MODULES "FiredModules" // JSON KEY
+#define CELLULAR_TASK_NAME "cellularTask"
 
 #endif // INCLUDE_GUARD_COMMON

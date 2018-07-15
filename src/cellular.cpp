@@ -1,30 +1,48 @@
 #include "cellular.h"
 
+/**
+ * FONA 起動
+ */
 bool Cellular::fonaSetup() {
-    if (!fona.begin(*fonaSerial)) {
+    if (_fonaStart) {
+        return true;
+    }
+    _fonaStart = false;
+    if (!_fona.begin(*_fonaSerial)) {
         DEBUG_MSG_LN(F("Couldn't find FONA"));
         return false;
     }
-    uint8_t len = fona.getSIMIMSI(_imsi);
+    uint8_t len = _fona.getSIMIMSI(_imsi);
     if (len <= 0) {
         DEBUG_MSG_LN("failed to read sim");
         return false;
     }
     DEBUG_MSG_LN(F("FONA is OK"));
+    _fonaStart = true;
     return true;
+}
+
+/**
+ * FONA 終了
+ */
+void Cellular::fonaShutdown() {
+    if (!_fona.shutdown()) {
+        _fona.shutdown(true);
+    }
+    _fonaStart = false;
 }
 
 /**
  * ネットワークオープン
  */
 bool Cellular::fonaOpenNetwork(uint8_t tryCount) {
-    fona.setGPRSNetworkSettings(F(APN), F(USERNAME), F(PASSWORD));
+    _fona.setGPRSNetworkSettings(F(APN), F(USERNAME), F(PASSWORD));
     while (tryCount > 0) {
-        if (fona.enableGPRS(true)) {
+        if (_fona.enableGPRS(true)) {
             return true;
         }
         DEBUG_MSG_LN(F("Failed to enable 3G"));
-        delay(100);
+        TASK_DELAY(100);
         --tryCount;
     }
     return false;
@@ -47,64 +65,88 @@ void Cellular::sendTrapModuleInfo() {
     //     pushTrapFireInfo();
     //     pushGPSData();
     // }
-    // // shutdown fona
-    // if (!fona.shutdown()) {
-    //     fona.shutdown(true);
+    // // shutdown _fona
+    // if (!_fona.shutdown()) {
+    //     _fona.shutdown(true);
     //     _fonaStart = false;
     // }
 }
 
 /**
- * 罠が作動したモジュールの chipId とセットでメッセージを送信する
- * topic：/test/mqtt、message：任意
- */
-void Cellular::pushTrapFireInfo() {
-    // SimpleList<uint32_t>::iterator firedModule = _firedModules.begin();
-    // while (firedModule != _firedModules.end()) {
-    //     String message = String(*firedModule);
-    //     message += ":えものがかかりました";
-    //     if (pushMqtt("/test/mqtt", message.c_str())) {
-    //         firedModule = _firedModules.erase(firedModule);
-    //     } else {
-    //         ++firedModule;
-    //     }
-    //     DEBUG_MSG_LN("罠検知情報送信");
-    //     delay(100);
-    // }
-    // return;
+ * GPS データ取得コールバック
+ **/
+void Cellular::getGpsData() {
+    DEBUG_MSG_LN("getGpsData");
+    // GPS 情報初期化
+    memset(_lat, '\0', GPS_STR_LEN);
+    memset(_lon, '\0', GPS_STR_LEN);
+    // 3Gモジュールが起動していなければ起動する
+    if (!fonaSetup()) {
+        return;
+    }
+    if (!_fona.enableGPS(true)) {
+        DEBUG_MSG_LN("Failed to enable GPS");
+        return;
+    }
+    digitalWrite(GPS_ANTENA, HIGH);
+
+    double lat = 0.0f;
+    double lon = 0.0f;
+    int tDay = 0;
+    int tMonth = 0;
+    int tYear = 0;
+    int tHour = 0;
+    int tMinute = 0;
+    int tSecond = 0;
+    if (!_fona.getGPS(&lat, &lon, NULL, NULL, NULL, &tDay, &tMonth, &tYear, &tHour, &tMinute,
+                      &tSecond)) {
+        if (_getGPSDataTask.isLastIteration()) {
+            DEBUG_MSG_LN("failed to GPS Data...");
+            digitalWrite(GPS_ANTENA, LOW);
+            fonaShutdown();
+            _getGPSDataTask.disable();
+            return;
+        }
+        DEBUG_MSG_LN("getting GPS Data...");
+        return;
+    }
+    // set time
+    setTime(tHour, tMinute, tSecond, tDay, tMonth, tYear);
+    // UTC -> JTC
+    adjustTime(9 * SECS_PER_HOUR);
+    DEBUG_MSG_F("get time:%d/%d/%d %d:%d:%d\n", year(), month(), day(), hour(), minute(), second());
+    // gps
+    char latStr[16] = "\0";
+    char lonStr[16] = "\0";
+    dtostrf(lat, 1, 7, latStr);
+    dtostrf(lon, 1, 7, lonStr);
+    strncpy(_lat, latStr, strlen(latStr));
+    strncpy(_lon, lonStr, strlen(lonStr));
+    DEBUG_MSG_F("get GPS data: (lat, lon) = (%s, %s)\n", _lat, _lon);
+    _getGPSDataTask.disable();
+    fonaShutdown();
+    digitalWrite(GPS_ANTENA, LOW);
 }
 
 /**
- * GPSデータをpushする
- * topic：/test/mqtt/gps/(15桁のIMSI)、message：123.435553,22.131234
+ * SORACOM Beam サーバーに接続する
  */
-bool Cellular::pushGPSData() {
-    // char gps[32] = "\0";
-    // strncat(gps, _lat, strlen(_lat) - 1);
-    // strncat(gps, ",", 1);
-    // strncat(gps, _lon, strlen(_lon) - 1);
-    // char topic[64] = "/test/mqtt/gps/";
-    // strncat(topic, _imsi, strlen(_imsi));
-    // DEBUG_MSG_F("GPS情報送信:(lat, lon) = (%s)\n", gps);
-    // return pushMqtt(topic, gps);
-}
-
 bool Cellular::connectMqttServer(uint8_t tryCount) {
-    int8_t ret;
-    if (mqtt.connected()) {
+    if (_mqtt.connected()) {
         return true;
     }
     Serial.print("Connecting to MQTT... ");
     while (tryCount > 0) {
         // connect will return 0 for connected
-        if (mqtt.connect() == 0) {
+        if (_mqtt.connect() == 0) {
             DEBUG_MSG_LN("MQTT Connected!");
             return true;
         }
-        DEBUG_MSG_LN(mqtt.connectErrorString(ret));
+        int8_t ret;
+        DEBUG_MSG_LN(_mqtt.connectErrorString(ret));
         DEBUG_MSG_LN("Retrying MQTT connection in 2 seconds...");
-        mqtt.disconnect();
-        delay(2000);
+        _mqtt.disconnect();
+        TASK_DELAY(2000);
         --tryCount;
     }
     return false;
@@ -114,7 +156,6 @@ bool Cellular::connectMqttServer(uint8_t tryCount) {
  * MQTT メッセージ送信
  */
 bool Cellular::pushMqtt(const char *topic, const char *message) {
-    bool ret;
-    Adafruit_MQTT_Publish pushPublisher = Adafruit_MQTT_Publish(&mqtt, topic);
+    Adafruit_MQTT_Publish pushPublisher = Adafruit_MQTT_Publish(&_mqtt, topic);
     return pushPublisher.publish(message);
 }

@@ -168,6 +168,19 @@ void ModuleConfig::updateModuleConfig(const JsonObject &config) {
     }
     // 罠検知済みフラグは自身の値で更新(設置モード時は常に未検知状態)
     _trapFire = _trapMode ? _trapFire : false;
+    // 未送信の罠作動済みモジュール
+    if (_trapMode && config.containsKey(KEY_FIRED_MODULES)) {
+        _firedModules.clear();
+        JsonArray &firedModules = config[KEY_FIRED_MODULES];
+        for (JsonArray::iterator it = firedModules.begin(); it != firedModules.end(); ++it) {
+            _firedModules.push_back(*it);
+        }
+    }
+    // 設置モードなら未送信モジュール情報はクリア
+    if (!_trapMode) {
+        _firedModules.clear();
+    }
+    return;
 }
 
 /**
@@ -222,6 +235,11 @@ bool ModuleConfig::saveCurrentModuleConfig() {
          ++it) {
         parentList.add(*it);
     }
+    // 罠検知済みモジュール
+	JsonArray& firedModules = config.createNestedArray(KEY_FIRED_MODULES);
+	for (SimpleList<uint32_t>::iterator it = _firedModules.begin(); it != _firedModules.end(); ++it) {
+		firedModules.add(*it);
+	}
 #ifdef DEBUG_ESP_PORT
     String configStr;
     config.printTo(configStr);
@@ -363,4 +381,19 @@ time_t ModuleConfig::calcSleepTime(const time_t &tNow, const time_t &nextWakeTim
     }
     DEBUG_MSG_F("calcSleepTime:%lu\n", MAX_SLEEP_INTERVAL / 2);
     return MAX_SLEEP_INTERVAL / 2;
+}
+
+/**
+ * 罠が作動したモジュール ID を追加する（重複チェックあり）
+ */
+void ModuleConfig::addFiredModules(uint32_t nodeId) {
+	DEBUG_MSG_LN("addFiredModules");
+	for (SimpleList<uint32_t>::iterator it = _firedModules.begin(); it != _firedModules.end(); ++it) {
+		if (*it == nodeId) {
+			DEBUG_MSG_F("fired module has already existed:%lu\n", nodeId);
+			return;
+		}
+	}
+	DEBUG_MSG_F("added fired module:%lu\n", nodeId);
+	_firedModules.push_back(nodeId);
 }
