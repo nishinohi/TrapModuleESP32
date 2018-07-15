@@ -103,6 +103,13 @@ void TrapModule::snapCameraTask(void *arg) {
  * 監視機能はタスクで管理したほうがいいかもしれない
  **/
 void TrapModule::update() {
+    _mesh.update();
+    // 確認用 LED
+    if (_config._trapMode) {
+        digitalWrite(LED, HIGH);
+    } else {
+        digitalWrite(LED, !_config._ledOnFlag);
+    }
     // 罠モード始動
     if (_config._isTrapStart) {
         DEBUG_MSG_LN("Trap start");
@@ -111,26 +118,23 @@ void TrapModule::update() {
         _deepSleepTask.enableDelayed(SYNC_SLEEP_INTERVAL);
         _config._isTrapStart = false;
     }
+    // 罠モードでなければこの先の処理は考えなくて良い
+    if (!_config._trapMode) {
+        return;
+    }
     // メッシュ待機限界時間が経過したら罠とバッテリーチェック開始
     if (now() - _config._wakeTime > _config._workTime - MESH_WAIT_LIMIT) {
         DEBUG_MSG_LN("mesh wait limit.");
         moduleCheckStart();
     }
     // 稼働時間超過により強制 DeepSleep
-    if (_config._trapMode && now() - _config._wakeTime > _config._workTime) {
+    if (now() - _config._wakeTime > _config._workTime) {
         DEBUG_MSG_LN("work time limit.");
         if (!_deepSleepTask.isEnabled()) {
             _deepSleepTask.enableDelayed(SYNC_SLEEP_INTERVAL);
         }
         _config._nodeNum = _mesh.getNodeList().size();
     }
-    // 確認用 LED
-    if (_config._trapMode) {
-        digitalWrite(LED, HIGH);
-    } else {
-        digitalWrite(LED, !_config._ledOnFlag);
-    }
-    _mesh.update();
 }
 
 /********************************************
