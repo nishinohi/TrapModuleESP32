@@ -51,7 +51,7 @@ bool Cellular::fonaOpenNetwork(uint8_t tryCount) {
 /**
  * 罠モジュール情報を送信する
  */
-void Cellular::sendTrapModuleInfo(String& contents) {
+void Cellular::sendTrapModuleInfo(String &contents) {
     // 作動した罠の通知を送信する
     _fonaStart = fonaSetup();
     if (!_fonaStart) {
@@ -136,6 +136,8 @@ bool Cellular::connectMqttServer(uint8_t tryCount) {
     }
     Serial.print("Connecting to MQTT... ");
     while (tryCount > 0) {
+        TASK_DELAY(1);
+        yield();
         // connect will return 0 for connected
         if (_mqtt.connect() == 0) {
             DEBUG_MSG_LN("MQTT Connected!");
@@ -144,7 +146,7 @@ bool Cellular::connectMqttServer(uint8_t tryCount) {
         int8_t ret;
         DEBUG_MSG_LN(_mqtt.connectErrorString(ret));
         DEBUG_MSG_LN("Retrying MQTT connection in 2 seconds...");
-        _mqtt.disconnect();
+        // _mqtt.disconnect();
         TASK_DELAY(2000);
         --tryCount;
     }

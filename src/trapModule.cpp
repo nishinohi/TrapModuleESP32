@@ -726,16 +726,23 @@ void TrapModule::snapCameraTask(void *arg) {
 /**
  * 罠モード開始時の設定値等を含んだ情報をサーバーに送信
  */
-bool TrapModule::sendTrapStartInfo() {
-    
-    return true;
+void TrapModule::sendTrapStartInfo() {
+    DEBUG_MSG_LN("sendTrapStartInfo");
+    JsonObject &info = _config.getTrapStartInfo(_mesh);
+    String infoStr;
+    info.printTo(infoStr);
+    _cellular.sendTrapModuleInfo(infoStr);
 }
 
 /**
  * 稼働中の各種情報を送信
  */
-bool TrapModule::sendTrapUpdateInfo() {
-    return true;
+void TrapModule::sendTrapUpdateInfo() {
+    DEBUG_MSG_LN("sendTrapUpdateInfo");
+    JsonObject &info = _config.getTrapStartInfo(_mesh);
+    String infoStr;
+    info.printTo(infoStr);
+    _cellular.sendTrapModuleInfo(infoStr);
 }
 
 /*************************************

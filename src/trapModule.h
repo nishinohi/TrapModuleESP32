@@ -63,8 +63,8 @@ class TrapModule {
 
   private:
     // server に情報送信
-    bool sendTrapStartInfo();
-    bool sendTrapUpdateInfo();
+    void sendTrapStartInfo();
+    void sendTrapUpdateInfo();
     // メッセージ送信
     bool syncAllModuleConfigs(const JsonObject &config);
     bool syncCurrentTime();

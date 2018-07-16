@@ -18,7 +18,7 @@
 // 罠検知設定
 // #define TRAP_ACTIVE
 #define TRAP_CHECK_PIN 14
-#define FORCE_TRAP_MODE_PIN 32 // 罠設置モードでの強制起動用
+#define FORCE_TRAP_MODE_PIN 26 // 罠設置モードでの強制起動用
 // 接続モジュール数確認用LED
 #define LED 13
 #define BLINK_PERIOD 3000  // until cycle repeat[msec]
