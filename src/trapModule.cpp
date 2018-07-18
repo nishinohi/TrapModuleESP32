@@ -126,25 +126,6 @@ bool TrapModule::initGps() {
  */
 bool TrapModule::getGps() { return sendGetGps(); }
 
-/**
- * GPS 取得要求を親モジュールに送信
- **/
-bool TrapModule::sendGetGps() {
-    if (_mesh.getNodeList().size() == 0) {
-        return true;
-    }
-    String message = "{";
-    message += KEY_GET_GPS;
-    message += ":\"GetGps\"}";
-    for (SimpleList<uint32_t>::iterator it = _config._parentModules.begin();
-         it != _config._parentModules.end(); ++it) {
-        if (_mesh.sendSingle(*it, message)) {
-            return true;
-        }
-    }
-    return false;
-}
-
 /********************************************
  * painlessMesh callback
  *******************************************/
@@ -350,6 +331,25 @@ bool TrapModule::sendTrapFire() {
     trapFire[KEY_TRAP_FIRE_MESSAGE] = _mesh.getNodeId();
     String message;
     trapFire.printTo(message);
+    for (SimpleList<uint32_t>::iterator it = _config._parentModules.begin();
+         it != _config._parentModules.end(); ++it) {
+        if (_mesh.sendSingle(*it, message)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * GPS 取得要求を親モジュールに送信
+ **/
+bool TrapModule::sendGetGps() {
+    if (_mesh.getNodeList().size() == 0) {
+        return true;
+    }
+    String message = "{";
+    message += KEY_GET_GPS;
+    message += ":\"GetGps\"}";
     for (SimpleList<uint32_t>::iterator it = _config._parentModules.begin();
          it != _config._parentModules.end(); ++it) {
         if (_mesh.sendSingle(*it, message)) {
