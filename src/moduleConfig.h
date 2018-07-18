@@ -24,6 +24,7 @@ class ModuleConfig {
     bool _isTrapStart = false;   // 罠起動モード移行フラグ
     bool _ledOnFlag = false;     // LED点滅フラグ
     bool _isBatteryDead = false; // バッテリー切れフラグ
+    bool _isParent = true; // 親モジュールとして振る舞うかどうか
 
     // カメラモジュール関連
     bool _cameraEnable = false;

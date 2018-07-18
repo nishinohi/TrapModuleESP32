@@ -138,7 +138,10 @@ bool TrapModule::initGps() {
  */
 bool TrapModule::getGps() {
     DEBUG_MSG_LN("onGetGps");
-    return beginMultiTask(CELLULAR_TASK_NAME, TrapModule::getGpsTask, _taskHandle[1], this, 3);
+    if (_config._isParent) {
+        return beginMultiTask(CELLULAR_TASK_NAME, TrapModule::getGpsTask, _taskHandle[1], this, 3);
+    }
+    return sendGetGps();
 }
 
 /**
@@ -189,8 +192,10 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
     // 罠検知メッセージ
     if (msgJson.containsKey(KEY_TRAP_FIRE_MESSAGE)) {
         DEBUG_MSG_LN("trap fire message");
-        _config.addFiredModules(msgJson[KEY_TRAP_FIRE_MESSAGE]);
-        saveCurrentModuleConfig();
+        if (_config._isParent) {
+            _config.addFiredModules(msgJson[KEY_TRAP_FIRE_MESSAGE]);
+            saveCurrentModuleConfig();
+        }
     }
     // 画像保存
     if (msgJson.containsKey(KEY_PICTURE)) {
@@ -254,15 +259,19 @@ void TrapModule::newConnectionCallback(uint32_t nodeId) {
     DEBUG_MSG_F("--> startHere: New Connection, nodeId = %u\n", nodeId);
 
     SimpleList<uint32_t> nodes = _mesh.getNodeList();
-    // トラフィックを圧迫しないよう 3 秒後に親情報を送信（接続台数が前回台数以上になったら即時送信）
-    _sendParentModuleInfoTask.setIterations(1);
-    _sendParentModuleInfoTask.enableDelayed(
-        nodes.size() >= _config._nodeNum ? 500 : SEND_PARENT_INTERVAL);
+    // トラフィックを圧迫しないよう 3 秒後に親情報送信（接続台数が前回台数以上で即時送信）
+    if (_config._isParent) {
+        _sendParentModuleInfoTask.setIterations(1);
+        _sendParentModuleInfoTask.enableDelayed(
+            nodes.size() >= _config._nodeNum ? 500 : SEND_PARENT_INTERVAL);
+    }
     // 罠モード時に前回起動時のメッシュ数になれば罠検知とバッテリーチェック開始
     if (nodes.size() >= _config._nodeNum) {
         moduleCheckStart();
         // 一斉停止メッセージ送信カウントダウン開始
-        _sendSyncSleepTask.enableDelayed(SEND_SYNC_SLEEP_INTERVAL);
+        if (_config._isParent) {
+            _sendSyncSleepTask.enableDelayed(SEND_SYNC_SLEEP_INTERVAL);
+        }
     }
     // 設置モードの場合メッシュノード数更新
     if (!_config._trapMode) {
@@ -290,14 +299,18 @@ void TrapModule::changedConnectionCallback() {
                                   (_mesh.getNodeTime() % (BLINK_PERIOD * 1000)) / 1000);
 
     SimpleList<uint32_t> nodes = _mesh.getNodeList();
-    // トラフィックを圧迫しないよう 3 秒後に親情報を送信（接続台数が前回台数以上になったら即時送信）
-    _sendParentModuleInfoTask.setIterations(1);
-    _sendParentModuleInfoTask.enableDelayed(
-        nodes.size() >= _config._nodeNum ? 500 : SEND_PARENT_INTERVAL);
+    // トラフィックを圧迫しないよう 3 秒後に親情報送信（接続台数が前回台数以上で即時送信）
+    if (_config._isParent) {
+        _sendParentModuleInfoTask.setIterations(1);
+        _sendParentModuleInfoTask.enableDelayed(
+            nodes.size() >= _config._nodeNum ? 500 : SEND_PARENT_INTERVAL);
+    }
     // 罠モード時に前回起動時のメッシュ数になれば罠検知とバッテリーチェック開始
     if (nodes.size() >= _config._nodeNum) {
         moduleCheckStart();
-        _sendSyncSleepTask.enableDelayed(SEND_SYNC_SLEEP_INTERVAL);
+        if (_config._isParent) {
+            _sendSyncSleepTask.enableDelayed(SEND_SYNC_SLEEP_INTERVAL);
+        }
     }
     // 設置モードの場合メッシュノード数更新
     if (!_config._trapMode) {
@@ -562,10 +575,21 @@ void TrapModule::checkTrap() {
         return;
     }
     DEBUG_MSG_LN("!****** Trap Fired ******!");
-    addFiredModules(_mesh.getNodeId());
-    _config._trapFire = true;
-    saveCurrentModuleConfig();
-    _checkTrapTask.disable();
+    if (_config._isParent) {
+        _config.addFiredModules(_mesh.getNodeId());
+        _config._trapFire = true;
+        saveCurrentModuleConfig();
+        _checkTrapTask.disable();
+        return;
+    }
+    if (_checkTrapTask.getIterations() == TASK_FOREVER) {
+        _checkTrapTask.setIterations(SEND_RETRY);
+    }
+    if (sendTrapFire()) {
+        _config._trapFire = true;
+        saveCurrentModuleConfig();
+        _checkTrapTask.disable();
+    }
 #endif
 }
 
@@ -580,9 +604,24 @@ void TrapModule::checkBattery() {
     double realValue = currentBattery * 6;
     realValue = realValue / 1024;
     DEBUG_MSG_F("Current Battery:%.2lf\n", realValue);
-    if (currentBattery < DISCHARGE_END_VOLTAGE) {
-        DEBUG_MSG_LN("!****** Battery Dead ******!");
-        _config._isBatteryDead = true;
+    if (_config._isParent) {
+        if (currentBattery < DISCHARGE_END_VOLTAGE) {
+            DEBUG_MSG_LN("!****** Battery Dead ******!");
+            _config._isBatteryDead = true;
+            _checkBatteryTask.disable();
+        }
+        return;
+    }
+    if (_checkBatteryTask.getIterations() == TASK_FOREVER) {
+        _checkBatteryTask.setIterations(SEND_RETRY);
+    }
+    // 設置モードの場合即時終了
+    if (!_config._trapMode) {
+        _deepSleepTask.enable();
+        return;
+    }
+    if (sendBatteryDead()) {
+        _deepSleepTask.enableDelayed(SYNC_SLEEP_INTERVAL);
     }
 #endif
 }
@@ -607,10 +646,12 @@ void TrapModule::shiftDeepSleep() {
     }
     yield();
     // 検知情報などのモジュール情報を送信
-    if (_config._isTrapStart) {
-        sendTrapStartInfo();
-    } else {
-        sendTrapUpdateInfo();
+    if (_config._isParent) {
+        if (_config._isTrapStart) {
+            sendTrapStartInfo();
+        } else {
+            sendTrapUpdateInfo();
+        }
     }
     DEBUG_MSG_LN("Shift Deep Sleep");
     if (_config._isBatteryDead) {

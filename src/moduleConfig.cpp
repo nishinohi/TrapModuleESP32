@@ -85,6 +85,7 @@ bool ModuleConfig::loadModuleConfigFile() {
     // 強制設置モード起動スイッチ
     if (!digitalRead(FORCE_TRAP_MODE_PIN)) {
         config[KEY_TRAP_MODE] = false;
+        config[KEY_IS_PARENT] = true;
     }
     // 設置モードでの起動時にロードしない内容はここで除外する
     if (!config.containsKey(KEY_TRAP_MODE) || config[KEY_TRAP_MODE] == false) {
@@ -132,6 +133,10 @@ void ModuleConfig::updateModuleConfig(const JsonObject &config) {
     if (config.containsKey(KEY_ACTIVE_END)) {
         setParameter(_activeEnd, static_cast<uint8_t>(config[KEY_ACTIVE_END]), 24, 0);
     }
+    // 親モジュール振る舞いフラグ
+    if (config.containsKey(KEY_IS_PARENT)) {
+        _isParent = config[KEY_IS_PARENT];
+    }
     // 親モジュール
     if (config.containsKey(KEY_PARENT_MODULE_LIST)) {
         _parentModules.clear();
@@ -168,6 +173,10 @@ void ModuleConfig::updateModuleConfig(const JsonObject &config) {
     }
     // 罠検知済みフラグは自身の値で更新(設置モード時は常に未検知状態)
     _trapFire = _trapMode ? _trapFire : false;
+    // 親モジュールとしての振る舞いがないなら以降は不要
+    if (!_isParent) {
+        return;
+    }
     // 未送信の罠作動済みモジュール
     if (_trapMode && config.containsKey(KEY_FIRED_MODULES)) {
         _firedModules.clear();
@@ -224,6 +233,7 @@ bool ModuleConfig::saveCurrentModuleConfig() {
     config[KEY_GPS_LON] = _lon;
     config[KEY_ACTIVE_START] = _activeStart;
     config[KEY_ACTIVE_END] = _activeEnd;
+    config[KEY_IS_PARENT] = _isParent;
     bool isTimeSet = timeStatus() != timeStatus_t::timeNotSet;
     config[KEY_WAKE_TIME] = isTimeSet && _trapMode ? _wakeTime : DEF_WAKE_TIME;
     config[KEY_CURRENT_TIME] = isTimeSet && _trapMode ? _currentTime : DEF_CURRENT_TIME;
@@ -236,10 +246,13 @@ bool ModuleConfig::saveCurrentModuleConfig() {
         parentList.add(*it);
     }
     // 罠検知済みモジュール
-	JsonArray& firedModules = config.createNestedArray(KEY_FIRED_MODULES);
-	for (SimpleList<uint32_t>::iterator it = _firedModules.begin(); it != _firedModules.end(); ++it) {
-		firedModules.add(*it);
-	}
+    if (_isParent) {
+        JsonArray &firedModules = config.createNestedArray(KEY_FIRED_MODULES);
+        for (SimpleList<uint32_t>::iterator it = _firedModules.begin(); it != _firedModules.end();
+             ++it) {
+            firedModules.add(*it);
+        }
+    }
 #ifdef DEBUG_ESP_PORT
     String configStr;
     config.printTo(configStr);
@@ -387,15 +400,16 @@ time_t ModuleConfig::calcSleepTime(const time_t &tNow, const time_t &nextWakeTim
  * 罠が作動したモジュール ID を追加する（重複チェックあり）
  */
 void ModuleConfig::addFiredModules(uint32_t nodeId) {
-	DEBUG_MSG_LN("addFiredModules");
-	for (SimpleList<uint32_t>::iterator it = _firedModules.begin(); it != _firedModules.end(); ++it) {
-		if (*it == nodeId) {
-			DEBUG_MSG_F("fired module has already existed:%lu\n", nodeId);
-			return;
-		}
-	}
-	DEBUG_MSG_F("added fired module:%lu\n", nodeId);
-	_firedModules.push_back(nodeId);
+    DEBUG_MSG_LN("addFiredModules");
+    for (SimpleList<uint32_t>::iterator it = _firedModules.begin(); it != _firedModules.end();
+         ++it) {
+        if (*it == nodeId) {
+            DEBUG_MSG_F("fired module has already existed:%lu\n", nodeId);
+            return;
+        }
+    }
+    DEBUG_MSG_F("added fired module:%lu\n", nodeId);
+    _firedModules.push_back(nodeId);
 }
 
 /***********************************
