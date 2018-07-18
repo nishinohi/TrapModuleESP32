@@ -635,16 +635,14 @@ void TrapModule::shiftDeepSleep() {
     DEBUG_MSG_LN("mesh Stop");
     _mesh.stop();
     WiFi.mode(WIFI_OFF);
-    yield();
     unsigned long dif = millis();
     while (millis() - dif < 5000) {
-        delay(500);
+        delay(100);
         yield();
         if (WiFi.status() == WL_DISCONNECTED) {
             break;
         }
     }
-    yield();
     // 検知情報などのモジュール情報を送信
     if (_config._isParent) {
         if (_config._isTrapStart) {
