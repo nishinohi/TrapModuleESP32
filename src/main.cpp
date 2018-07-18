@@ -8,7 +8,6 @@ void setup() {
     Serial.begin(115200);
     SPIFFS.begin();
     WiFi.mode(WIFI_AP_STA);
-    yield();
     delay(50);
     DEBUG_MSG_LN("Trap Module Start");
     // GPIO 設定

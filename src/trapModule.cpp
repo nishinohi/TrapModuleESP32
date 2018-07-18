@@ -488,16 +488,14 @@ void TrapModule::shiftDeepSleep() {
     DEBUG_MSG_LN("mesh Stop");
     _mesh.stop();
     WiFi.mode(WIFI_OFF);
-    yield();
     unsigned long dif = millis();
     while (millis() - dif < 5000) {
-        delay(500);
+        delay(100);
         yield();
         if (WiFi.status() == WL_DISCONNECTED) {
             break;
         }
     }
-    yield();
     DEBUG_MSG_LN("Shift Deep Sleep");
     if (_config._isBatteryDead) {
         DEBUG_MSG_LN("Battery limit!\nshutdown...");
