@@ -18,7 +18,7 @@ class TrapModule {
     Task _deepSleepTask;    // DeepSleep以降タスク
     Task _checkTrapTask;    // 罠作動チェック
     Task _blinkNodesTask;   // LED タスク
-    Task _checkBatteryTask; // バッテリーチェック
+    Task _checkBatteryTask; // バッテリー切れチェックタスク
     Task _sendPictureTask;  // 写真撮影フラグ
 
     TaskHandle_t _taskHandle[1];
@@ -59,12 +59,14 @@ class TrapModule {
     bool syncAllModuleConfigs(const JsonObject &config);
     bool syncCurrentTime();
     bool sendBatteryDead();
+    bool sendCurrentBattery();
     bool sendTrapFire();
     void sendPicture();
     bool sendGetGps();
     // config
     void updateModuleConfig(const JsonObject &config) { _config.updateModuleConfig(config); };
     bool saveCurrentModuleConfig() { return _config.saveCurrentModuleConfig(); };
+    uint32_t getNodeId() { return _config._nodeId != 0 ? _config._nodeId : _mesh.getNodeId(); };
     // ハードウェア機能
     void shiftDeepSleep();
     // mesh
@@ -76,7 +78,8 @@ class TrapModule {
     void blinkLed();
     void checkTrap();
     void checkBattery();
-    void moduleCheckStart();
+    void moduleStateCheckStart();
+    void moduleStateCheckStop();
 };
 
 #endif // INCLUDE_GUARD_TRAPMODULE

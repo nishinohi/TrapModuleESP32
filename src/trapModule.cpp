@@ -15,6 +15,7 @@ void TrapModule::setupMesh(const uint16_t types) {
     _mesh.onChangedConnections(std::bind(&TrapModule::changedConnectionCallback, this));
     _mesh.onNodeTimeAdjusted(
         std::bind(&TrapModule::nodeTimeAdjustedCallback, this, std::placeholders::_1));
+    _config._nodeId = _mesh.getNodeId();
 }
 
 // 実施タスクセットアップ
@@ -71,7 +72,7 @@ void TrapModule::update() {
     // メッシュ待機限界時間が経過したら罠とバッテリーチェック開始
     if (now() - _config._wakeTime > _config._workTime - MESH_WAIT_LIMIT) {
         DEBUG_MSG_LN("mesh wait limit.");
-        moduleCheckStart();
+        moduleStateCheckStart();
     }
     // 稼働時間超過により強制 DeepSleep
     if (now() - _config._wakeTime > _config._workTime) {
@@ -143,6 +144,7 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
     // バッテリー切れメッセージ
     if (msgJson.containsKey(KEY_BATTERY_DEAD_MESSAGE)) {
         DEBUG_MSG_LN("battery dead message");
+        _config._deadNodeIds.push_back(from);
     }
     // 罠検知メッセージ
     if (msgJson.containsKey(KEY_TRAP_FIRE_MESSAGE)) {
@@ -180,9 +182,10 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
     // モジュール同期 DeepSleep メッセージ
     if (msgJson.containsKey(KEY_SYNC_SLEEP)) {
         DEBUG_MSG_LN("SyncSleep start");
+        moduleStateCheckStop();
         _deepSleepTask.enableDelayed(SYNC_SLEEP_INTERVAL);
-        // 現時点でのメッシュノード数を保存する(deepSleep直前はメッシュネットワークが不安定のため)
-        _config._nodeNum = _mesh.getNodeList().size();
+        // 現時点でのメッシュノード数を更新
+        _config.updateModuelNumByBatteryInfo(_mesh.getNodeList());
     }
     // 真時刻メッセージ
     if (msgJson.containsKey(KEY_REAL_TIME)) {
@@ -212,7 +215,7 @@ void TrapModule::newConnectionCallback(uint32_t nodeId) {
     SimpleList<uint32_t> nodes = _mesh.getNodeList();
     // 罠モード時に前回起動時のメッシュ数になれば罠検知とバッテリーチェック開始
     if (nodes.size() >= _config._nodeNum) {
-        moduleCheckStart();
+        moduleStateCheckStart();
     }
     // 設置モードの場合メッシュノード数更新
     if (!_config._trapMode) {
@@ -242,7 +245,7 @@ void TrapModule::changedConnectionCallback() {
     SimpleList<uint32_t> nodes = _mesh.getNodeList();
     // 罠モード時に前回起動時のメッシュ数になれば罠検知とバッテリーチェック開始
     if (nodes.size() >= _config._nodeNum) {
-        moduleCheckStart();
+        moduleStateCheckStart();
     }
     // 設置モードの場合メッシュノード数更新
     if (!_config._trapMode) {
@@ -283,6 +286,7 @@ bool TrapModule::syncAllModuleConfigs(const JsonObject &config) {
 
 // 現在時刻同期
 bool TrapModule::syncCurrentTime() {
+    DEBUG_MSG_LN("syncCurrentTime");
     if (_mesh.getNodeList().size() == 0) {
         return true;
     }
@@ -300,17 +304,33 @@ bool TrapModule::syncCurrentTime() {
  * 過放電を防ぐため送信の成否に関係なく電源を落とす(メッセージ送信をタスク化しない)
  **/
 bool TrapModule::sendBatteryDead() {
+    DEBUG_MSG_LN("sendBatteryDead");
     if (_mesh.getNodeList().size() == 0) {
         return true;
     }
     DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
     JsonObject &batteryDead = jsonBuf.createObject();
-    batteryDead[KEY_BATTERY_DEAD_MESSAGE] = _mesh.getNodeId();
+    batteryDead[KEY_BATTERY_DEAD_MESSAGE] = getNodeId();
     String message;
     batteryDead.printTo(message);
+    return _mesh.sendBroadcast(message);
+}
+
+/**
+ * バッテリーの現在値を送信する
+ */
+bool TrapModule::sendCurrentBattery() {
+    DEBUG_MSG_LN("sendCurrentBattery");
+    if (_mesh.getNodeList().size() == 0) {
+        return true;
+    }
+    uint16_t inputValue = analogRead(A0);
+    String msg = "{\"";
+    msg += KEY_CURRENT_BATTERY;
+    msg = msg + "\":" + String(inputValue) + "}";
     for (SimpleList<uint32_t>::iterator it = _config._parentModules.begin();
          it != _config._parentModules.end(); ++it) {
-        if (_mesh.sendSingle(*it, message)) {
+        if (_mesh.sendSingle(*it, msg)) {
             return true;
         }
     }
@@ -322,13 +342,14 @@ bool TrapModule::sendBatteryDead() {
  * 送信が失敗した場合、罠作動再チェック時に再度送信する
  **/
 bool TrapModule::sendTrapFire() {
+    DEBUG_MSG_LN("sendTrapFire");
     if (_config._parentModules.size() == 0) {
         DEBUG_MSG_LN("no parent module");
         return false;
     }
     DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
     JsonObject &trapFire = jsonBuf.createObject();
-    trapFire[KEY_TRAP_FIRE_MESSAGE] = _mesh.getNodeId();
+    trapFire[KEY_TRAP_FIRE_MESSAGE] = getNodeId();
     String message;
     trapFire.printTo(message);
     for (SimpleList<uint32_t>::iterator it = _config._parentModules.begin();
@@ -344,6 +365,7 @@ bool TrapModule::sendTrapFire() {
  * GPS 取得要求を親モジュールに送信
  **/
 bool TrapModule::sendGetGps() {
+    DEBUG_MSG_LN("sendGetGps");
     if (_mesh.getNodeList().size() == 0) {
         return true;
     }
@@ -457,10 +479,14 @@ void TrapModule::checkTrap() {
 void TrapModule::checkBattery() {
 #ifdef BATTERY_CHECK_ACTIVE
     int currentBattery = analogRead(A0);
-    double realValue = currentBattery * 6;
+    double realValue = currentBattery * VOLTAGE_DIVIDE;
     realValue = realValue / 1024;
     DEBUG_MSG_F("Current Battery:%.2lf\n", realValue);
     if (currentBattery > DISCHARGE_END_VOLTAGE) {
+        // バッテリー残量を送信
+        if (!_config._isCurrentBatterySend) {
+            _config._isCurrentBatterySend = sendCurrentBattery();
+        }
         return;
     }
     DEBUG_MSG_LN("!****** Battery Dead ******!");
@@ -535,7 +561,8 @@ void TrapModule::shiftDeepSleep() {
 /**
  * 各種チェックメソッド開始
  */
-void TrapModule::moduleCheckStart() {
+void TrapModule::moduleStateCheckStart() {
+    DEBUG_MSG_LN("moduleStateCheckStart");
     if (!_config._trapMode) {
         DEBUG_MSG_LN("module check can start only when trap mode is active");
         return;
@@ -547,6 +574,19 @@ void TrapModule::moduleCheckStart() {
     if (!_config._isBatteryDead && !_checkBatteryTask.isEnabled()) {
         DEBUG_MSG_LN("Start Battery Check");
         _checkBatteryTask.enableDelayed(BATTERY_CHECK_DELAYED);
+    }
+}
+
+/**
+ * 各種チェックメソッド停止
+ */
+void TrapModule::moduleStateCheckStop() {
+    DEBUG_MSG_LN("moduleStateCheckStop");
+    if (_checkTrapTask.isEnabled()) {
+        _checkTrapTask.disable();
+    }
+    if (_checkBatteryTask.isEnabled()) {
+        _checkBatteryTask.disable();
     }
 }
 

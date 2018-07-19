@@ -288,6 +288,27 @@ void ModuleConfig::updateGpsInfo(const char *lat, const char *lon) {
 }
 
 /**
+ * モジュール数を更新する
+ * バッテリー切れ情報を受信したモジュー ID がモジュールリストに存在している場合、
+ * それを差し引いたモジュール数設定値を更新する
+ * この処理中にメッシュのリストが更新される可能性もあるので参照渡しはしないでおく
+ */
+void ModuleConfig::updateModuelNumByBatteryInfo(SimpleList<uint32_t> nodeList) {
+    _nodeNum = nodeList.size();
+    uint8_t deadModuleNum = 0;
+    for (SimpleList<uint32_t>::iterator deadNodeId = _deadNodeIds.begin();
+         deadNodeId != _deadNodeIds.end(); ++deadNodeId) {
+        for (SimpleList<uint32_t>::iterator nodeId = nodeList.begin(); nodeId != nodeList.end();
+             ++nodeId) {
+            if (*deadNodeId == *nodeId) {
+                --_nodeNum;
+                break;
+            }
+        }
+    }
+}
+
+/**
  * 次の起動時刻を設定する
  * もし1分以内に次の起動時刻になるなら2時間先の起動時刻まで飛ばす
  * 例）今が 13:59:05 で 14:00:00 も稼働時刻内なら次の起動時刻は 15:00:00
