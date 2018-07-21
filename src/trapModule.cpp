@@ -127,10 +127,13 @@ bool TrapModule::initGps() {
     if (_mesh.getNodeList().size() == 0) {
         return true;
     }
-    String message = "{";
-    message += KEY_INIT_GPS;
-    message += ":\"InitGps\"}";
-    return _mesh.sendBroadcast(message);
+    DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
+    JsonObject& obj = jsonBuf.createObject();
+    obj[KEY_CONFIG_UPDATE] = KEY_CONFIG_UPDATE;
+    obj[KEY_INIT_GPS] = KEY_INIT_GPS;
+    String msg;
+    obj.printTo(msg);
+    return _mesh.sendBroadcast(msg);
 }
 
 /**
@@ -212,35 +215,17 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
         img.close();
         free(dec);
     }
-    // GPS 初期化
-    if (msgJson.containsKey(KEY_INIT_GPS)) {
-        DEBUG_MSG_LN("Init GPS");
-        _config.initGps();
-        saveCurrentModuleConfig();
-    }
-    // GPS 取得
+    // GPS 取得要求メッセージ
     if (msgJson.containsKey(KEY_GET_GPS)) {
         DEBUG_MSG_LN("Get GPS");
     }
-    // 親モジュールリスト追加
-    if (msgJson.containsKey(KEY_PARENT_NODE_ID)) {
-        DEBUG_MSG_LN("parentModuleList");
-        _config.updateParentNodeId(msgJson[KEY_PARENT_NODE_ID]);
-        saveCurrentModuleConfig();
-    }
-    // モジュール同期 DeepSleep メッセージ
+    // DeepSleep メッセージ
     if (msgJson.containsKey(KEY_SYNC_SLEEP)) {
         DEBUG_MSG_LN("SyncSleep start");
         moduleStateCheckStop();
         _deepSleepTask.enableDelayed(SYNC_SLEEP_INTERVAL);
         // 現時点でのメッシュノード数を更新
         _config.updateModuelNumByBatteryInfo(_mesh.getNodeList());
-    }
-    // 真時刻メッセージ
-    if (msgJson.containsKey(KEY_REAL_TIME)) {
-        DEBUG_MSG_LN("realTime get");
-        _config._realTime = msgJson[KEY_REAL_TIME];
-        _config._realTimeDiff = millis();
     }
     // モジュール設定更新メッセージ受信
     if (msgJson.containsKey(KEY_CONFIG_UPDATE)) {
