@@ -75,6 +75,7 @@ void TrapModule::update() {
             DEBUG_MSG_LN("Trap start");
             // 罠モード開始直後に deepSleep すると http 接続が未完のまま落ちるので少し待つ
             _deepSleepTask.enableDelayed(SYNC_SLEEP_INTERVAL);
+            _config.updateParentFlag();
         }
     }
     // 設置モードか罠モード作動開始状態の場合は以降の処理は無視
@@ -128,7 +129,7 @@ bool TrapModule::initGps() {
         return true;
     }
     DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
-    JsonObject& obj = jsonBuf.createObject();
+    JsonObject &obj = jsonBuf.createObject();
     obj[KEY_CONFIG_UPDATE] = KEY_CONFIG_UPDATE;
     obj[KEY_INIT_GPS] = KEY_INIT_GPS;
     String msg;
@@ -495,11 +496,12 @@ void TrapModule::sendParentModuleInfo() {
         return;
     }
     DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
-    JsonObject &parentModuleInfo = jsonBuf.createObject();
-    parentModuleInfo[KEY_PARENT_NODE_ID] = _mesh.getNodeId();
-    parentModuleInfo[KEY_CURRENT_TIME] = now();
+    JsonObject &obj = jsonBuf.createObject();
+    obj[KEY_CONFIG_UPDATE] = KEY_CONFIG_UPDATE;
+    obj[KEY_PARENT_NODE_ID] = _mesh.getNodeId();
+    obj[KEY_CURRENT_TIME] = now();
     String msg;
-    parentModuleInfo.printTo(msg);
+    obj.printTo(msg);
     _mesh.sendBroadcast(msg);
 }
 

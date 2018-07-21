@@ -16,6 +16,7 @@ const KEY_ACTIVE_START = 'ActiveStart';
 const KEY_ACTIVE_END = 'ActiveEnd';
 const KEY_CURRENT_TIME = 'CurrentTime';
 const KEY_PICTURE_FORMAT = 'PictureFormat'
+const KEY_IS_PARENT = 'IsParent';
 
 var sigmaUuid = 0;
 var sigmaObj;

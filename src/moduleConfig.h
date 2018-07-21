@@ -50,6 +50,7 @@ class ModuleConfig {
     };
     time_t calcSleepTime(const time_t &tNow, const time_t &nextWakeTime);
     void updateParentNodeId(const uint32_t parentNodeId);
+    void updateParentFlag();
     bool loadModuleConfigFile();
     void addFiredModules(uint32_t nodeId);
     // 親機用

@@ -19,6 +19,7 @@ JsonObject &ModuleConfig::getModuleInfo(painlessMesh &mesh) {
     moduleInfo[KEY_ACTIVE_END] = _activeEnd;
     moduleInfo[KEY_CAMERA_ENABLE] = _cameraEnable;
     moduleInfo[KEY_PARENT_NODE_ID] = _parentNodeId;
+    moduleInfo[KEY_IS_PARENT] = _isParent;
     // 現在時刻
     bool isTimeSet = timeStatus() != timeStatus_t::timeNotSet;
     moduleInfo[KEY_CURRENT_TIME] = isTimeSet ? now() : DEF_CURRENT_TIME;
@@ -83,10 +84,10 @@ bool ModuleConfig::loadModuleConfigFile() {
     // 強制設置モード起動スイッチ
     if (!digitalRead(FORCE_TRAP_MODE_PIN)) {
         config[KEY_TRAP_MODE] = false;
-        config[KEY_IS_PARENT] = true;
     }
     // 設置モードでの起動時にロードしない内容はここで除外する
     if (!config.containsKey(KEY_TRAP_MODE) || config[KEY_TRAP_MODE] == false) {
+        config.remove(KEY_IS_PARENT);
         config.remove(KEY_PARENT_NODE_ID);
         config.remove(KEY_NODE_LIST);
         config.remove(KEY_TRAP_FIRE);
@@ -265,6 +266,17 @@ bool ModuleConfig::saveCurrentModuleConfig() {
 void ModuleConfig::updateParentNodeId(const uint32_t parentNodeId) {
     _parentNodeId = _parentNodeId > parentNodeId ? _parentNodeId : parentNodeId;
 }
+
+/**
+ * 親モジュールフラグを更新する
+ */
+void ModuleConfig::updateParentFlag() {
+    if (_nodeId == DEF_NODEID) {
+        return;
+    }
+    _isParent = _nodeId > _parentNodeId;
+}
+
 
 /**
  * GPS情報更新
