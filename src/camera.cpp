@@ -32,9 +32,9 @@ void Camera::sendCmd(char cmd[], int cmd_len) {
 uint16_t Camera::readBytes(uint8_t buf[], uint16_t len, uint16_t timeout_ms) {
     uint16_t i;
     uint8_t subms = 0;
+    unsigned long current = millis();
     for (i = 0; i < len; i++) {
-        while (_camSerial.available() == 0) {
-            // delayMicroseconds(10);
+        while (!_camSerial.available() && millis() - current < timeout_ms) {
             TASK_DELAY(1);
             if (++subms >= 100) {
                 if (timeout_ms == 0) {
@@ -45,6 +45,7 @@ uint16_t Camera::readBytes(uint8_t buf[], uint16_t len, uint16_t timeout_ms) {
             }
         }
         buf[i] = _camSerial.read();
+        current = millis();
     }
     return i;
 }
