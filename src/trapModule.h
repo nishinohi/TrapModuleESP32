@@ -31,14 +31,7 @@ class TrapModule {
     void setupTask();
     void setupCamera() { _config._cameraEnable = _camera.initialize(); };
     bool loadModuleConfig() { return _config.loadModuleConfigFile(); };
-    void checkStart() {
-        if (_config._isBatteryDead) {
-            shiftDeepSleep();
-        }
-        if (_config._trapMode && _config._wakeTime - now() >= 0) {
-            shiftDeepSleep();
-        }
-    }
+    void checkStart();
     // loop
     void update();
     // モジュール設定値操作
