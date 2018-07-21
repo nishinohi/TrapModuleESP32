@@ -55,6 +55,20 @@ void TrapModule::setupTask() {
     _mesh.scheduler.addTask(_sendParentModuleInfoTask);
 }
 
+/**
+ * 起動前チェック
+ */
+void TrapModule::checkStart() {
+    if (_config._isBatteryDead) {
+        DEBUG_MSG_LN("cannot start because battery already dead.");
+        shiftDeepSleep();
+    }
+    if (_config._trapMode && now() < _config._wakeTime) {
+        DEBUG_MSG_LN("cannot start because current time is before waketime.");
+        shiftDeepSleep();
+    }
+}
+
 /********************************************
  * loop メソッド
  *******************************************/
@@ -805,9 +819,10 @@ bool TrapModule::sendDebugMesage(String msg, uint32_t nodeId) {
     }
     DEBUG_MSG_LN("send debug message broadcast");
     if (_mesh.getNodeList().size() == 0) {
+        receivedCallback(getNodeId(), msg);
         return true;
     }
-    return _mesh.sendBroadcast(msg, true);
+    return _mesh.sendBroadcast(msg);
 }
 
 /*************************************
