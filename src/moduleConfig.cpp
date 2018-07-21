@@ -142,6 +142,10 @@ void ModuleConfig::updateModuleConfig(const JsonObject &config) {
     if (config.containsKey(KEY_GPS_LAT) && config.containsKey(KEY_GPS_LON)) {
         updateGpsInfo(config[KEY_GPS_LAT], config[KEY_GPS_LON]);
     }
+    // GPS 初期化
+    if (config.containsKey(KEY_INIT_GPS)) {
+        initGps();
+    }
     // 次回起動時刻情報
     if (config.containsKey(KEY_WAKE_TIME)) {
         _wakeTime = config[KEY_WAKE_TIME];
@@ -150,6 +154,11 @@ void ModuleConfig::updateModuleConfig(const JsonObject &config) {
     if (config.containsKey(KEY_CURRENT_TIME)) {
         _currentTime = config[KEY_CURRENT_TIME];
         setTime(config[KEY_CURRENT_TIME]);
+    }
+    // 真時刻メッセージ
+    if (config.containsKey(KEY_REAL_TIME)) {
+        _realTime = config[KEY_REAL_TIME];
+        _realTimeDiff = millis();
     }
     // 罠モード
     if (config.containsKey(KEY_TRAP_MODE)) {
