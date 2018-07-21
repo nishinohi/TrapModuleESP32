@@ -272,9 +272,16 @@ void ModuleConfig::updateParentNodeId(const uint32_t parentNodeId) {
  */
 void ModuleConfig::updateParentFlag() {
     if (_nodeId == DEF_NODEID) {
+        DEBUG_MSG_LN("work as parent.");
         return;
     }
-    _isParent = _nodeId > _parentNodeId;
+    if (_nodeId > _parentNodeId) {
+        DEBUG_MSG_LN("work as parent.");
+        _isParent = true;
+    } else {
+        DEBUG_MSG_LN("work as child.");
+        _isParent = false;
+    }
 }
 
 
