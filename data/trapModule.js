@@ -5,7 +5,7 @@ const KEY_NODE_ID = 'NodeId';
 const KEY_NODE_LIST = 'NodeList';
 const KEY_TRAP_FIRE_MESSAGE = 'TrapFireMessage';
 const KEY_BATTERY_DEAD_MESSAGE = 'BatteryDeadMessage';
-const KEY_PARENT_MODULES = 'ParentModuleList';
+const KEY_PARENT_NODE_ID = 'ParentNodeId';
 const KEY_PICTURE = 'CameraImage';
 const KEY_CAMERA_ENABLE = 'CameraEnable';
 const KEY_TRAP_FIRE = 'TrapFire';
@@ -296,9 +296,6 @@ function updateModuleInfo(response) {
                 document.getElementById(key).style.display = config[key] ? 'initial' : 'none';
                 break;
             case KEY_NODE_LIST:
-                updateTargetList(key, config[key]);
-                break;
-            case KEY_PARENT_MODULES:
                 updateTargetList(key, config[key]);
                 break;
             case KEY_MESH_GRAPH:

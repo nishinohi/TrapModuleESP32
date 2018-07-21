@@ -174,9 +174,9 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
         DEBUG_MSG_LN("Get GPS");
     }
     // 親モジュールリスト追加
-    if (msgJson.containsKey(KEY_PARENT_MODULE_LIST)) {
+    if (msgJson.containsKey(KEY_PARENT_NODE_ID)) {
         DEBUG_MSG_LN("parentModuleList");
-        _config.addParentModule(msgJson[KEY_PARENT_MODULE_LIST]);
+        _config.updateParentNodeId(msgJson[KEY_PARENT_NODE_ID]);
         saveCurrentModuleConfig();
     }
     // モジュール同期 DeepSleep メッセージ
@@ -251,8 +251,6 @@ void TrapModule::changedConnectionCallback() {
     if (!_config._trapMode) {
         _config._nodeNum = nodes.size();
     }
-    // 親モジュールリストを更新
-    _config.updateParentModuleList(_mesh);
     // 接続情報表示
     DEBUG_MSG_F("Num nodes: %d\n", nodes.size());
     DEBUG_MSG_F("Connection list:");
@@ -321,44 +319,30 @@ bool TrapModule::sendBatteryDead() {
  */
 bool TrapModule::sendCurrentBattery() {
     DEBUG_MSG_LN("sendCurrentBattery");
-    if (_mesh.getNodeList().size() == 0) {
+    if (_mesh.getNodeList().size() == 0 || _config._parentNodeId == DEF_NODEID) {
         return true;
     }
     uint16_t inputValue = analogRead(A0);
     String msg = "{\"";
     msg += KEY_CURRENT_BATTERY;
     msg = msg + "\":" + String(inputValue) + "}";
-    for (SimpleList<uint32_t>::iterator it = _config._parentModules.begin();
-         it != _config._parentModules.end(); ++it) {
-        if (_mesh.sendSingle(*it, msg)) {
-            return true;
-        }
-    }
-    return false;
+    return _mesh.sendSingle(_config._parentNodeId, msg);
 }
 
 /**
  * 罠作動情報を親モジュールへ送信する
- * 送信が失敗した場合、罠作動再チェック時に再度送信する
  **/
 bool TrapModule::sendTrapFire() {
     DEBUG_MSG_LN("sendTrapFire");
-    if (_config._parentModules.size() == 0) {
-        DEBUG_MSG_LN("no parent module");
-        return false;
+    if (_mesh.getNodeList().size() == 0 || _config._parentNodeId == DEF_NODEID) {
+        return true;
     }
     DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
     JsonObject &trapFire = jsonBuf.createObject();
     trapFire[KEY_TRAP_FIRE_MESSAGE] = getNodeId();
-    String message;
-    trapFire.printTo(message);
-    for (SimpleList<uint32_t>::iterator it = _config._parentModules.begin();
-         it != _config._parentModules.end(); ++it) {
-        if (_mesh.sendSingle(*it, message)) {
-            return true;
-        }
-    }
-    return false;
+    String msg;
+    trapFire.printTo(msg);
+    return _mesh.sendSingle(_config._parentNodeId, msg);
 }
 
 /**
@@ -366,19 +350,13 @@ bool TrapModule::sendTrapFire() {
  **/
 bool TrapModule::sendGetGps() {
     DEBUG_MSG_LN("sendGetGps");
-    if (_mesh.getNodeList().size() == 0) {
+    if (_mesh.getNodeList().size() == 0 || _config._parentNodeId == DEF_NODEID) {
         return true;
     }
-    String message = "{";
-    message += KEY_GET_GPS;
-    message += ":\"GetGps\"}";
-    for (SimpleList<uint32_t>::iterator it = _config._parentModules.begin();
-         it != _config._parentModules.end(); ++it) {
-        if (_mesh.sendSingle(*it, message)) {
-            return true;
-        }
-    }
-    return false;
+    String msg = "{";
+    msg += KEY_GET_GPS;
+    msg += ":\"GetGps\"}";
+    return _mesh.sendSingle(_config._parentNodeId, msg);
 }
 
 /**

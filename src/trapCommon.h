@@ -34,7 +34,7 @@
 #define KEY_SLEEP_INTERVAL "SleepInterval"
 #define KEY_WORK_TIME "WorkTime"
 #define KEY_TRAP_MODE "TrapMode" // false:トラップ設置モード, true:トラップ起動モード
-#define KEY_PARENT_MODULE_LIST "ParentModuleList"
+#define KEY_PARENT_NODE_ID "ParentNodeId"
 #define KEY_TRAP_FIRE "TrapFire"
 #define KEY_GPS_LAT "GpsLat"
 #define KEY_GPS_LON "GpsLon"
@@ -70,6 +70,7 @@
 #define DEF_WAKE_TIME 0
 #define DEF_CURRENT_TIME 0
 #define DEF_NODE_NUM 0
+#define DEF_NODEID 0
 // 設定値上限下限値
 #ifdef ESP32
 #define MAX_SLEEP_INTERVAL 86400 // ESP32 の場合停止時間は24時間でも大丈夫
