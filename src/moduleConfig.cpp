@@ -93,6 +93,8 @@ bool ModuleConfig::loadModuleConfigFile() {
         config.remove(KEY_CURRENT_TIME);
     }
     updateModuleConfig(config);
+    // 罠起動モード移行フラグは、設定値読み込み(loadModuleConfig)後に罠モード変更があった場合に変化する
+    _isTrapStart = false;
     file.close();
 #ifdef DEBUG_ESP_PORT
     String param;
