@@ -16,7 +16,7 @@
 #define DEBUG_MSG(...)
 #endif
 // 罠検知設定
-#define TRAP_ACTIVE
+// #define TRAP_ACTIVE
 #define TRAP_CHECK_PIN 14
 // 罠設置モードでの強制起動用
 #define FORCE_TRAP_MODE_PIN 32
@@ -88,7 +88,7 @@
 #define SYNC_SLEEP_INTERVAL 3000   // // 同期 DeepSleep 遅延時間[msec]
 #define SEND_RETRY 3               // メッセージ送信リトライ数
 // バッテリー関連
-#define BATTERY_CHECK_ACTIVE
+// #define BATTERY_CHECK_ACTIVE
 #define DISCHARGE_END_VOLTAGE 610 // 放電終止電圧(1V = 1024)として 1/6 に分圧した場合の読み取り値
 #define VOLTAGE_DIVIDE 6 // 分圧比
 // GPS ロケーション文字列長
