@@ -5,6 +5,14 @@
 #include <TimeLib.h>
 #include <painlessMesh.h>
 
+// モジュール状態構
+struct ModuleState {
+    uint32_t nodeId;
+    uint16_t batery;
+    bool batteryDead;
+    bool trapFire;
+};
+
 class ModuleConfig {
   public:
     uint32_t _nodeId = DEF_NODEID;
@@ -48,6 +56,7 @@ class ModuleConfig {
     time_t calcSleepTime(const time_t &tNow, const time_t &nextWakeTime);
     void updateParentNodeId(const uint32_t parentNodeId);
     bool loadModuleConfigFile();
+    void updateOtherModuleState(const uint32_t &nodeId, JsonObject &obj);
 
   private:
     void setDefaultModuleConfig();

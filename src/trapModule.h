@@ -15,11 +15,10 @@ class TrapModule {
     painlessMesh _mesh;
 
     // タスク関連
-    Task _deepSleepTask;    // DeepSleep以降タスク
-    Task _checkTrapTask;    // 罠作動チェック
-    Task _blinkNodesTask;   // LED タスク
-    Task _checkBatteryTask; // バッテリー切れチェックタスク
-    Task _sendPictureTask;  // 写真撮影フラグ
+    Task _deepSleepTask;       // DeepSleep以降タスク
+    Task _blinkNodesTask;      // LED タスク
+    Task _sendPictureTask;     // 写真撮影フラグ
+    Task _sendModuleStateTask; // モジュール状態送信タスク
 
     TaskHandle_t _taskHandle[1];
 
@@ -51,15 +50,17 @@ class TrapModule {
     // メッセージ送信
     bool syncAllModuleConfigs(const JsonObject &config);
     bool syncCurrentTime();
-    bool sendBatteryDead();
-    bool sendCurrentBattery();
-    bool sendTrapFire();
     void sendPicture();
     bool sendGetGps();
+    void sendModuleState();
     // config
     void updateModuleConfig(const JsonObject &config) { _config.updateModuleConfig(config); };
     bool saveCurrentModuleConfig() { return _config.saveCurrentModuleConfig(); };
     uint32_t getNodeId() { return _config._nodeId != 0 ? _config._nodeId : _mesh.getNodeId(); };
+    void updateModuleState();
+    void updateOtherModuleState(const uint32_t &nodeId, JsonObject &obj) {
+        _config.updateOtherModuleState(nodeId, obj);
+    };
     // ハードウェア機能
     void shiftDeepSleep();
     // mesh
@@ -69,10 +70,19 @@ class TrapModule {
     void nodeTimeAdjustedCallback(int32_t offset);
     // task
     void blinkLed();
-    void checkTrap();
-    void checkBattery();
-    void moduleStateCheckStart();
-    void moduleStateCheckStop();
+    void moduleStateTaskStart();
+    void moduleStateTaskStop();
+    // util
+    bool sendBroadCast(JsonObject &obj) {
+        String msg;
+        obj.printTo(msg);
+        return _mesh.sendBroadcast(msg);
+    }
+    bool sendParent(JsonObject &obj) {
+        String msg;
+        obj.printTo(msg);
+        return _mesh.sendSingle(_config._parentNodeId, msg);
+    }
 };
 
 #endif // INCLUDE_GUARD_TRAPMODULE

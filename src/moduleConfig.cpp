@@ -260,7 +260,6 @@ void ModuleConfig::updateGpsInfo(const char *lat, const char *lon) {
  */
 void ModuleConfig::updateModuelNumByBatteryInfo(SimpleList<uint32_t> nodeList) {
     _nodeNum = nodeList.size();
-    uint8_t deadModuleNum = 0;
     for (SimpleList<uint32_t>::iterator deadNodeId = _deadNodeIds.begin();
          deadNodeId != _deadNodeIds.end(); ++deadNodeId) {
         for (SimpleList<uint32_t>::iterator nodeId = nodeList.begin(); nodeId != nodeList.end();
@@ -270,6 +269,16 @@ void ModuleConfig::updateModuelNumByBatteryInfo(SimpleList<uint32_t> nodeList) {
                 break;
             }
         }
+    }
+}
+
+/**
+ * 他モジュール状態情報更新
+ * 子モジュールはバッテリー切れ端末に関しての情報のみ扱う
+ */
+void ModuleConfig::updateOtherModuleState(const uint32_t &nodeId, JsonObject &obj) {
+    if (obj.containsKey(KEY_BATTERY_DEAD)) {
+        _deadNodeIds.push_back(nodeId);
     }
 }
 
