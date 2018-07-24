@@ -58,9 +58,7 @@ class TrapModule {
     bool saveCurrentModuleConfig() { return _config.saveCurrentModuleConfig(); };
     uint32_t getNodeId() { return _config._nodeId != 0 ? _config._nodeId : _mesh.getNodeId(); };
     void updateModuleState();
-    void updateOtherModuleState(const uint32_t &nodeId, JsonObject &obj) {
-        _config.updateOtherModuleState(nodeId, obj);
-    };
+    void updateOtherModuleState(JsonObject &obj) { _config.updateOtherModuleState(obj); };
     // ハードウェア機能
     void shiftDeepSleep();
     // mesh
@@ -70,9 +68,19 @@ class TrapModule {
     void nodeTimeAdjustedCallback(int32_t offset);
     // task
     void blinkLed();
-    void moduleStateTaskStart();
-    void moduleStateTaskStop();
+    void moduleStateTaskStart() {
+        _sendModuleStateTask.setIterations(SEND_RETRY);
+        if (!_sendModuleStateTask.isEnabled()) {
+            _sendModuleStateTask.enable();
+        }
+    }
+    void moduleStateTaskStop() {
+        if (_sendModuleStateTask.isEnabled()) {
+            _sendModuleStateTask.disable();
+        }
+    }
     // util
+    void saveBase64Image(const char *data, const char *name = NULL);
     bool sendBroadCast(JsonObject &obj) {
         String msg;
         obj.printTo(msg);

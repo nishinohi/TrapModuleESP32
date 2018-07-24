@@ -47,7 +47,7 @@ class ModuleConfig {
     void setWakeTime();
     JsonObject &getModuleInfo(painlessMesh &mesh);
     void updateModuleConfig(const JsonObject &config);
-    void updateModuelNumByBatteryInfo(SimpleList<uint32_t> nodeList);
+    void updateNodeNum(SimpleList<uint32_t> nodeList);
     bool saveCurrentModuleConfig();
     void initGps() {
         memset(_lat, '\0', GPS_STR_LEN);
@@ -56,7 +56,7 @@ class ModuleConfig {
     time_t calcSleepTime(const time_t &tNow, const time_t &nextWakeTime);
     void updateParentNodeId(const uint32_t parentNodeId);
     bool loadModuleConfigFile();
-    void updateOtherModuleState(const uint32_t &nodeId, JsonObject &obj);
+    void updateOtherModuleState(JsonObject &obj);
 
   private:
     void setDefaultModuleConfig();

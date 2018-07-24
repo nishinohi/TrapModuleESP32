@@ -220,7 +220,6 @@ bool ModuleConfig::saveCurrentModuleConfig() {
     bool isTimeSet = timeStatus() != timeStatus_t::timeNotSet;
     config[KEY_WAKE_TIME] = isTimeSet && _trapMode ? _wakeTime : DEF_WAKE_TIME;
     config[KEY_CURRENT_TIME] = isTimeSet && _trapMode ? _currentTime : DEF_CURRENT_TIME;
-    // モジュール数
     config[KEY_NODE_NUM] = _nodeNum;
 #ifdef DEBUG_ESP_PORT
     String configStr;
@@ -258,13 +257,11 @@ void ModuleConfig::updateGpsInfo(const char *lat, const char *lon) {
  * それを差し引いたモジュール数設定値を更新する
  * この処理中にメッシュのリストが更新される可能性もあるので参照渡しはしないでおく
  */
-void ModuleConfig::updateModuelNumByBatteryInfo(SimpleList<uint32_t> nodeList) {
+void ModuleConfig::updateNodeNum(SimpleList<uint32_t> nodeList) {
     _nodeNum = nodeList.size();
-    for (SimpleList<uint32_t>::iterator deadNodeId = _deadNodeIds.begin();
-         deadNodeId != _deadNodeIds.end(); ++deadNodeId) {
-        for (SimpleList<uint32_t>::iterator nodeId = nodeList.begin(); nodeId != nodeList.end();
-             ++nodeId) {
-            if (*deadNodeId == *nodeId) {
+    for (auto &deadNodeId : _deadNodeIds) {
+        for (auto &nodeId : nodeList) {
+            if (deadNodeId == nodeId) {
                 --_nodeNum;
                 break;
             }
@@ -276,9 +273,13 @@ void ModuleConfig::updateModuelNumByBatteryInfo(SimpleList<uint32_t> nodeList) {
  * 他モジュール状態情報更新
  * 子モジュールはバッテリー切れ端末に関しての情報のみ扱う
  */
-void ModuleConfig::updateOtherModuleState(const uint32_t &nodeId, JsonObject &obj) {
-    if (obj.containsKey(KEY_BATTERY_DEAD)) {
-        _deadNodeIds.push_back(nodeId);
+void ModuleConfig::updateOtherModuleState(JsonObject &obj) {
+    JsonArray &jarray = obj[KEY_MODULE_STATE];
+    for (auto &state : jarray) {
+        uint32_t nodeId = state[KEY_NODE_ID];
+        if (state[KEY_BATTERY_DEAD]) {
+            _deadNodeIds.push_back(nodeId);
+        }
     }
 }
 

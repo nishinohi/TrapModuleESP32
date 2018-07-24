@@ -67,11 +67,8 @@ void TrapModule::update() {
     }
     // 罠モード始動
     if (_config._isTrapStart) {
-        if (!_deepSleepTask.isEnabled()) {
-            DEBUG_MSG_LN("Trap start");
-            // 罠モード開始直後に deepSleep すると http 接続が未完のまま落ちるので少し待つ
-            _deepSleepTask.enableDelayed(SYNC_SLEEP_INTERVAL);
-        }
+        DEBUG_MSG_LN("Trap start");
+        moduleStateTaskStart();
     }
     // 設置モードか罠モード作動開始状態の場合は以降の処理は無視
     if (!_config._trapMode || _config._isTrapStart) {
@@ -85,10 +82,8 @@ void TrapModule::update() {
     // 稼働時間超過により強制 DeepSleep
     if (now() - _config._wakeTime > _config._workTime) {
         DEBUG_MSG_LN("work time limit.");
-        if (!_deepSleepTask.isEnabled()) {
-            _deepSleepTask.enableDelayed(SYNC_SLEEP_INTERVAL);
-        }
-        _config._nodeNum = _mesh.getNodeList().size();
+        _config.updateNodeNum(_mesh.getNodeList());
+        _deepSleepTask.enableDelayed(SYNC_SLEEP_INTERVAL);
     }
 }
 
@@ -155,37 +150,26 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
     // モジュール状態更新
     if (msgJson.containsKey(KEY_MODULE_STATE)) {
         DEBUG_MSG_LN("update Other Module State");
-        updateOtherModuleState(from, msgJson);
-        return;
+        updateOtherModuleState(msgJson);
     }
     // 画像保存
     if (msgJson.containsKey(KEY_PICTURE)) {
         DEBUG_MSG_LN("image receive");
-        const char *data = (const char *)msgJson[KEY_PICTURE];
-        int inputLen = strlen(data);
-        int decLen = base64_dec_len((char *)data, inputLen);
-        char *dec = (char *)malloc(decLen + 1);
-        base64_decode(dec, (char *)data, inputLen);
-        File img = SPIFFS.open(DEF_IMG_PATH, "w");
-        img.write((const uint8_t *)dec, decLen + 1);
-        img.close();
-        free(dec);
-        return;
-    }
-    // DeepSleep メッセージ
-    if (msgJson.containsKey(KEY_SYNC_SLEEP)) {
-        DEBUG_MSG_LN("SyncSleep start");
-        moduleStateTaskStop();
-        _deepSleepTask.enableDelayed(SYNC_SLEEP_INTERVAL);
-        // 現時点でのメッシュノード数を更新
-        _config.updateModuelNumByBatteryInfo(_mesh.getNodeList());
-        return;
+        saveBase64Image((const char *)msgJson[KEY_PICTURE]);
     }
     // モジュール設定更新メッセージ受信
     if (msgJson.containsKey(KEY_CONFIG_UPDATE)) {
         DEBUG_MSG_LN("Module config update");
         updateModuleConfig(msgJson);
         saveCurrentModuleConfig();
+    }
+    // DeepSleepする前に全ノードのバッテリー状態などを取得している必要があるので最後に呼ぶこと
+    if (msgJson.containsKey(KEY_SYNC_SLEEP)) {
+        DEBUG_MSG_LN("SyncSleep start");
+        moduleStateTaskStop();
+        // メッシュノード数を更新
+        _config.updateNodeNum(_mesh.getNodeList());
+        _deepSleepTask.enableDelayed(SYNC_SLEEP_INTERVAL);
     }
 }
 
@@ -201,20 +185,14 @@ void TrapModule::newConnectionCallback(uint32_t nodeId) {
     DEBUG_MSG_F("--> startHere: New Connection, nodeId = %u\n", nodeId);
 
     SimpleList<uint32_t> nodes = _mesh.getNodeList();
-    // 罠モード時に前回起動時のメッシュ数になれば罠検知とバッテリーチェック開始
-    if (nodes.size() >= _config._nodeNum) {
+    // 罠モード時に前回起動時のメッシュ数になればモジュール状態送信
+    if (_config._trapMode && !_config._isTrapStart && nodes.size() >= _config._nodeNum) {
         moduleStateTaskStart();
-    }
-    // 設置モードの場合メッシュノード数更新
-    if (!_config._trapMode) {
-        _config._nodeNum = nodes.size();
     }
     DEBUG_MSG_F("Num nodes: %d\n", nodes.size());
     DEBUG_MSG_F("Connection list:");
-    SimpleList<uint32_t>::iterator node = nodes.begin();
-    while (node != nodes.end()) {
-        DEBUG_MSG_F(" %u", *node);
-        node++;
+    for (auto &node : nodes) {
+        DEBUG_MSG_F(" %u", node);
     }
     DEBUG_MSG_LN();
 }
@@ -231,21 +209,15 @@ void TrapModule::changedConnectionCallback() {
                                   (_mesh.getNodeTime() % (BLINK_PERIOD * 1000)) / 1000);
 
     SimpleList<uint32_t> nodes = _mesh.getNodeList();
-    // 罠モード時に前回起動時のメッシュ数になれば罠検知とバッテリーチェック開始
-    if (nodes.size() >= _config._nodeNum) {
+    // 罠モード時に前回起動時のメッシュ数になればモジュール状態送信
+    if (_config._trapMode && !_config._isTrapStart && nodes.size() >= _config._nodeNum) {
         moduleStateTaskStart();
-    }
-    // 設置モードの場合メッシュノード数更新
-    if (!_config._trapMode) {
-        _config._nodeNum = nodes.size();
     }
     // 接続情報表示
     DEBUG_MSG_F("Num nodes: %d\n", nodes.size());
     DEBUG_MSG_F("Connection list:");
-    SimpleList<uint32_t>::iterator node = nodes.begin();
-    while (node != nodes.end()) {
-        DEBUG_MSG_F(" %u", *node);
-        node++;
+    for (auto &node : nodes) {
+        DEBUG_MSG_F(" %u", node);
     }
     DEBUG_MSG_LN();
 }
@@ -330,15 +302,18 @@ void TrapModule::sendModuleState() {
     updateModuleState();
     // create message obj
     DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
-    JsonObject &obj = jsonBuf.createObject();
-    obj[KEY_TRAP_FIRE] = _config._trapFire;
-    obj[KEY_CAMERA_ENABLE] = _config._cameraEnable;
-    obj[KEY_BATTERY_DEAD] = _config._isBatteryDead;
+    JsonObject &root = jsonBuf.createObject();
+    JsonArray &jarray = root.createNestedArray(KEY_MODULE_STATE);
+    JsonObject &state = jsonBuf.createObject();
+    state[KEY_TRAP_FIRE] = _config._trapFire;
+    state[KEY_CAMERA_ENABLE] = _config._cameraEnable;
+    state[KEY_BATTERY_DEAD] = _config._isBatteryDead;
     uint16_t battery = analogRead(A0);
     battery = battery * VOLTAGE_DIVIDE;
-    obj[KEY_CURRENT_BATTERY] = battery;
-    if (sendBroadCast(obj)) {
-        _sendModuleStateTask.disable();
+    state[KEY_CURRENT_BATTERY] = battery;
+    jarray.add(state);
+    if (sendBroadCast(root)) {
+        moduleStateTaskStop();
     }
 }
 
@@ -463,24 +438,6 @@ void TrapModule::shiftDeepSleep() {
 #endif
 }
 
-/**
- * 各種チェックメソッド開始
- */
-void TrapModule::moduleStateTaskStart() {
-    if (!_sendModuleStateTask.isEnabled()) {
-        _sendModuleStateTask.enable();
-    }
-}
-
-/**
- * 各種チェックメソッド終了
- */
-void TrapModule::moduleStateTaskStop() {
-    if (_sendModuleStateTask.isEnabled()) {
-        _sendModuleStateTask.disable();
-    }
-}
-
 /********************************************
  * Camera メソッド
  *******************************************/
@@ -550,4 +507,22 @@ bool TrapModule::sendDebugMesage(String msg, uint32_t nodeId) {
         return true;
     }
     return _mesh.sendBroadcast(msg);
+}
+
+/*************************************
+ * Util
+ ************************************/
+/**
+ * Base64 エンコードされた画像データを保存する
+ * ファイル名が NULL ならデフォルト名を使用する
+ */
+void TrapModule::saveBase64Image(const char *data, const char *name) {
+    int inputLen = strlen(data);
+    int decLen = base64_dec_len((char *)data, inputLen);
+    char *dec = (char *)malloc(decLen + 1);
+    base64_decode(dec, (char *)data, inputLen);
+    File img = SPIFFS.open(name == NULL ? DEF_IMG_PATH : name, "w");
+    img.write((const uint8_t *)dec, decLen + 1);
+    img.close();
+    free(dec);
 }
