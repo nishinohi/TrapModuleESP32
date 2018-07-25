@@ -31,6 +31,22 @@ JsonObject &ModuleConfig::getModuleInfo(painlessMesh &mesh) {
     return moduleInfo;
 }
 
+// モジュール状態を取得
+JsonObject &ModuleConfig::getModuleState() {
+    DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
+    JsonObject &root = jsonBuf.createObject();
+    JsonArray &jarray = root.createNestedArray(KEY_MODULE_STATE);
+    JsonObject &state = jsonBuf.createObject();
+    state[KEY_TRAP_FIRE] = _trapFire;
+    state[KEY_CAMERA_ENABLE] = _cameraEnable;
+    state[KEY_BATTERY_DEAD] = _isBatteryDead;
+    uint16_t battery = analogRead(A0);
+    battery = battery * VOLTAGE_DIVIDE;
+    state[KEY_CURRENT_BATTERY] = battery;
+    jarray.add(state);
+    return root;
+}
+
 // デフォルト設定を書き込む
 void ModuleConfig::setDefaultModuleConfig() {
     DEBUG_MSG_LN("Set Default Module Config");
@@ -132,9 +148,9 @@ void ModuleConfig::updateModuleConfig(const JsonObject &config) {
     if (config.containsKey(KEY_ACTIVE_END)) {
         setParameter(_activeEnd, static_cast<uint8_t>(config[KEY_ACTIVE_END]), 24, 0);
     }
-    // 親モジュール更新(親モジュールは最もIDが大きいものを優先する)
+    // 親モジュール ID 追加
     if (config.containsKey(KEY_PARENT_NODE_ID)) {
-        updateParentNodeId(config[KEY_PARENT_NODE_ID]);
+        pushNoDuplicateNodeId(config[KEY_PARENT_NODE_ID], _parentNodeIdList);
     }
     // ノードサイズ
     if (config.containsKey(KEY_NODE_NUM)) {
@@ -230,10 +246,29 @@ bool ModuleConfig::saveCurrentModuleConfig() {
 }
 
 /**
- * 親モジュールはIDが一番大きいもののみを対象とする
+ * 現在のモジュールリスト内にある親モジュールの中で一番 ID の大きなものを
+ * 唯一の親モジュールとして
  */
-void ModuleConfig::updateParentNodeId(const uint32_t parentNodeId) {
-    _parentNodeId = _parentNodeId > parentNodeId ? _parentNodeId : parentNodeId;
+void ModuleConfig::updateParentNodeId(const SimpleList<uint32_t> &nodeList) {
+    for (auto &parentNodeId : _parentNodeIdList) {
+        for (auto &nodeId : nodeList) {
+            if (parentNodeId == nodeId) {
+
+            }
+        }
+    }
+}
+
+/**
+ * 重複なし親モジュール ID 追加処理
+ */
+void ModuleConfig::pushNoDuplicateNodeId(const uint32_t &nodeId, SimpleList<uint32_t> &list) {
+    for (auto &listId : list) {
+        if (listId == nodeId) {
+            return;
+        }
+    }
+    list.push_back(nodeId);
 }
 
 /**
@@ -278,7 +313,7 @@ void ModuleConfig::updateOtherModuleState(JsonObject &obj) {
     for (auto &state : jarray) {
         uint32_t nodeId = state[KEY_NODE_ID];
         if (state[KEY_BATTERY_DEAD]) {
-            _deadNodeIds.push_back(nodeId);
+            pushNoDuplicateNodeId(nodeId, _deadNodeIds);
         }
     }
 }

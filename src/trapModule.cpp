@@ -26,7 +26,7 @@ void TrapModule::setupTask() {
     _mesh.scheduler.addTask(_blinkNodesTask);
     _blinkNodesTask.enable();
     // module state
-    _sendModuleStateTask.set(1000, SEND_RETRY, std::bind(&TrapModule::sendModuleState, this));
+    _sendModuleStateTask.set(1000, TASK_FOREVER, std::bind(&TrapModule::sendModuleState, this));
     _mesh.scheduler.addTask(_sendModuleStateTask);
     // picture
     _sendPictureTask.set(5000, 5, std::bind(&TrapModule::sendPicture, this));
@@ -68,6 +68,7 @@ void TrapModule::update() {
     // 罠モード始動
     if (_config._isTrapStart) {
         DEBUG_MSG_LN("Trap start");
+        _config.updateParentNodeId(_mesh.getNodeList());
         moduleStateTaskStart();
     }
     // 設置モードか罠モード作動開始状態の場合は以降の処理は無視
@@ -98,8 +99,8 @@ bool TrapModule::setConfig(JsonObject &config) {
     }
     config[KEY_CONFIG_UPDATE] = true;
     if (syncAllModuleConfigs(config)) {
-        updateModuleConfig(config);
-        return saveCurrentModuleConfig();
+        _config.updateModuleConfig(config);
+        return _config.saveCurrentModuleConfig();
     }
     return false;
 }
@@ -120,11 +121,9 @@ bool TrapModule::initGps() {
     }
     DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
     JsonObject &obj = jsonBuf.createObject();
-    obj[KEY_CONFIG_UPDATE] = KEY_CONFIG_UPDATE;
+    obj[KEY_CONFIG_UPDATE] = true;
     obj[KEY_INIT_GPS] = KEY_INIT_GPS;
-    String msg;
-    obj.printTo(msg);
-    return _mesh.sendBroadcast(msg);
+    return sendBroadcast(obj);
 }
 
 /**
@@ -150,7 +149,7 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
     // モジュール状態更新
     if (msgJson.containsKey(KEY_MODULE_STATE)) {
         DEBUG_MSG_LN("update Other Module State");
-        updateOtherModuleState(msgJson);
+        _config.updateOtherModuleState(msgJson);
     }
     // 画像保存
     if (msgJson.containsKey(KEY_PICTURE)) {
@@ -160,12 +159,12 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
     // モジュール設定更新メッセージ受信
     if (msgJson.containsKey(KEY_CONFIG_UPDATE)) {
         DEBUG_MSG_LN("Module config update");
-        updateModuleConfig(msgJson);
-        saveCurrentModuleConfig();
+        _config.updateModuleConfig(msgJson);
+        _config.saveCurrentModuleConfig();
     }
     // DeepSleepする前に全ノードのバッテリー状態などを取得している必要があるので最後に呼ぶこと
     if (msgJson.containsKey(KEY_SYNC_SLEEP)) {
-        DEBUG_MSG_LN("SyncSleep start");
+        DEBUG_MSG_LN("Sync Sleep start");
         moduleStateTaskStop();
         // メッシュノード数を更新
         _config.updateNodeNum(_mesh.getNodeList());
@@ -177,42 +176,12 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
  * メッシュネットワークに新規のモジュールが追加されたとき
  */
 void TrapModule::newConnectionCallback(uint32_t nodeId) {
-    // Reset blink task
-    _config._ledOnFlag = false;
-    _blinkNodesTask.setIterations((_mesh.getNodeList().size() + 1) * 2);
-    _blinkNodesTask.enableDelayed(BLINK_PERIOD -
-                                  (_mesh.getNodeTime() % (BLINK_PERIOD * 1000)) / 1000);
     DEBUG_MSG_F("--> startHere: New Connection, nodeId = %u\n", nodeId);
-
-    SimpleList<uint32_t> nodes = _mesh.getNodeList();
-    // 罠モード時に前回起動時のメッシュ数になればモジュール状態送信
-    if (_config._trapMode && !_config._isTrapStart && nodes.size() >= _config._nodeNum) {
-        moduleStateTaskStart();
-    }
-    DEBUG_MSG_F("Num nodes: %d\n", nodes.size());
-    DEBUG_MSG_F("Connection list:");
-    for (auto &node : nodes) {
-        DEBUG_MSG_F(" %u", node);
-    }
-    DEBUG_MSG_LN();
-}
-
-/**
- * ネットワーク（トポロジ）状態変化
- */
-void TrapModule::changedConnectionCallback() {
-    DEBUG_MSG_F("Changed connections %s\n", _mesh.subConnectionJson().c_str());
-    // Reset blink task
     _config._ledOnFlag = false;
     _blinkNodesTask.setIterations((_mesh.getNodeList().size() + 1) * 2);
     _blinkNodesTask.enableDelayed(BLINK_PERIOD -
                                   (_mesh.getNodeTime() % (BLINK_PERIOD * 1000)) / 1000);
-
     SimpleList<uint32_t> nodes = _mesh.getNodeList();
-    // 罠モード時に前回起動時のメッシュ数になればモジュール状態送信
-    if (_config._trapMode && !_config._isTrapStart && nodes.size() >= _config._nodeNum) {
-        moduleStateTaskStart();
-    }
     // 接続情報表示
     DEBUG_MSG_F("Num nodes: %d\n", nodes.size());
     DEBUG_MSG_F("Connection list:");
@@ -220,6 +189,41 @@ void TrapModule::changedConnectionCallback() {
         DEBUG_MSG_F(" %u", node);
     }
     DEBUG_MSG_LN();
+    // 設置モードか罠モード開始時はモジュール状態送信は実行しない
+    if (!_config._trapMode || _config._isTrapStart) {
+        return;
+    }
+    // 罠モード時に前回起動時のメッシュ数になればモジュール状態送信
+    if (nodes.size() >= _config._nodeNum) {
+        moduleStateTaskStart();
+    }
+}
+
+/**
+ * ネットワーク（トポロジ）状態変化
+ */
+void TrapModule::changedConnectionCallback() {
+    DEBUG_MSG_F("Changed connections %s\n", _mesh.subConnectionJson().c_str());
+    _config._ledOnFlag = false;
+    _blinkNodesTask.setIterations((_mesh.getNodeList().size() + 1) * 2);
+    _blinkNodesTask.enableDelayed(BLINK_PERIOD -
+                                  (_mesh.getNodeTime() % (BLINK_PERIOD * 1000)) / 1000);
+    SimpleList<uint32_t> nodes = _mesh.getNodeList();
+    // 接続情報表示
+    DEBUG_MSG_F("Num nodes: %d\n", nodes.size());
+    DEBUG_MSG_F("Connection list:");
+    for (auto &node : nodes) {
+        DEBUG_MSG_F(" %u", node);
+    }
+    DEBUG_MSG_LN();
+    // 設置モードか罠モード開始時はモジュール状態送信は実行しない
+    if (!_config._trapMode || _config._isTrapStart) {
+        return;
+    }
+    // 罠モード時に前回起動時のメッシュ数になればモジュール状態送信
+    if (nodes.size() >= _config._nodeNum) {
+        moduleStateTaskStart();
+    }
 }
 
 void TrapModule::nodeTimeAdjustedCallback(int32_t offset) {
@@ -253,14 +257,12 @@ void TrapModule::updateModuleState() {
 /**
  * 設定値を全モジュールに同期する
  **/
-bool TrapModule::syncAllModuleConfigs(const JsonObject &config) {
+bool TrapModule::syncAllModuleConfigs(JsonObject &config) {
     DEBUG_MSG_LN("syncAllModuleConfigs");
     if (_mesh.getNodeList().size() == 0) {
         return true;
     }
-    String message;
-    config.printTo(message);
-    return _mesh.sendBroadcast(message);
+    return sendBroadcast(config);
 }
 
 // 現在時刻同期
@@ -273,9 +275,7 @@ bool TrapModule::syncCurrentTime() {
     JsonObject &currentTime = jsonBuf.createObject();
     currentTime[KEY_CONFIG_UPDATE] = true;
     currentTime[KEY_CURRENT_TIME] = now();
-    String msg;
-    currentTime.printTo(msg);
-    return _mesh.sendBroadcast(msg);
+    return sendBroadcast(currentTime);
 }
 
 /**
@@ -283,13 +283,14 @@ bool TrapModule::syncCurrentTime() {
  **/
 bool TrapModule::sendGetGps() {
     DEBUG_MSG_LN("sendGetGps");
-    if (_mesh.getNodeList().size() == 0 || _config._parentNodeId == DEF_NODEID) {
-        return true;
+    if (_config._parentNodeId == DEF_NODEID) {
+        DEBUG_MSG_LN("parent module not found");
+        return false;
     }
-    String msg = "{";
-    msg += KEY_GET_GPS;
-    msg += ":\"GetGps\"}";
-    return _mesh.sendSingle(_config._parentNodeId, msg);
+    DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
+    JsonObject &gpsGet = jsonBuf.createObject();
+    gpsGet[KEY_GET_GPS] = true;
+    return sendParent(gpsGet);
 }
 
 /**
@@ -298,21 +299,14 @@ bool TrapModule::sendGetGps() {
  * 1:トラップ作動状態、2:バッテリー残量、3:バッテリー切れ、4:カメラ有無
  */
 void TrapModule::sendModuleState() {
-    DEBUG_MSG_LN("sendGetGps");
+    DEBUG_MSG_LN("sendModuleState");
+    if (_config._parentNodeId == DEF_NODEID) {
+        DEBUG_MSG_LN("parent module not found");
+        return;
+    }
     updateModuleState();
-    // create message obj
-    DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
-    JsonObject &root = jsonBuf.createObject();
-    JsonArray &jarray = root.createNestedArray(KEY_MODULE_STATE);
-    JsonObject &state = jsonBuf.createObject();
-    state[KEY_TRAP_FIRE] = _config._trapFire;
-    state[KEY_CAMERA_ENABLE] = _config._cameraEnable;
-    state[KEY_BATTERY_DEAD] = _config._isBatteryDead;
-    uint16_t battery = analogRead(A0);
-    battery = battery * VOLTAGE_DIVIDE;
-    state[KEY_CURRENT_BATTERY] = battery;
-    jarray.add(state);
-    if (sendBroadCast(root)) {
+    JsonObject &root = _config.getModuleState();
+    if (sendParent(root)) {
         moduleStateTaskStop();
     }
 }
@@ -416,7 +410,7 @@ void TrapModule::shiftDeepSleep() {
     _config.setWakeTime();
     time_t tNow = now();
     _config._currentTime = tNow + _config.calcSleepTime(tNow, _config._wakeTime);
-    saveCurrentModuleConfig();
+    _config.saveCurrentModuleConfig();
 #ifdef DEBUG_ESP_PORT
     time_t temp = now();
     setTime(_config._wakeTime);

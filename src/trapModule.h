@@ -48,17 +48,14 @@ class TrapModule {
 
   private:
     // メッセージ送信
-    bool syncAllModuleConfigs(const JsonObject &config);
+    bool syncAllModuleConfigs(JsonObject &config);
     bool syncCurrentTime();
     void sendPicture();
     bool sendGetGps();
     void sendModuleState();
     // config
-    void updateModuleConfig(const JsonObject &config) { _config.updateModuleConfig(config); };
-    bool saveCurrentModuleConfig() { return _config.saveCurrentModuleConfig(); };
     uint32_t getNodeId() { return _config._nodeId != 0 ? _config._nodeId : _mesh.getNodeId(); };
     void updateModuleState();
-    void updateOtherModuleState(JsonObject &obj) { _config.updateOtherModuleState(obj); };
     // ハードウェア機能
     void shiftDeepSleep();
     // mesh
@@ -81,7 +78,7 @@ class TrapModule {
     }
     // util
     void saveBase64Image(const char *data, const char *name = NULL);
-    bool sendBroadCast(JsonObject &obj) {
+    bool sendBroadcast(JsonObject &obj) {
         String msg;
         obj.printTo(msg);
         return _mesh.sendBroadcast(msg);
