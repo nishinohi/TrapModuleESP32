@@ -34,17 +34,15 @@ JsonObject &ModuleConfig::getModuleInfo(painlessMesh &mesh) {
 // モジュール状態を取得
 JsonObject &ModuleConfig::getModuleState() {
     DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
-    JsonObject &root = jsonBuf.createObject();
-    JsonArray &jarray = root.createNestedArray(KEY_MODULE_STATE);
     JsonObject &state = jsonBuf.createObject();
+    state[KEY_MODULE_STATE] = true;
     state[KEY_TRAP_FIRE] = _trapFire;
     state[KEY_CAMERA_ENABLE] = _cameraEnable;
     state[KEY_BATTERY_DEAD] = _isBatteryDead;
     uint16_t battery = analogRead(A0);
     battery = battery * VOLTAGE_DIVIDE;
     state[KEY_CURRENT_BATTERY] = battery;
-    jarray.add(state);
-    return root;
+    return state;
 }
 
 // デフォルト設定を書き込む
@@ -103,7 +101,6 @@ bool ModuleConfig::loadModuleConfigFile() {
     // 設置モードでの起動時にロードしない内容はここで除外する
     if (!config.containsKey(KEY_TRAP_MODE) || config[KEY_TRAP_MODE] == false) {
         config.remove(KEY_PARENT_NODE_ID);
-        config.remove(KEY_NODE_LIST);
         config.remove(KEY_TRAP_FIRE);
         config.remove(KEY_WAKE_TIME);
         config.remove(KEY_CURRENT_TIME);
@@ -150,7 +147,7 @@ void ModuleConfig::updateModuleConfig(const JsonObject &config) {
     }
     // 親モジュール ID 追加
     if (config.containsKey(KEY_PARENT_NODE_ID)) {
-        pushNoDuplicateNodeId(config[KEY_PARENT_NODE_ID], _parentNodeIdList);
+        _parentNodeId = config[KEY_PARENT_NODE_ID];
     }
     // ノードサイズ
     if (config.containsKey(KEY_NODE_NUM)) {
@@ -170,7 +167,6 @@ void ModuleConfig::updateModuleConfig(const JsonObject &config) {
     }
     // 現在時刻情報
     if (config.containsKey(KEY_CURRENT_TIME)) {
-        _currentTime = config[KEY_CURRENT_TIME];
         setTime(config[KEY_CURRENT_TIME]);
     }
     // 真時刻メッセージ
@@ -178,17 +174,20 @@ void ModuleConfig::updateModuleConfig(const JsonObject &config) {
         _realTime = config[KEY_REAL_TIME];
         _realTimeDiff = millis();
     }
+    // 罠作動
+    if (config.containsKey(KEY_TRAP_FIRE)) {
+        _trapFire = config[KEY_TRAP_FIRE];
+    }
     // 罠モード
     if (config.containsKey(KEY_TRAP_MODE)) {
         bool preTrapMode = _trapMode;
         _trapMode = config[KEY_TRAP_MODE];
         // 設置モードから罠モードへ移行
         if (!preTrapMode && _trapMode) {
+            DEBUG_MSG_LN("Trap start!");
             _isTrapStart = true;
         }
     }
-    // 罠検知済みフラグは自身の値で更新(設置モード時は常に未検知状態)
-    _trapFire = _trapMode ? _trapFire : false;
 }
 
 /**
@@ -246,20 +245,6 @@ bool ModuleConfig::saveCurrentModuleConfig() {
 }
 
 /**
- * 現在のモジュールリスト内にある親モジュールの中で一番 ID の大きなものを
- * 唯一の親モジュールとして
- */
-void ModuleConfig::updateParentNodeId(const SimpleList<uint32_t> &nodeList) {
-    for (auto &parentNodeId : _parentNodeIdList) {
-        for (auto &nodeId : nodeList) {
-            if (parentNodeId == nodeId) {
-
-            }
-        }
-    }
-}
-
-/**
  * 重複なし親モジュール ID 追加処理
  */
 void ModuleConfig::pushNoDuplicateNodeId(const uint32_t &nodeId, SimpleList<uint32_t> &list) {
@@ -284,38 +269,6 @@ void ModuleConfig::updateGpsInfo(const char *lat, const char *lon) {
     strncpy(_lat, lat, strlen(lat));
     strncpy(_lon, lon, strlen(lon));
     DEBUG_MSG_F("GPS data: (lat, lon) = (%s, %s)\n", _lat, _lon);
-}
-
-/**
- * モジュール数を更新する
- * バッテリー切れ情報を受信したモジュー ID がモジュールリストに存在している場合、
- * それを差し引いたモジュール数設定値を更新する
- * この処理中にメッシュのリストが更新される可能性もあるので参照渡しはしないでおく
- */
-void ModuleConfig::updateNodeNum(SimpleList<uint32_t> nodeList) {
-    _nodeNum = nodeList.size();
-    for (auto &deadNodeId : _deadNodeIds) {
-        for (auto &nodeId : nodeList) {
-            if (deadNodeId == nodeId) {
-                --_nodeNum;
-                break;
-            }
-        }
-    }
-}
-
-/**
- * 他モジュール状態情報更新
- * 子モジュールはバッテリー切れ端末に関しての情報のみ扱う
- */
-void ModuleConfig::updateOtherModuleState(JsonObject &obj) {
-    JsonArray &jarray = obj[KEY_MODULE_STATE];
-    for (auto &state : jarray) {
-        uint32_t nodeId = state[KEY_NODE_ID];
-        if (state[KEY_BATTERY_DEAD]) {
-            pushNoDuplicateNodeId(nodeId, _deadNodeIds);
-        }
-    }
 }
 
 /**

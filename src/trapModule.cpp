@@ -65,12 +65,6 @@ void TrapModule::update() {
     } else {
         digitalWrite(LED, !_config._ledOnFlag);
     }
-    // 罠モード始動
-    if (_config._isTrapStart) {
-        DEBUG_MSG_LN("Trap start");
-        _config.updateParentNodeId(_mesh.getNodeList());
-        moduleStateTaskStart();
-    }
     // 設置モードか罠モード作動開始状態の場合は以降の処理は無視
     if (!_config._trapMode || _config._isTrapStart) {
         return;
@@ -78,12 +72,12 @@ void TrapModule::update() {
     // メッシュ待機限界時間が経過したら罠とバッテリーチェック開始
     if (now() - _config._wakeTime > _config._workTime - MESH_WAIT_LIMIT) {
         DEBUG_MSG_LN("mesh wait limit.");
-        moduleStateTaskStart();
+        // 親モジュールと接続できていない可能性が高いので送信試行回数は 3 回
+        moduleStateTaskStart(SEND_RETRY);
     }
     // 稼働時間超過により強制 DeepSleep
     if (now() - _config._wakeTime > _config._workTime) {
         DEBUG_MSG_LN("work time limit.");
-        _config.updateNodeNum(_mesh.getNodeList());
         _deepSleepTask.enableDelayed(SYNC_SLEEP_INTERVAL);
     }
 }
@@ -146,28 +140,25 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
         DEBUG_MSG_LN("json parse failed");
         return;
     }
-    // モジュール状態更新
-    if (msgJson.containsKey(KEY_MODULE_STATE)) {
-        DEBUG_MSG_LN("update Other Module State");
-        _config.updateOtherModuleState(msgJson);
-    }
-    // 画像保存
-    if (msgJson.containsKey(KEY_PICTURE)) {
-        DEBUG_MSG_LN("image receive");
-        saveBase64Image((const char *)msgJson[KEY_PICTURE]);
-    }
     // モジュール設定更新メッセージ受信
     if (msgJson.containsKey(KEY_CONFIG_UPDATE)) {
         DEBUG_MSG_LN("Module config update");
         _config.updateModuleConfig(msgJson);
         _config.saveCurrentModuleConfig();
     }
+    // モジュール状態送信要求
+    if (msgJson.containsKey(KEY_SEND_MODULE_STATE)) {
+        moduleStateTaskStart();
+    }
+    // 画像保存
+    if (msgJson.containsKey(KEY_PICTURE)) {
+        DEBUG_MSG_LN("image receive");
+        saveBase64Image((const char *)msgJson[KEY_PICTURE]);
+    }
     // DeepSleepする前に全ノードのバッテリー状態などを取得している必要があるので最後に呼ぶこと
     if (msgJson.containsKey(KEY_SYNC_SLEEP)) {
         DEBUG_MSG_LN("Sync Sleep start");
         moduleStateTaskStop();
-        // メッシュノード数を更新
-        _config.updateNodeNum(_mesh.getNodeList());
         _deepSleepTask.enableDelayed(SYNC_SLEEP_INTERVAL);
     }
 }
@@ -189,14 +180,6 @@ void TrapModule::newConnectionCallback(uint32_t nodeId) {
         DEBUG_MSG_F(" %u", node);
     }
     DEBUG_MSG_LN();
-    // 設置モードか罠モード開始時はモジュール状態送信は実行しない
-    if (!_config._trapMode || _config._isTrapStart) {
-        return;
-    }
-    // 罠モード時に前回起動時のメッシュ数になればモジュール状態送信
-    if (nodes.size() >= _config._nodeNum) {
-        moduleStateTaskStart();
-    }
 }
 
 /**
@@ -216,14 +199,6 @@ void TrapModule::changedConnectionCallback() {
         DEBUG_MSG_F(" %u", node);
     }
     DEBUG_MSG_LN();
-    // 設置モードか罠モード開始時はモジュール状態送信は実行しない
-    if (!_config._trapMode || _config._isTrapStart) {
-        return;
-    }
-    // 罠モード時に前回起動時のメッシュ数になればモジュール状態送信
-    if (nodes.size() >= _config._nodeNum) {
-        moduleStateTaskStart();
-    }
 }
 
 void TrapModule::nodeTimeAdjustedCallback(int32_t offset) {
@@ -302,6 +277,7 @@ void TrapModule::sendModuleState() {
     DEBUG_MSG_LN("sendModuleState");
     if (_config._parentNodeId == DEF_NODEID) {
         DEBUG_MSG_LN("parent module not found");
+        moduleStateTaskStop();
         return;
     }
     updateModuleState();
@@ -409,6 +385,7 @@ void TrapModule::shiftDeepSleep() {
     }
     _config.setWakeTime();
     time_t tNow = now();
+    // 次回起動時の現在時刻（現在時刻 + DeepSleep時間）をセットする
     _config._currentTime = tNow + _config.calcSleepTime(tNow, _config._wakeTime);
     _config.saveCurrentModuleConfig();
 #ifdef DEBUG_ESP_PORT

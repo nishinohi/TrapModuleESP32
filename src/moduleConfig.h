@@ -38,10 +38,6 @@ class ModuleConfig {
     // 時間誤差修正
     time_t _realTime = 0;
     unsigned long _realTimeDiff = 0;
-    // バッテリー切れ端末IDリスト
-    SimpleList<uint32_t> _deadNodeIds;
-    // 親モジュール ID リスト(一時保存用)
-    SimpleList<uint32_t> _parentNodeIdList;
 
   public:
     ModuleConfig(){};
@@ -50,17 +46,14 @@ class ModuleConfig {
     JsonObject &getModuleInfo(painlessMesh &mesh);
     JsonObject &getModuleState();
     void updateModuleConfig(const JsonObject &config);
-    void updateNodeNum(SimpleList<uint32_t> nodeList);
     bool saveCurrentModuleConfig();
     void initGps() {
         memset(_lat, '\0', GPS_STR_LEN);
         memset(_lon, '\0', GPS_STR_LEN);
     };
     time_t calcSleepTime(const time_t &tNow, const time_t &nextWakeTime);
-    void updateParentNodeId(const SimpleList<uint32_t> &nodeList);
     void pushNoDuplicateNodeId(const uint32_t &nodeId, SimpleList<uint32_t> &list);
     bool loadModuleConfigFile();
-    void updateOtherModuleState(JsonObject &obj);
 
   private:
     void setDefaultModuleConfig();

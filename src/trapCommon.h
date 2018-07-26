@@ -45,6 +45,7 @@
 #define KEY_NODE_NUM "NodeNum"
 // メッセージ JSON KEY
 #define KEY_CONFIG_UPDATE "ConfigUpdate"
+#define KEY_SEND_MODULE_STATE "SendModuleState"
 #define KEY_MODULE_STATE "ModuleState"
 #define KEY_NODE_LIST "NodeList"
 #define KEY_TRAP_FIRE_MESSAGE "TrapFireMessage"

@@ -65,8 +65,8 @@ class TrapModule {
     void nodeTimeAdjustedCallback(int32_t offset);
     // task
     void blinkLed();
-    void moduleStateTaskStart() {
-        _sendModuleStateTask.setIterations(SEND_RETRY);
+    void moduleStateTaskStart(long iteration = TASK_FOREVER) {
+        _sendModuleStateTask.setIterations(iteration);
         if (!_sendModuleStateTask.isEnabled()) {
             _sendModuleStateTask.enable();
         }
