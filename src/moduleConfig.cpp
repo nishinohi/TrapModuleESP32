@@ -32,6 +32,20 @@ JsonObject &ModuleConfig::getModuleInfo(painlessMesh &mesh) {
     return moduleInfo;
 }
 
+// モジュール状態を取得
+JsonObject &ModuleConfig::getModuleState() {
+    DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
+    JsonObject &state = jsonBuf.createObject();
+    state[KEY_MODULE_STATE] = true;
+    state[KEY_TRAP_FIRE] = _trapFire;
+    state[KEY_CAMERA_ENABLE] = _cameraEnable;
+    state[KEY_BATTERY_DEAD] = _isBatteryDead;
+    uint16_t battery = analogRead(A0);
+    battery = battery * VOLTAGE_DIVIDE;
+    state[KEY_CURRENT_BATTERY] = battery;
+    return state;
+}
+
 // デフォルト設定を書き込む
 void ModuleConfig::setDefaultModuleConfig() {
     DEBUG_MSG_LN("Set Default Module Config");
@@ -89,7 +103,6 @@ bool ModuleConfig::loadModuleConfigFile() {
     if (!config.containsKey(KEY_TRAP_MODE) || config[KEY_TRAP_MODE] == false) {
         config.remove(KEY_IS_PARENT);
         config.remove(KEY_PARENT_NODE_ID);
-        config.remove(KEY_NODE_LIST);
         config.remove(KEY_TRAP_FIRE);
         config.remove(KEY_WAKE_TIME);
         config.remove(KEY_CURRENT_TIME);
@@ -138,9 +151,9 @@ void ModuleConfig::updateModuleConfig(const JsonObject &config) {
     if (config.containsKey(KEY_IS_PARENT)) {
         _isParent = config[KEY_IS_PARENT];
     }
-    // 親モジュール更新(親モジュールは最もIDが大きいものを優先する)
+    // 親モジュール ID 追加
     if (config.containsKey(KEY_PARENT_NODE_ID)) {
-        updateParentNodeId(config[KEY_PARENT_NODE_ID]);
+        _parentNodeId = config[KEY_PARENT_NODE_ID];
     }
     // ノードサイズ
     if (config.containsKey(KEY_NODE_NUM)) {
@@ -160,7 +173,6 @@ void ModuleConfig::updateModuleConfig(const JsonObject &config) {
     }
     // 現在時刻情報
     if (config.containsKey(KEY_CURRENT_TIME)) {
-        _currentTime = config[KEY_CURRENT_TIME];
         setTime(config[KEY_CURRENT_TIME]);
     }
     // 真時刻メッセージ
@@ -168,34 +180,20 @@ void ModuleConfig::updateModuleConfig(const JsonObject &config) {
         _realTime = config[KEY_REAL_TIME];
         _realTimeDiff = millis();
     }
+    // 罠作動
+    if (config.containsKey(KEY_TRAP_FIRE)) {
+        _trapFire = config[KEY_TRAP_FIRE];
+    }
     // 罠モード
     if (config.containsKey(KEY_TRAP_MODE)) {
         bool preTrapMode = _trapMode;
         _trapMode = config[KEY_TRAP_MODE];
         // 設置モードから罠モードへ移行
         if (!preTrapMode && _trapMode) {
+            DEBUG_MSG_LN("Trap start!");
             _isTrapStart = true;
         }
     }
-    // 罠検知済みフラグは自身の値で更新(設置モード時は常に未検知状態)
-    _trapFire = _trapMode ? _trapFire : false;
-    // 子モジュールとしての振る舞いなら以降は不要
-    if (!_isParent) {
-        return;
-    }
-    // 未送信の罠作動済みモジュール
-    if (_trapMode && config.containsKey(KEY_FIRED_MODULES)) {
-        _firedModules.clear();
-        JsonArray &firedModules = config[KEY_FIRED_MODULES];
-        for (JsonArray::iterator it = firedModules.begin(); it != firedModules.end(); ++it) {
-            _firedModules.push_back(*it);
-        }
-    }
-    // 設置モードなら未送信モジュール情報はクリア
-    if (!_trapMode) {
-        _firedModules.clear();
-    }
-    return;
 }
 
 /**
@@ -244,16 +242,7 @@ bool ModuleConfig::saveCurrentModuleConfig() {
     bool isTimeSet = timeStatus() != timeStatus_t::timeNotSet;
     config[KEY_WAKE_TIME] = isTimeSet && _trapMode ? _wakeTime : DEF_WAKE_TIME;
     config[KEY_CURRENT_TIME] = isTimeSet && _trapMode ? _currentTime : DEF_CURRENT_TIME;
-    // モジュール数
     config[KEY_NODE_NUM] = _nodeNum;
-    // 罠検知済みモジュール
-    if (_isParent) {
-        JsonArray &firedModules = config.createNestedArray(KEY_FIRED_MODULES);
-        for (SimpleList<uint32_t>::iterator it = _firedModules.begin(); it != _firedModules.end();
-             ++it) {
-            firedModules.add(*it);
-        }
-    }
 #ifdef DEBUG_ESP_PORT
     String configStr;
     config.printTo(configStr);
@@ -263,29 +252,16 @@ bool ModuleConfig::saveCurrentModuleConfig() {
 }
 
 /**
- * 親モジュールはIDが一番大きいもののみを対象とする
+ * 重複なし親モジュール ID 追加処理
  */
-void ModuleConfig::updateParentNodeId(const uint32_t parentNodeId) {
-    _parentNodeId = _parentNodeId > parentNodeId ? _parentNodeId : parentNodeId;
-}
-
-/**
- * 親モジュールフラグを更新する
- */
-void ModuleConfig::updateParentFlag() {
-    if (_nodeId == DEF_NODEID) {
-        DEBUG_MSG_LN("work as parent.");
-        return;
+void ModuleConfig::pushNoDuplicateNodeId(const uint32_t &nodeId, SimpleList<uint32_t> &list) {
+    for (auto &listId : list) {
+        if (listId == nodeId) {
+            return;
+        }
     }
-    if (_nodeId > _parentNodeId) {
-        DEBUG_MSG_LN("work as parent.");
-        _isParent = true;
-    } else {
-        DEBUG_MSG_LN("work as child.");
-        _isParent = false;
-    }
+    list.push_back(nodeId);
 }
-
 
 /**
  * GPS情報更新
@@ -300,27 +276,6 @@ void ModuleConfig::updateGpsInfo(const char *lat, const char *lon) {
     strncpy(_lat, lat, strlen(lat));
     strncpy(_lon, lon, strlen(lon));
     DEBUG_MSG_F("GPS data: (lat, lon) = (%s, %s)\n", _lat, _lon);
-}
-
-/**
- * モジュール数を更新する
- * バッテリー切れ情報を受信したモジュー ID がモジュールリストに存在している場合、
- * それを差し引いたモジュール数設定値を更新する
- * この処理中にメッシュのリストが更新される可能性もあるので参照渡しはしないでおく
- */
-void ModuleConfig::updateModuelNumByBatteryInfo(SimpleList<uint32_t> nodeList) {
-    _nodeNum = nodeList.size();
-    uint8_t deadModuleNum = 0;
-    for (SimpleList<uint32_t>::iterator deadNodeId = _deadNodeIds.begin();
-         deadNodeId != _deadNodeIds.end(); ++deadNodeId) {
-        for (SimpleList<uint32_t>::iterator nodeId = nodeList.begin(); nodeId != nodeList.end();
-             ++nodeId) {
-            if (*deadNodeId == *nodeId) {
-                --_nodeNum;
-                break;
-            }
-        }
-    }
 }
 
 /**
@@ -400,22 +355,6 @@ time_t ModuleConfig::calcSleepTime(const time_t &tNow, const time_t &nextWakeTim
     return MAX_SLEEP_INTERVAL / 2;
 }
 
-/**
- * 罠が作動したモジュール ID を追加する（重複チェックあり）
- */
-void ModuleConfig::addFiredModules(uint32_t nodeId) {
-    DEBUG_MSG_LN("addFiredModules");
-    for (SimpleList<uint32_t>::iterator it = _firedModules.begin(); it != _firedModules.end();
-         ++it) {
-        if (*it == nodeId) {
-            DEBUG_MSG_F("fired module has already existed:%lu\n", nodeId);
-            return;
-        }
-    }
-    DEBUG_MSG_F("added fired module:%lu\n", nodeId);
-    _firedModules.push_back(nodeId);
-}
-
 /***********************************
  * 親機用メソッド
  **********************************/
@@ -433,4 +372,67 @@ JsonObject &ModuleConfig::getTrapStartInfo(painlessMesh &mesh) {
 JsonObject &ModuleConfig::getTrapUpdateInfo(painlessMesh &mesh) {
     JsonObject &info = getModuleInfo(mesh);
     return info;
+}
+
+/**
+ * 親モジュールフラグを更新する
+ */
+void ModuleConfig::updateParentState() {
+    updateParentNodeId();
+    if (_parentNodeId == _nodeId) {
+        DEBUG_MSG_LN("work as parent.");
+        _isParent = true;
+    } else {
+        DEBUG_MSG_LN("work as child.");
+        _isParent = false;
+    }
+}
+
+/**
+ * 親モジュール ID リスト内と自身の ID の中で最大のものを親モジュール ID にする
+ */
+void ModuleConfig::updateParentNodeId() {
+    _parentNodeId = _nodeId;
+    for (auto &parentNodeId : _parentNodeIdList) {
+        _parentNodeId = max(_parentNodeId, parentNodeId);
+    }
+}
+
+/**
+ * モジュール数を更新する
+ * バッテリー切れ情報を受信したモジュー ID がモジュールリストに存在している場合、
+ * それを差し引いたモジュール数設定値を更新する
+ * この処理中にメッシュのリストが更新される可能性もあるのでメッシュモジュールリストの参照渡しはしないでおく
+ */
+void ModuleConfig::updateNodeNum(SimpleList<uint32_t> nodeList) {
+    _nodeNum = nodeList.size();
+    for (auto &moduleState : _moduleStateList) {
+        if (!moduleState.batteryDead) {
+            continue;
+        }
+        for (auto &nodeId : nodeList) {
+            // バッテリー切れモジュール台数分モジュール数を減らす
+            if (moduleState.nodeId == nodeId) {
+                --_nodeNum;
+                break;
+            }
+        }
+    }
+}
+
+/**
+ * 重複なしモジュール状態追加
+ */
+void ModuleConfig::pushNoDuplicateModuleState(JsonObject &stateJson) {
+    for (auto &_state : _moduleStateList) {
+        if (stateJson[KEY_NODE_ID] == _state.nodeId) {
+            return;
+        }
+    }
+    ModuleState state;
+    state.nodeId = stateJson[KEY_NODE_ID];
+    state.batery = stateJson[KEY_CURRENT_BATTERY];
+    state.batteryDead = stateJson[KEY_BATTERY_DEAD];
+    state.trapFire = stateJson[KEY_TRAP_FIRE];
+    _moduleStateList.push_back(state);
 }

@@ -5,6 +5,14 @@
 #include <TimeLib.h>
 #include <painlessMesh.h>
 
+// モジュール状態構
+struct ModuleState {
+    uint32_t nodeId;
+    uint16_t batery;
+    bool batteryDead;
+    bool trapFire;
+};
+
 class ModuleConfig {
   public:
     uint32_t _nodeId = DEF_NODEID;
@@ -17,45 +25,47 @@ class ModuleConfig {
     char _lat[GPS_STR_LEN] = DEF_GPS_LAT;
     char _lon[GPS_STR_LEN] = DEF_GPS_LON;
     uint32_t _parentNodeId = DEF_NODEID;    // 親モジュール ID
-    SimpleList<uint32_t> _firedModules;     // 罠作動モジュールリスト
     uint8_t _nodeNum = DEF_NODE_NUM;        // 前回起動時のノード数
     time_t _wakeTime = DEF_WAKE_TIME;       // 次回起動時刻
     time_t _currentTime = DEF_CURRENT_TIME; // 現在時刻
     // フラグ関連
-    bool _isTrapStart = false;   // 罠起動モード移行フラグ
-    bool _ledOnFlag = false;     // LED点滅フラグ
+    bool _isTrapStart = false;          // 罠起動モード移行フラグ
+    bool _ledOnFlag = false;            // LED点滅フラグ
     bool _isCurrentBatterySend = false; // バッテリー残量送信済みフラグ
-    bool _isBatteryDead = false; // バッテリー切れフラグ
-    bool _isParent = true; // 親モジュールとして振る舞うかどうか
-
+    bool _isBatteryDead = false;        // バッテリー切れフラグ
+    bool _isParent = true;              // 親モジュールとして振る舞うかどうか
     // カメラモジュール関連
     bool _cameraEnable = false;
     // 時間誤差修正
     time_t _realTime = 0;
     unsigned long _realTimeDiff = 0;
-    // バッテリー切れ端末IDリスト
-    SimpleList<uint32_t> _deadNodeIds;
+    // 親モジュール ID リスト（一時格納用）
+    SimpleList<uint32_t> _parentNodeIdList;
+    // モジュール機能状態保存リスト
+    SimpleList<ModuleState> _moduleStateList;
+
 
   public:
     ModuleConfig(){};
 
     void setWakeTime();
     JsonObject &getModuleInfo(painlessMesh &mesh);
+    JsonObject &getModuleState();
     void updateModuleConfig(const JsonObject &config);
-    void updateModuelNumByBatteryInfo(SimpleList<uint32_t> nodeList);
     bool saveCurrentModuleConfig();
     void initGps() {
         memset(_lat, '\0', GPS_STR_LEN);
         memset(_lon, '\0', GPS_STR_LEN);
     };
     time_t calcSleepTime(const time_t &tNow, const time_t &nextWakeTime);
-    void updateParentNodeId(const uint32_t parentNodeId);
-    void updateParentFlag();
+    void pushNoDuplicateNodeId(const uint32_t &nodeId, SimpleList<uint32_t> &list);
     bool loadModuleConfigFile();
-    void addFiredModules(uint32_t nodeId);
     // 親機用
     JsonObject &getTrapStartInfo(painlessMesh &mesh);
     JsonObject &getTrapUpdateInfo(painlessMesh &mesh);
+    void updateParentState();
+    void updateNodeNum(SimpleList<uint32_t> nodeList);
+    void pushNoDuplicateModuleState(JsonObject& stateJson);
 
   private:
     void setDefaultModuleConfig();
@@ -63,6 +73,8 @@ class ModuleConfig {
     void setParameter(T &targetParam, const T &setParam, const int maxV, const int minV);
     bool saveModuleConfig(const JsonObject &config);
     void updateGpsInfo(const char *lat, const char *lon);
+    // 親限定
+    void updateParentNodeId();
 };
 
 #endif // INCLUDE_GUARD_MODULECONFIG
