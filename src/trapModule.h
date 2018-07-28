@@ -66,8 +66,8 @@ class TrapModule {
     // task
     void blinkLed();
     void moduleStateTaskStart(long iteration = TASK_FOREVER) {
-        _sendModuleStateTask.setIterations(iteration);
         if (!_sendModuleStateTask.isEnabled()) {
+            _sendModuleStateTask.setIterations(iteration);
             _sendModuleStateTask.enable();
         }
     }
@@ -88,6 +88,7 @@ class TrapModule {
         obj.printTo(msg);
         return _mesh.sendSingle(_config._parentNodeId, msg);
     }
+    void refreshMeshDetail();
 };
 
 #endif // INCLUDE_GUARD_TRAPMODULE
