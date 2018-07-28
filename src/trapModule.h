@@ -84,8 +84,8 @@ class TrapModule {
     // task
     void blinkLed();
     void moduleStateTaskStart(long iteration = TASK_FOREVER) {
-        _sendModuleStateTask.setIterations(iteration);
         if (!_sendModuleStateTask.isEnabled()) {
+            _sendModuleStateTask.setIterations(iteration);
             _sendModuleStateTask.enable();
         }
     }
@@ -106,6 +106,7 @@ class TrapModule {
         obj.printTo(msg);
         return _mesh.sendSingle(_config._parentNodeId, msg);
     }
+    void refreshMeshDetail();
     bool beginMultiTask(const char *taskName, TaskFunction_t func, TaskHandle_t taskHandle,
                         void *arg, const uint8_t priority, const uint8_t core = 0);
 };

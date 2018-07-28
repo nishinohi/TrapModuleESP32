@@ -56,6 +56,7 @@ void TrapModule::setupTask() {
  * 起動前チェック
  */
 void TrapModule::checkStart() {
+    updateModuleState();
     if (_config._isBatteryDead) {
         DEBUG_MSG_LN("cannot start because battery already dead.");
         shiftDeepSleep();
@@ -98,8 +99,11 @@ void TrapModule::update() {
     if (!_config._trapMode || _config._isTrapStart) {
         return;
     }
-    // 稼働時間超過により強制 DeepSleep 送信
+    // 稼働時間超過により強制 DeepSleep
     if (now() - _config._wakeTime > _config._workTime) {
+        if (_deepSleepTask.isEnabled()) {
+            return;
+        }
         DEBUG_MSG_LN("work time limit.");
         _config.updateNodeNum(_mesh.getNodeList());
         _deepSleepTask.enableDelayed(SYNC_SLEEP_INTERVAL);
@@ -200,15 +204,21 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
     // モジュール設定更新メッセージ受信
     if (msgJson.containsKey(KEY_CONFIG_UPDATE)) {
         DEBUG_MSG_LN("Module config update");
+        bool preTrapMode = _config._trapMode;
         _config.updateModuleConfig(msgJson);
         _config.saveCurrentModuleConfig();
+        if (!preTrapMode && _config._trapMode) {
+            DEBUG_MSG_LN("Trap start!");
+            _config._isTrapStart = true;
+            startTrapMode();
+        }
     }
     // 親モジュール情報
     if (msgJson.containsKey(KEY_PARENT_INFO)) {
         DEBUG_MSG_LN("parent module info");
         _config.pushNoDuplicateNodeId(msgJson[KEY_PARENT_NODE_ID], _config._parentNodeIdList);
     }
-    // モジュール状態送信要求
+    // モジュール状態送信要求が来た場合は送信済みか否かにかかわらず送信する
     if (msgJson.containsKey(KEY_SEND_MODULE_STATE)) {
         DEBUG_MSG_LN("request module state");
         moduleStateTaskStart();
@@ -238,50 +248,54 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
 
 /**
  * メッシュネットワークに新規のモジュールが追加されたとき
+ * 罠モード時に親モジュールがメッシュ内に存在していてかつモジュール状態が未送信なら送信する
  */
 void TrapModule::newConnectionCallback(uint32_t nodeId) {
     DEBUG_MSG_F("--> startHere: New Connection, nodeId = %u\n", nodeId);
-    _config._ledOnFlag = false;
-    _blinkNodesTask.setIterations((_mesh.getNodeList().size() + 1) * 2);
-    _blinkNodesTask.enableDelayed(BLINK_PERIOD -
-                                  (_mesh.getNodeTime() % (BLINK_PERIOD * 1000)) / 1000);
-    SimpleList<uint32_t> nodes = _mesh.getNodeList();
-    // 接続情報表示
-    DEBUG_MSG_F("Num nodes: %d\n", nodes.size());
-    DEBUG_MSG_F("Connection list:");
-    for (auto &node : nodes) {
-        DEBUG_MSG_F(" %u", node);
+    refreshMeshDetail();
+    if (_config._isParent) {
+	    // 何度も broadcast する必要はないので遅延送信
+	    _sendParentInfoTask.enableDelayed(SEND_PARENT_INTERVAL);
+	    return;
     }
-    DEBUG_MSG_LN();
-    if (!_config._isParent) {
+    if (!_config._trapMode || _config._isTrapStart) {
         return;
     }
-    // 何度も broadcast する必要はないので遅延送信
-    _sendParentInfoTask.enableDelayed(SEND_PARENT_INTERVAL);
+    if (_config._isSendModuleState) {
+        return;
+    }
+    for (auto &nodeId : _mesh.getNodeList()) {
+        if (nodeId == _config._parentNodeId) {
+            moduleStateTaskStart();
+            break;
+        }
+    }
 }
 
 /**
  * ネットワーク（トポロジ）状態変化
+ * 罠モード時に親モジュールがメッシュ内に存在していてかつモジュール状態が未送信なら送信する
  */
 void TrapModule::changedConnectionCallback() {
     DEBUG_MSG_F("Changed connections %s\n", _mesh.subConnectionJson().c_str());
-    _config._ledOnFlag = false;
-    _blinkNodesTask.setIterations((_mesh.getNodeList().size() + 1) * 2);
-    _blinkNodesTask.enableDelayed(BLINK_PERIOD -
-                                  (_mesh.getNodeTime() % (BLINK_PERIOD * 1000)) / 1000);
-    SimpleList<uint32_t> nodes = _mesh.getNodeList();
-    // 接続情報表示
-    DEBUG_MSG_F("Num nodes: %d\n", nodes.size());
-    DEBUG_MSG_F("Connection list:");
-    for (auto &node : nodes) {
-        DEBUG_MSG_F(" %u", node);
+    refreshMeshDetail();
+    if (_config._isParent) {
+	    // 何度も broadcast する必要はないので遅延送信
+	    _sendParentInfoTask.enableDelayed(SEND_PARENT_INTERVAL);
+	    return;
     }
-    DEBUG_MSG_LN();
-    if (!_config._isParent) {
+    if (!_config._trapMode || _config._isTrapStart) {
         return;
     }
-    // 何度も broadcast する必要はないので遅延送信
-    _sendParentInfoTask.enableDelayed(SEND_PARENT_INTERVAL);
+    if (_config._isSendModuleState) {
+        return;
+    }
+    for (auto &nodeId : _mesh.getNodeList()) {
+        if (nodeId == _config._parentNodeId) {
+            moduleStateTaskStart();
+            break;
+        }
+    }
 }
 
 void TrapModule::nodeTimeAdjustedCallback(int32_t offset) {
@@ -364,8 +378,9 @@ void TrapModule::sendModuleState() {
         return;
     }
     updateModuleState();
-    JsonObject &root = _config.getModuleState();
-    if (sendParent(root)) {
+    JsonObject &state = _config.getModuleState();
+    if (sendParent(state)) {
+        _config._isSendModuleState = true;
         moduleStateTaskStop();
     }
 }
@@ -422,7 +437,6 @@ void TrapModule::sendPicture() {
 
 /**
  * 同期停止メッセージ送信
- * 停止前のメッシュノード台数も送信する
  */
 void TrapModule::sendSyncSleep() {
     DEBUG_MSG_LN("sendSyncSleep");
@@ -433,7 +447,7 @@ void TrapModule::sendSyncSleep() {
     }
     DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
     JsonObject &syncObj = jsonBuf.createObject();
-    syncObj[KEY_SYNC_SLEEP] = KEY_SYNC_SLEEP;
+    syncObj[KEY_SYNC_SLEEP] = true;
     // 起動し続けることはできないので送信に失敗した場合も deepSleep へ移行する
     if (sendBroadcast(syncObj) || _sendSyncSleepTask.isLastIteration()) {
         _sendSyncSleepTask.disable();
@@ -697,6 +711,24 @@ void TrapModule::saveBase64Image(const char *data, const char *name) {
     img.write((const uint8_t *)dec, decLen + 1);
     img.close();
     free(dec);
+}
+
+/**
+ * メッシュネットワーク更新時の LED リセットと接続状態表示
+ */
+void TrapModule::refreshMeshDetail() {
+    _config._ledOnFlag = false;
+    _blinkNodesTask.setIterations((_mesh.getNodeList().size() + 1) * 2);
+    _blinkNodesTask.enableDelayed(BLINK_PERIOD -
+                                  (_mesh.getNodeTime() % (BLINK_PERIOD * 1000)) / 1000);
+    SimpleList<uint32_t> nodes = _mesh.getNodeList();
+    // 接続情報表示
+    DEBUG_MSG_F("Num nodes: %d\n", nodes.size());
+    DEBUG_MSG_F("Connection list:");
+    for (auto &node : nodes) {
+        DEBUG_MSG_F(" %u", node);
+    }
+    DEBUG_MSG_LN();
 }
 
 /**

@@ -33,6 +33,7 @@ class ModuleConfig {
     bool _ledOnFlag = false;            // LED点滅フラグ
     bool _isCurrentBatterySend = false; // バッテリー残量送信済みフラグ
     bool _isBatteryDead = false;        // バッテリー切れフラグ
+    bool _isSendModuleState = false;    // モジュール状態送信済みフラグ
     bool _isParent = true;              // 親モジュールとして振る舞うかどうか
     // カメラモジュール関連
     bool _cameraEnable = false;
