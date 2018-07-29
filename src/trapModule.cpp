@@ -220,10 +220,10 @@ void TrapModule::updateModuleState() {
 #else
     _config._trapFire = false;
 #endif
+#ifdef BATTERY_CHECK_ACTIVE
     uint16_t battery = analogRead(A0);
     battery = battery * VOLTAGE_DIVIDE;
-#ifdef BATTERY_CHECK_ACTIVE
-    _config._isBatteryDead = battery > BATTERY_LIMIT;
+    _config._isBatteryDead = battery < BATTERY_LIMIT;
 #else
     _config._isBatteryDead = false;
 #endif
