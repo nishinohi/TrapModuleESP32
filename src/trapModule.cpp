@@ -78,6 +78,11 @@ void TrapModule::startTrapMode() {
         return;
     }
     _config.updateNodeNum(_mesh.getNodeList());
+    // 単独稼働の場合はそのまま終了
+    if (_config._nodeNum == 0) {
+        shiftDeepSleep();
+        return;
+    }
     _requestModuleStateTask.enableDelayed(2000);
 }
 
@@ -102,6 +107,11 @@ void TrapModule::update() {
     }
     // 設置モードか罠モード作動開始状態の場合は以降の処理は無視
     if (!_config._trapMode || _config._isTrapStart) {
+        return;
+    }
+    // 単独稼働の場合はそのまま終了
+    if (_config._nodeNum == 0) {
+        shiftDeepSleep();
         return;
     }
     // 稼働時間超過により強制 DeepSleep
@@ -257,6 +267,7 @@ void TrapModule::newConnectionCallback(uint32_t nodeId) {
         _sendParentInfoTask.enableDelayed(SEND_PARENT_INTERVAL);
         return;
     }
+    // 以降は子モジュールの動作
     if (!_config._trapMode || _config._isTrapStart) {
         return;
     }
@@ -283,6 +294,7 @@ void TrapModule::changedConnectionCallback() {
         _sendParentInfoTask.enableDelayed(SEND_PARENT_INTERVAL);
         return;
     }
+    // 以降は子モジュールの動作
     if (!_config._trapMode || _config._isTrapStart) {
         return;
     }

@@ -417,6 +417,7 @@ void ModuleConfig::updateNodeNum(SimpleList<uint32_t> nodeList) {
             }
         }
     }
+    DEBUG_MSG_F("updated module num:%d\n", _nodeNum);
 }
 
 /**
