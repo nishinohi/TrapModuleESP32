@@ -141,13 +141,8 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
     // モジュール設定更新メッセージ受信
     if (msgJson.containsKey(KEY_CONFIG_UPDATE)) {
         DEBUG_MSG_LN("Module config update");
-        bool preTrapMode = _config._trapMode;
         _config.updateModuleConfig(msgJson);
         _config.saveCurrentModuleConfig();
-        if (!preTrapMode && _config._trapMode) {
-            DEBUG_MSG_LN("Trap start!");
-            _config._isTrapStart = true;
-        }
     }
     // モジュール状態送信要求が来た場合は送信済みか否かにかかわらず送信する
     if (msgJson.containsKey(KEY_SEND_MODULE_STATE)) {
