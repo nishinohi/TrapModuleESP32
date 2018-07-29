@@ -71,12 +71,12 @@ void TrapModule::checkStart() {
  * 罠モード開始
  */
 void TrapModule::startTrapMode() {
+    DEBUG_MSG_LN("startTrapMode");
+    // 罠モード開始
+    _config.updateParentState();
     if (!_config._isParent) {
         return;
     }
-    // 罠モード開始
-    DEBUG_MSG_LN("startTrapMode");
-    _config.updateParentState();
     _config.updateNodeNum(_mesh.getNodeList());
     _requestModuleStateTask.enableDelayed(2000);
 }
@@ -94,6 +94,11 @@ void TrapModule::update() {
         digitalWrite(LED, HIGH);
     } else {
         digitalWrite(LED, !_config._ledOnFlag);
+    }
+    // 罠モード開始時に一度だけ実行する
+    if (_config._isTrapStart && !_config._isStarted) {
+        _config._isStarted = true;
+        startTrapMode();
     }
     // 設置モードか罠モード作動開始状態の場合は以降の処理は無視
     if (!_config._trapMode || _config._isTrapStart) {
@@ -204,14 +209,8 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
     // モジュール設定更新メッセージ受信
     if (msgJson.containsKey(KEY_CONFIG_UPDATE)) {
         DEBUG_MSG_LN("Module config update");
-        bool preTrapMode = _config._trapMode;
         _config.updateModuleConfig(msgJson);
         _config.saveCurrentModuleConfig();
-        if (!preTrapMode && _config._trapMode) {
-            DEBUG_MSG_LN("Trap start!");
-            _config._isTrapStart = true;
-            startTrapMode();
-        }
     }
     // 親モジュール情報
     if (msgJson.containsKey(KEY_PARENT_INFO)) {
@@ -254,9 +253,9 @@ void TrapModule::newConnectionCallback(uint32_t nodeId) {
     DEBUG_MSG_F("--> startHere: New Connection, nodeId = %u\n", nodeId);
     refreshMeshDetail();
     if (_config._isParent) {
-	    // 何度も broadcast する必要はないので遅延送信
-	    _sendParentInfoTask.enableDelayed(SEND_PARENT_INTERVAL);
-	    return;
+        // 何度も broadcast する必要はないので遅延送信
+        _sendParentInfoTask.enableDelayed(SEND_PARENT_INTERVAL);
+        return;
     }
     if (!_config._trapMode || _config._isTrapStart) {
         return;
@@ -280,9 +279,9 @@ void TrapModule::changedConnectionCallback() {
     DEBUG_MSG_F("Changed connections %s\n", _mesh.subConnectionJson().c_str());
     refreshMeshDetail();
     if (_config._isParent) {
-	    // 何度も broadcast する必要はないので遅延送信
-	    _sendParentInfoTask.enableDelayed(SEND_PARENT_INTERVAL);
-	    return;
+        // 何度も broadcast する必要はないので遅延送信
+        _sendParentInfoTask.enableDelayed(SEND_PARENT_INTERVAL);
+        return;
     }
     if (!_config._trapMode || _config._isTrapStart) {
         return;
@@ -493,6 +492,9 @@ void TrapModule::sendRequestModuleState() {
     DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
     JsonObject &obj = jsonBuf.createObject();
     obj[KEY_SEND_MODULE_STATE] = true;
+    // モジュール状態の送信対象の親モジュール ID をセット
+    obj[KEY_CONFIG_UPDATE] = true;
+    obj[KEY_PARENT_NODE_ID] = getNodeId();
     if (sendBroadcast(obj)) {
         _requestModuleStateTask.disable();
     }

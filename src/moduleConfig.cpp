@@ -186,7 +186,12 @@ void ModuleConfig::updateModuleConfig(const JsonObject &config) {
     }
     // 罠モード
     if (config.containsKey(KEY_TRAP_MODE)) {
+        bool preTrapMode = _trapMode;
         _trapMode = config[KEY_TRAP_MODE];
+        if (!preTrapMode && _trapMode) {
+            DEBUG_MSG_LN("Trap start!");
+            _isTrapStart = true;
+        }
     }
 }
 

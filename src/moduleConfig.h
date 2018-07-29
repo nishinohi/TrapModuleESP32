@@ -35,6 +35,7 @@ class ModuleConfig {
     bool _isBatteryDead = false;        // バッテリー切れフラグ
     bool _isSendModuleState = false;    // モジュール状態送信済みフラグ
     bool _isParent = true;              // 親モジュールとして振る舞うかどうか
+    bool _isStarted = false;            // 罠起動モード開始済みフラグ
     // カメラモジュール関連
     bool _cameraEnable = false;
     // 時間誤差修正
