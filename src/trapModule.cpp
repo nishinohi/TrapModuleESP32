@@ -25,29 +25,40 @@ void TrapModule::setupTask() {
                         std::bind(&TrapModule::blinkLed, this));
     _mesh.scheduler.addTask(_blinkNodesTask);
     _blinkNodesTask.enable();
-    // module state
-    _sendModuleStateTask.set(1000, TASK_FOREVER, std::bind(&TrapModule::sendModuleState, this));
+    // module state 送信が輻輳しないよう送信間隔をランダムにする
+    randomSeed(now());
+    _sendModuleStateTask.set(random(DEF_INTERVAL, MODULE_STATE_INTERVAL), TASK_FOREVER,
+                             std::bind(&TrapModule::sendModuleState, this));
     _mesh.scheduler.addTask(_sendModuleStateTask);
     // picture
-    _sendPictureTask.set(5000, 5, std::bind(&TrapModule::sendPicture, this));
+    _sendPictureTask.set(DEF_INTERVAL, DEF_ITERATION,
+                         std::bind(&TrapModule::sendPicture, this));
     _mesh.scheduler.addTask(_sendPictureTask);
+    // battery check
+    _checkBatteryLimitTask.set(BATTERY_CHECK_INTERVAL, TASK_FOREVER,
+                               std::bind(&TrapModule::checkBatteryLimit, this));
+    _mesh.scheduler.addTask(_checkBatteryLimitTask);
+    // 設置モード時はバッテリーチェックを有効にする
+    if (!_config._trapMode) {
+        _checkBatteryLimitTask.enable();
+    }
     // DeepSleep
     _deepSleepTask.set(SYNC_SLEEP_INTERVAL, TASK_FOREVER,
                        std::bind(&TrapModule::shiftDeepSleep, this));
     _mesh.scheduler.addTask(_deepSleepTask);
     // request Module State task
-    _requestModuleStateTask.set(1000, TASK_FOREVER,
+    _requestModuleStateTask.set(DEF_INTERVAL, TASK_FOREVER,
                                 std::bind(&TrapModule::sendRequestModuleState, this));
     _mesh.scheduler.addTask(_requestModuleStateTask);
     // send GPS data task
-    _sendGPSDataTask.set(GPS_SEND_INTERVAL, SEND_RETRY, std::bind(&TrapModule::sendGpsData, this));
+    _sendGPSDataTask.set(DEF_INTERVAL, DEF_ITERATION, std::bind(&TrapModule::sendGpsData, this));
     _mesh.scheduler.addTask(_sendGPSDataTask);
     // send Sync Sleep task
-    _sendSyncSleepTask.set(SEND_SYNC_SLEEP_INTERVAL, SEND_RETRY,
+    _sendSyncSleepTask.set(DEF_INTERVAL, TASK_FOREVER,
                            std::bind(&TrapModule::sendSyncSleep, this));
     _mesh.scheduler.addTask(_sendSyncSleepTask);
     // send Parent ModuleInfo Task
-    _sendParentInfoTask.set(SEND_PARENT_INTERVAL, SEND_RETRY,
+    _sendParentInfoTask.set(SEND_PARENT_INTERVAL, DEF_ITERATION,
                             std::bind(&TrapModule::sendParentModuleInfo, this));
     _mesh.scheduler.addTask(_sendParentInfoTask);
 }
@@ -56,7 +67,7 @@ void TrapModule::setupTask() {
  * 起動前チェック
  */
 void TrapModule::checkStart() {
-    updateModuleState();
+    updateBattery();
     if (_config._isBatteryDead) {
         DEBUG_MSG_LN("cannot start because battery already dead.");
         shiftDeepSleep();
@@ -120,6 +131,7 @@ void TrapModule::update() {
             return;
         }
         DEBUG_MSG_LN("work time limit.");
+        _sendSyncSleepTask.disable();
         _config.updateNodeNum(_mesh.getNodeList());
         _deepSleepTask.enableDelayed(SYNC_SLEEP_INTERVAL);
     }
@@ -163,6 +175,9 @@ bool TrapModule::initGps() {
     return sendBroadcast(obj);
 }
 
+/********************************************
+ * モジュール情報取得１
+ *******************************************/
 /**
  * GPS取得
  * GPS 取得タスクを開始するだけなので、必ず成功になる
@@ -228,7 +243,7 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
         _config.pushNoDuplicateNodeId(msgJson[KEY_PARENT_NODE_ID], _config._parentNodeIdList);
     }
     // モジュール状態送信要求が来た場合は送信済みか否かにかかわらず送信する
-    if (msgJson.containsKey(KEY_SEND_MODULE_STATE)) {
+    if (msgJson.containsKey(KEY_REQUEST_MODULE_STATE)) {
         DEBUG_MSG_LN("request module state");
         moduleStateTaskStart();
     }
@@ -268,6 +283,7 @@ void TrapModule::newConnectionCallback(uint32_t nodeId) {
         return;
     }
     // 以降は子モジュールの動作
+    // 設置モードのときは何もしない
     if (!_config._trapMode || _config._isTrapStart) {
         return;
     }
@@ -295,6 +311,7 @@ void TrapModule::changedConnectionCallback() {
         return;
     }
     // 以降は子モジュールの動作
+    // 設置モードのときは何もしない
     if (!_config._trapMode || _config._isTrapStart) {
         return;
     }
@@ -314,23 +331,31 @@ void TrapModule::nodeTimeAdjustedCallback(int32_t offset) {
 }
 
 /*******************************************************
- * 設定値関係
+ * センサ情報
  ******************************************************/
 /**
- * モジュール状態を更新
+ * バッテリー状態更新
  */
-void TrapModule::updateModuleState() {
-#ifdef TRAP_CHECK_ACTIVE
-    _config._trapFire = digitalRead(TRAP_CHECK_PIN) == HIGH;
-#else
-    _config._trapFire = false;
-#endif
+void TrapModule::updateBattery() {
+    DEBUG_MSG_LN("updateBattery");
 #ifdef BATTERY_CHECK_ACTIVE
     uint16_t battery = analogRead(A0);
     battery = battery * VOLTAGE_DIVIDE;
     _config._isBatteryDead = battery < BATTERY_LIMIT;
 #else
     _config._isBatteryDead = false;
+#endif
+}
+
+/**
+ * 罠作動状態更新
+ */
+void TrapModule::updateTrapFire() {
+    DEBUG_MSG_LN("updateTrapFire");
+#ifdef TRAP_CHECK_ACTIVE
+    _config._trapFire = digitalRead(TRAP_CHECK_PIN) == HIGH;
+#else
+    _config._trapFire = false;
 #endif
 }
 
@@ -388,12 +413,18 @@ void TrapModule::sendModuleState() {
         moduleStateTaskStop();
         return;
     }
-    updateModuleState();
+    // センサ情報更新
+    updateBattery();
+    updateTrapFire();
+    // モジュール状態情報作成
     JsonObject &state = _config.getModuleState();
     if (sendParent(state)) {
         _config._isSendModuleState = true;
         moduleStateTaskStop();
     }
+    // 送信に成功しなかった場合輻輳を避けるため送信間隔を変更
+    randomSeed(now());
+    _sendModuleStateTask.setInterval(random(DEF_INTERVAL, MODULE_STATE_INTERVAL));
 }
 
 /**
@@ -459,8 +490,7 @@ void TrapModule::sendSyncSleep() {
     DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
     JsonObject &syncObj = jsonBuf.createObject();
     syncObj[KEY_SYNC_SLEEP] = true;
-    // 起動し続けることはできないので送信に失敗した場合も deepSleep へ移行する
-    if (sendBroadcast(syncObj) || _sendSyncSleepTask.isLastIteration()) {
+    if (sendBroadcast(syncObj)) {
         _sendSyncSleepTask.disable();
         _deepSleepTask.enableDelayed(SYNC_SLEEP_INTERVAL);
     }
@@ -503,7 +533,7 @@ void TrapModule::sendRequestModuleState() {
     }
     DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
     JsonObject &obj = jsonBuf.createObject();
-    obj[KEY_SEND_MODULE_STATE] = true;
+    obj[KEY_REQUEST_MODULE_STATE] = true;
     // モジュール状態の送信対象の親モジュール ID をセット
     obj[KEY_CONFIG_UPDATE] = true;
     obj[KEY_PARENT_NODE_ID] = getNodeId();
@@ -514,7 +544,6 @@ void TrapModule::sendRequestModuleState() {
 
 /**
  * GPS データ送信
- * TODO: 今更だけどこれいる？
  */
 void TrapModule::sendGpsData() {
     DEBUG_MSG_LN("sendGpsData");
@@ -611,6 +640,19 @@ void TrapModule::shiftDeepSleep() {
 #else
     ESP.deepSleep(deepSleepTime);
 #endif
+}
+
+/**
+ * バッテリー残量が限界値を超えたら矯正シャットダウンさせる
+ * 基本的に設置モード時のみ有効にする想定
+ */
+void TrapModule::checkBatteryLimit() {
+    DEBUG_MSG_LN("checkBattery");
+    updateBattery();
+    if (_config._isBatteryDead) {
+        _checkBatteryLimitTask.disable();
+        shiftDeepSleep();
+    }
 }
 
 /********************************************

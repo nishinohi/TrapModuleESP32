@@ -13,14 +13,15 @@ class TrapModule {
   private:
     ModuleConfig _config;
     Camera _camera;
-    Cellular _cellular;
     painlessMesh _mesh;
+    Cellular _cellular;
 
     // タスク関連
-    Task _deepSleepTask;       // DeepSleep以降タスク
-    Task _blinkNodesTask;      // LED タスク
-    Task _sendPictureTask;     // 写真撮影フラグ
-    Task _sendModuleStateTask; // モジュール状態送信タスク
+    Task _deepSleepTask;         // DeepSleep以降タスク
+    Task _blinkNodesTask;        // LED タスク
+    Task _sendPictureTask;       // 写真撮影フラグ
+    Task _sendModuleStateTask;   // モジュール状態送信タスク
+    Task _checkBatteryLimitTask; // バッテリー残量チェックタスク（設置モードで使用する）
     // 親モジュール機能
     Task _sendGPSDataTask;           // GPS 送信タスク
     Task _sendSyncSleepTask;         // 同期停止メッセージ送信タスク
@@ -42,10 +43,11 @@ class TrapModule {
     void update();
     // モジュール設定値操作
     bool setConfig(JsonObject &config);
-    String getMeshGraph() { return _mesh.subConnectionJson(); };
-    JsonObject &getModuleInfo() { return _config.getModuleInfo(_mesh); };
     bool setCurrentTime(time_t current);
     bool initGps();
+    // モジュール情報取得
+    String getMeshGraph() { return _mesh.subConnectionJson(); };
+    JsonObject &getModuleInfo() { return _config.getModuleInfo(_mesh); };
     bool getGps();
     static void getGpsTask(void *arg);
     // カメラ機能
@@ -71,10 +73,12 @@ class TrapModule {
     void sendGpsData();
     void sendParentModuleInfo();
     void sendRequestModuleState();
-    // config
+    // モジュール情報取得
     uint32_t getNodeId() { return _config._nodeId != 0 ? _config._nodeId : _mesh.getNodeId(); };
-    void updateModuleState();
-    // ハードウェア機能
+    // センサ情報
+    void updateBattery();
+    void updateTrapFire();
+    // deepSleep
     void shiftDeepSleep();
     // mesh
     void receivedCallback(uint32_t from, String &msg);
@@ -83,6 +87,7 @@ class TrapModule {
     void nodeTimeAdjustedCallback(int32_t offset);
     // task
     void blinkLed();
+    void checkBatteryLimit();
     void moduleStateTaskStart(long iteration = TASK_FOREVER) {
         if (!_sendModuleStateTask.isEnabled()) {
             _sendModuleStateTask.setIterations(iteration);

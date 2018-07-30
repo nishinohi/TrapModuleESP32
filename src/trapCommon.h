@@ -45,7 +45,7 @@
 #define KEY_NODE_NUM "NodeNum"
 // メッセージ JSON KEY
 #define KEY_CONFIG_UPDATE "ConfigUpdate"
-#define KEY_SEND_MODULE_STATE "SendModuleState"
+#define KEY_REQUEST_MODULE_STATE "RequestModuleState"
 #define KEY_PARENT_INFO "parentInfo"
 #define KEY_MODULE_STATE "ModuleState"
 #define KEY_NODE_LIST "NodeList"
@@ -85,9 +85,11 @@
 #define MAX_WORK_TIME 600 // 10分[sec]
 #define MESH_WAIT_LIMIT 20 // メッシュネットワーク構築待機限界時間(_workTime - 20[sec])
 // Task 関連
-#define SYNC_SLEEP_INTERVAL 3000   // 同期 DeepSleep 遅延時間[msec]
-#define SEND_MESSAGE_INTERVAL 1000 // メッセージ送信間隔[msec]
-#define SEND_RETRY 3               // メッセージ送信リトライ数
+#define SYNC_SLEEP_INTERVAL 3000    // 同期 DeepSleep 遅延時間[msec]
+#define BATTERY_CHECK_INTERVAL 5000 // バッテリー残量チェック間隔[msec]
+#define MODULE_STATE_INTERVAL 3000 // モジュール状態送信間隔ランダム[msec]
+#define DEF_INTERVAL 1000  // メッセージ送信間隔[msec]
+#define DEF_ITERATION 3                // メッセージ送信リトライ数
 // バッテリー関連
 // #define BATTERY_CHECK_ACTIVE
 #define BATTERY_LIMIT 3750 // 放電終止電圧(0.9V) * 電池 4 本(1[V] = 1024)
@@ -105,7 +107,6 @@
 #define CHILDREN_MAX 32                   // 罠作動モジュール保存最大数
 #define GPS_TRY_COUNT 20                  // GPS 取得試行回数
 #define GPS_GET_INTERVAL 10000            // GPS データ取得間隔[msec]
-#define GPS_SEND_INTERVAL 5000            // GPS データ送信間隔[msec]
 #define SEND_PARENT_INTERVAL 3000         // 親モジュール情報送信間隔
 #define SEND_SYNC_SLEEP_INTERVAL 20000    // 同期停止メッセージ送信感覚
 #define IMSI_LEN 16                       // ISMI(15桁の数字 + 1(終端文字))
