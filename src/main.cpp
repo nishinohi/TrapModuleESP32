@@ -20,11 +20,11 @@ void setup() {
     trapModule.checkStart();
     // mesh
     // ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE
+    trapModule.setupCamera();
+    DEBUG_MSG_LN("camera setup");
     trapModule.setupMesh(ERROR);
     DEBUG_MSG_LN("mesh setup");
     trapModule.setupTask();
-    DEBUG_MSG_LN("camera setup");
-    trapModule.setupCamera();
     // Server
     trapServer.setupServer();
     DEBUG_MSG_LN("server setup");
