@@ -10,7 +10,6 @@ JsonObject &ModuleConfig::getModuleInfo(painlessMesh &mesh) {
     JsonObject &moduleInfo = jsonBuf.createObject();
     moduleInfo[KEY_NODE_ID] = mesh.getNodeId();
     moduleInfo[KEY_TRAP_MODE] = _trapMode;
-    moduleInfo[KEY_SLEEP_INTERVAL] = _sleepInterval;
     moduleInfo[KEY_WORK_TIME] = _workTime;
     moduleInfo[KEY_TRAP_FIRE] = _trapFire;
     moduleInfo[KEY_GPS_LAT] = _lat;
@@ -48,7 +47,6 @@ JsonObject &ModuleConfig::getModuleState() {
 // デフォルト設定を書き込む
 void ModuleConfig::setDefaultModuleConfig() {
     DEBUG_MSG_LN("Set Default Module Config");
-    _sleepInterval = DEF_SLEEP_INTERVAL;
     _workTime = DEF_WORK_TIME;
     _trapFire = DEF_TRAP_FIRE;
     _trapMode = DEF_TRAP_MODE;
@@ -126,11 +124,6 @@ void ModuleConfig::updateModuleConfig(const JsonObject &config) {
         DEBUG_MSG_LN("json parse failed");
         setDefaultModuleConfig();
         return;
-    }
-    // 起動間隔
-    if (config.containsKey(KEY_SLEEP_INTERVAL)) {
-        setParameter(_sleepInterval, static_cast<unsigned long>(config[KEY_SLEEP_INTERVAL]),
-                     MAX_SLEEP_INTERVAL, MIN_SLEEP_INTERVAL);
     }
     // 稼働時間
     if (config.containsKey(KEY_WORK_TIME)) {
@@ -223,7 +216,6 @@ bool ModuleConfig::saveCurrentModuleConfig() {
     DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
     JsonObject &config = jsonBuf.createObject();
     config[KEY_TRAP_MODE] = _trapMode;
-    config[KEY_SLEEP_INTERVAL] = _sleepInterval;
     config[KEY_WORK_TIME] = _workTime;
     config[KEY_TRAP_FIRE] = _trapFire;
     config[KEY_GPS_LAT] = _lat;

@@ -31,7 +31,6 @@
 // json buffer number
 #define JSON_BUF_NUM 4096
 // 設定値 JSON KEY
-#define KEY_SLEEP_INTERVAL "SleepInterval"
 #define KEY_WORK_TIME "WorkTime"
 #define KEY_TRAP_MODE "TrapMode" // false:トラップ設置モード, true:トラップ起動モード
 #define KEY_PARENT_NODE_ID "ParentNodeId"
@@ -61,7 +60,6 @@
 #define KEY_CAMERA_ENABLE "CameraEnable"
 #define KEY_PICTURE_FORMAT "PictureFormat"
 // デフォルト設定値
-#define DEF_SLEEP_INTERVAL 3600 // 60分間隔起動[sec]
 #define DEF_WORK_TIME 180       // 3分間稼働[sec]
 #define DEF_TRAP_MODE false     // 設置モード
 #define DEF_TRAP_FIRE false     // 罠作動済みフラグ
