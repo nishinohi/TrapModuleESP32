@@ -66,7 +66,7 @@ class ModuleConfig {
     JsonObject &getTrapUpdateInfo(painlessMesh &mesh);
     void updateParentState();
     void updateNodeNum(SimpleList<uint32_t> nodeList);
-    void pushNoDuplicateModuleState(JsonObject &stateJson);
+    void pushNoDuplicateModuleState(const uint32_t& nodeId, JsonObject &stateJson);
 
   private:
     void setDefaultModuleConfig();

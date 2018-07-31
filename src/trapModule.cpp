@@ -250,7 +250,7 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
     // モジュール状態受信
     if (msgJson.containsKey(KEY_MODULE_STATE)) {
         DEBUG_MSG_LN("get module state");
-        _config.pushNoDuplicateModuleState(msgJson);
+        _config.pushNoDuplicateModuleState(from, msgJson);
         // 全てのモジュールからモジュール状態を受信したら deepSleep メッセージ送信
         if (_config._moduleStateList.size() >= _config._nodeNum) {
             _config.updateNodeNum(_mesh.getNodeList());

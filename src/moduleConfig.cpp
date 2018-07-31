@@ -429,14 +429,14 @@ void ModuleConfig::updateNodeNum(SimpleList<uint32_t> nodeList) {
 /**
  * 重複なしモジュール状態追加
  */
-void ModuleConfig::pushNoDuplicateModuleState(JsonObject &stateJson) {
+void ModuleConfig::pushNoDuplicateModuleState(const uint32_t& nodeId, JsonObject &stateJson) {
     for (auto &_state : _moduleStateList) {
-        if (stateJson[KEY_NODE_ID] == _state.nodeId) {
+        if (_state.nodeId == nodeId) {
             return;
         }
     }
     ModuleState state;
-    state.nodeId = stateJson[KEY_NODE_ID];
+    state.nodeId = nodeId;
     state.batery = stateJson[KEY_CURRENT_BATTERY];
     state.batteryDead = stateJson[KEY_BATTERY_DEAD];
     state.trapFire = stateJson[KEY_TRAP_FIRE];
