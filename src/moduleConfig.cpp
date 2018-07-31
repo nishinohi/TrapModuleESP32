@@ -350,6 +350,20 @@ time_t ModuleConfig::calcSleepTime(const time_t &tNow, const time_t &nextWakeTim
  * 親機用メソッド
  **********************************/
 /**
+ * モジュールの設定値を取得
+ */
+JsonObject &ModuleConfig::getModuleConfig() {
+    DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
+    JsonObject &obj = jsonBuf.createObject();
+    obj[KEY_WORK_TIME] = _workTime;
+    obj[KEY_TRAP_MODE] = _trapMode;
+    obj[KEY_ACTIVE_START] = _activeStart;
+    obj[KEY_ACTIVE_END] = _activeEnd;
+    obj[KEY_CURRENT_TIME] = now();
+    return obj;
+}
+
+/**
  * 罠モード開始時の設定値等を含んだ情報を取得
  */
 JsonObject &ModuleConfig::getTrapStartInfo(painlessMesh &mesh) {

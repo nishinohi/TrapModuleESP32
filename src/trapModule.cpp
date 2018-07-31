@@ -531,10 +531,9 @@ void TrapModule::sendRequestModuleState() {
         _requestModuleStateTask.disable();
         return;
     }
-    DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
-    JsonObject &obj = jsonBuf.createObject();
+    JsonObject &obj = _config.getModuleConfig();
     obj[KEY_REQUEST_MODULE_STATE] = true;
-    // モジュール状態の送信対象の親モジュール ID をセット
+    // モジュール状態の送信対象の親モジュール ID を送信
     obj[KEY_CONFIG_UPDATE] = true;
     obj[KEY_PARENT_NODE_ID] = getNodeId();
     if (sendBroadcast(obj)) {

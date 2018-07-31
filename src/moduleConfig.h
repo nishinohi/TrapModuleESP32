@@ -45,7 +45,6 @@ class ModuleConfig {
     // モジュール機能状態保存リスト
     SimpleList<ModuleState> _moduleStateList;
 
-
   public:
     ModuleConfig(){};
 
@@ -62,11 +61,12 @@ class ModuleConfig {
     void pushNoDuplicateNodeId(const uint32_t &nodeId, SimpleList<uint32_t> &list);
     bool loadModuleConfigFile();
     // 親機用
+    JsonObject &getModuleConfig();
     JsonObject &getTrapStartInfo(painlessMesh &mesh);
     JsonObject &getTrapUpdateInfo(painlessMesh &mesh);
     void updateParentState();
     void updateNodeNum(SimpleList<uint32_t> nodeList);
-    void pushNoDuplicateModuleState(JsonObject& stateJson);
+    void pushNoDuplicateModuleState(JsonObject &stateJson);
 
   private:
     void setDefaultModuleConfig();
