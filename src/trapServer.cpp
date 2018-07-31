@@ -34,13 +34,8 @@ void TrapServer::onSetConfig(AsyncWebServerRequest *request) {
     // 設定値反映
     DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
     JsonObject &config = jsonBuf.createObject();
-    // 起動間隔
-    String temp = request->arg(KEY_SLEEP_INTERVAL);
-    if (temp != NULL && temp.length() != 0) {
-        config[KEY_SLEEP_INTERVAL] = temp.toInt();
-    }
     // 稼働時間
-    temp = request->arg(KEY_WORK_TIME);
+    String temp = request->arg(KEY_WORK_TIME);
     if (temp != NULL && temp.length() != 0) {
         config[KEY_WORK_TIME] = temp.toInt();
     }

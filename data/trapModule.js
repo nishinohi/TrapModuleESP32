@@ -1,4 +1,3 @@
-const KEY_SLEEP_INTERVAL = 'SleepInterval';
 const KEY_WORK_TIME = 'WorkTime';
 const KEY_TRAP_MODE = 'TrapMode';
 const KEY_NODE_ID = 'NodeId';
@@ -221,7 +220,6 @@ function setCurrentTime() {
  */
 function setConfig() {
     let config = {
-        SleepInterval: document.getElementById('sleepIntervalConfig').value,
         WorkTime: document.getElementById('workTimeConfig').value,
         TrapMode: document.getElementById('modeConfig').value,
         ActiveStart: sliderObj.getValue().split(',')[0],
