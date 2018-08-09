@@ -382,7 +382,7 @@ void ModuleConfig::createModulesInfo(String &modulesInfoStr) {
         childInfo[KEY_NODE_ID] = moduleState.nodeId;
         childInfo[KEY_CURRENT_BATTERY] = moduleState.batery;
         if (_isTrapStart) {
-            childInfo[KEY_CAMERA_ENABLE] = false;
+            childInfo[KEY_CAMERA_ENABLE] = moduleState.cameraEnable;
         } else {
             childInfo[KEY_TRAP_FIRE] = moduleState.trapFire;
         }
@@ -459,5 +459,6 @@ void ModuleConfig::pushNoDuplicateModuleState(const uint32_t &nodeId, JsonObject
     state.batery = stateJson[KEY_CURRENT_BATTERY];
     state.batteryDead = stateJson[KEY_BATTERY_DEAD];
     state.trapFire = stateJson[KEY_TRAP_FIRE];
+    state.cameraEnable = stateJson[KEY_CAMERA_ENABLE];
     _moduleStateList.push_back(state);
 }
