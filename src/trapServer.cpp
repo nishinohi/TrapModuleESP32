@@ -71,7 +71,9 @@ void TrapServer::onSetConfig(AsyncWebServerRequest *request) {
 void TrapServer::onGetModuleInfo(AsyncWebServerRequest *request) {
     DEBUG_MSG_F("FreeHeepMem:%lu\n", ESP.getFreeHeap());
     DEBUG_MSG_LN("onGetModuleInfo");
-    JsonObject &moduleInfo = _trapModule->getModuleInfo();
+    DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
+    JsonObject &moduleInfo = jsonBuf.createObject();
+    _trapModule->collectModuleInfo(moduleInfo);
     String response;
     moduleInfo.printTo(response);
     DEBUG_MSG_LN(response);

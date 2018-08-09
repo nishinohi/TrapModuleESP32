@@ -49,8 +49,8 @@ class ModuleConfig {
     ModuleConfig(){};
 
     void setWakeTime();
-    JsonObject &getModuleInfo(painlessMesh &mesh);
-    JsonObject &getModuleState();
+    void collectModuleInfo(painlessMesh &mesh, JsonObject& moduleInfo);
+    void collectModuleState(JsonObject& state);
     void updateModuleConfig(const JsonObject &config);
     bool saveCurrentModuleConfig();
     void initGps() {

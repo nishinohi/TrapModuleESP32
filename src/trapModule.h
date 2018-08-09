@@ -17,10 +17,10 @@ class TrapModule {
     Cellular _cellular;
 
     // タスク関連
-    Task _deepSleepTask;         // DeepSleep以降タスク
-    Task _blinkNodesTask;        // LED タスク
-    Task _sendPictureTask;       // 写真撮影フラグ
-    Task _sendModuleStateTask;   // モジュール状態送信タスク
+    Task _deepSleepTask;       // DeepSleep以降タスク
+    Task _blinkNodesTask;      // LED タスク
+    Task _sendPictureTask;     // 写真撮影フラグ
+    Task _sendModuleStateTask; // モジュール状態送信タスク
     Task _checkBatteryLimitTask; // バッテリー残量チェックタスク（設置モードで使用する）
     // 親モジュール機能
     Task _sendGPSDataTask;           // GPS 送信タスク
@@ -47,7 +47,9 @@ class TrapModule {
     bool initGps();
     // モジュール情報取得
     String getMeshGraph() { return _mesh.subConnectionJson(); };
-    JsonObject &getModuleInfo() { return _config.getModuleInfo(_mesh); };
+    void collectModuleInfo(JsonObject& moduleInfo) {
+        _config.collectModuleInfo(_mesh, moduleInfo);
+    };
     bool getGps();
     static void getGpsTask(void *arg);
     // カメラ機能
