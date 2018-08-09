@@ -367,7 +367,9 @@ JsonObject &ModuleConfig::getModuleConfig() {
  * 罠モード開始時の設定値等を含んだ情報を取得
  */
 JsonObject &ModuleConfig::getTrapStartInfo(painlessMesh &mesh) {
-    JsonObject &info = getModuleInfo(mesh);
+    DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
+    JsonObject &info = jsonBuf.createObject();
+    collectModuleInfo(mesh, info);
     return info;
 }
 
@@ -375,7 +377,9 @@ JsonObject &ModuleConfig::getTrapStartInfo(painlessMesh &mesh) {
  * 稼働中の各種情報を取得
  */
 JsonObject &ModuleConfig::getTrapUpdateInfo(painlessMesh &mesh) {
-    JsonObject &info = getModuleInfo(mesh);
+    DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
+    JsonObject &info = jsonBuf.createObject();
+    collectModuleInfo(mesh, info);
     return info;
 }
 
