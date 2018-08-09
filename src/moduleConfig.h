@@ -11,6 +11,7 @@ struct ModuleState {
     uint16_t batery;
     bool batteryDead;
     bool trapFire;
+    bool cameraEnable;
 };
 
 class ModuleConfig {
