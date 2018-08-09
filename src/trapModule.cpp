@@ -543,7 +543,9 @@ void TrapModule::sendRequestModuleState() {
         _requestModuleStateTask.disable();
         return;
     }
-    JsonObject &obj = _config.getModuleConfig();
+    DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
+    JsonObject &obj = jsonBuf.createObject();
+    _config.collectModuleConfig(obj);
     obj[KEY_REQUEST_MODULE_STATE] = true;
     // モジュール状態の送信対象の親モジュール ID を送信
     obj[KEY_CONFIG_UPDATE] = true;
@@ -730,10 +732,9 @@ void TrapModule::snapCameraTask(void *arg) {
  */
 void TrapModule::sendTrapStartInfo() {
     DEBUG_MSG_LN("sendTrapStartInfo");
-    JsonObject &info = _config.getTrapStartInfo(_mesh);
-    String infoStr;
-    info.printTo(infoStr);
-    _cellular.sendTrapModuleInfo(infoStr);
+    String trapStartinfo;
+    _config.createModulesInfo(trapStartinfo);
+    _cellular.sendTrapModuleInfo(trapStartinfo);
 }
 
 /**
@@ -741,10 +742,9 @@ void TrapModule::sendTrapStartInfo() {
  */
 void TrapModule::sendTrapUpdateInfo() {
     DEBUG_MSG_LN("sendTrapUpdateInfo");
-    JsonObject &info = _config.getTrapStartInfo(_mesh);
-    String infoStr;
-    info.printTo(infoStr);
-    _cellular.sendTrapModuleInfo(infoStr);
+    String trapStartinfo;
+    _config.createModulesInfo(trapStartinfo);
+    _cellular.sendTrapModuleInfo(trapStartinfo);
 }
 
 /*************************************

@@ -6,7 +6,7 @@
 /**
  * モジュール情報を取得
  */
-void ModuleConfig::collectModuleInfo(painlessMesh &mesh, JsonObject& moduleInfo) {
+void ModuleConfig::collectModuleInfo(painlessMesh &mesh, JsonObject &moduleInfo) {
     DEBUG_MSG_LN("collectModuleInfo");
     moduleInfo[KEY_NODE_ID] = mesh.getNodeId();
     moduleInfo[KEY_TRAP_MODE] = _trapMode;
@@ -33,7 +33,7 @@ void ModuleConfig::collectModuleInfo(painlessMesh &mesh, JsonObject& moduleInfo)
 /**
  * モジュール状態を取得
  */
-void ModuleConfig::collectModuleState(JsonObject& state) {
+void ModuleConfig::collectModuleState(JsonObject &state) {
     state[KEY_MODULE_STATE] = true;
     state[KEY_TRAP_FIRE] = _trapFire;
     state[KEY_CAMERA_ENABLE] = _cameraEnable;
@@ -352,35 +352,50 @@ time_t ModuleConfig::calcSleepTime(const time_t &tNow, const time_t &nextWakeTim
 /**
  * モジュールの設定値を取得
  */
-JsonObject &ModuleConfig::getModuleConfig() {
-    DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
-    JsonObject &obj = jsonBuf.createObject();
+void ModuleConfig::collectModuleConfig(JsonObject &obj) {
     obj[KEY_WORK_TIME] = _workTime;
     obj[KEY_TRAP_MODE] = _trapMode;
     obj[KEY_ACTIVE_START] = _activeStart;
     obj[KEY_ACTIVE_END] = _activeEnd;
     obj[KEY_CURRENT_TIME] = now();
-    return obj;
 }
 
 /**
- * 罠モード開始時の設定値等を含んだ情報を取得
+ * 送信するモジュール情報文字列を作成する
  */
-JsonObject &ModuleConfig::getTrapStartInfo(painlessMesh &mesh) {
-    DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
-    JsonObject &info = jsonBuf.createObject();
-    collectModuleInfo(mesh, info);
-    return info;
+void ModuleConfig::createModulesInfo(String &modulesInfoStr) {
+    DynamicJsonBuffer JsonBuf(JSON_BUF_NUM);
+    JsonObject &modulesInfo = JsonBuf.createObject();
+    // 親モジュール開始時のみ送信
+    if (_isTrapStart) {
+        modulesInfo[KEY_PARENT_NODE_ID] = _nodeId;
+        modulesInfo[KEY_CURRENT_TIME] = now();
+        modulesInfo[KEY_GPS_LAT] = _lat;
+        modulesInfo[KEY_GPS_LON] = _lon;
+        modulesInfo[KEY_ACTIVE_START] = _activeStart;
+        modulesInfo[KEY_ACTIVE_END] = _activeEnd;
+    }
+    // 子モジュール情報
+    JsonArray &childInfos = modulesInfo.createNestedArray(KEY_MODULES_INFO);
+    for (auto &moduleState : _moduleStateList) {
+        JsonObject &childInfo = JsonBuf.createObject();
+        childInfo[KEY_NODE_ID] = moduleState.nodeId;
+        childInfo[KEY_CURRENT_BATTERY] = moduleState.batery;
+        if (_isTrapStart) {
+            childInfo[KEY_CAMERA_ENABLE] = false;
+        } else {
+            childInfo[KEY_TRAP_FIRE] = moduleState.trapFire;
+        }
+        childInfos.add(childInfo);
+    }
+    modulesInfo.printTo(modulesInfoStr);
 }
 
 /**
  * 稼働中の各種情報を取得
  */
-JsonObject &ModuleConfig::getTrapUpdateInfo(painlessMesh &mesh) {
-    DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
-    JsonObject &info = jsonBuf.createObject();
+void ModuleConfig::collectTrapUpdateInfo(painlessMesh &mesh, JsonObject &info) {
     collectModuleInfo(mesh, info);
-    return info;
 }
 
 /**
@@ -433,7 +448,7 @@ void ModuleConfig::updateNodeNum(SimpleList<uint32_t> nodeList) {
 /**
  * 重複なしモジュール状態追加
  */
-void ModuleConfig::pushNoDuplicateModuleState(const uint32_t& nodeId, JsonObject &stateJson) {
+void ModuleConfig::pushNoDuplicateModuleState(const uint32_t &nodeId, JsonObject &stateJson) {
     for (auto &_state : _moduleStateList) {
         if (_state.nodeId == nodeId) {
             return;

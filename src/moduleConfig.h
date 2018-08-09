@@ -61,9 +61,9 @@ class ModuleConfig {
     void pushNoDuplicateNodeId(const uint32_t &nodeId, SimpleList<uint32_t> &list);
     bool loadModuleConfigFile();
     // 親機用
-    JsonObject &getModuleConfig();
-    JsonObject &getTrapStartInfo(painlessMesh &mesh);
-    JsonObject &getTrapUpdateInfo(painlessMesh &mesh);
+    void collectModuleConfig(JsonObject &obj);
+    void createModulesInfo(String &modulesInfoStr);
+    void collectTrapUpdateInfo(painlessMesh &mesh, JsonObject &obj);
     void updateParentState();
     void updateNodeNum(SimpleList<uint32_t> nodeList);
     void pushNoDuplicateModuleState(const uint32_t& nodeId, JsonObject &stateJson);
