@@ -3,7 +3,9 @@
 /**************************************
  * setup
  * ***********************************/
-// メッシュネットワークセットアップ
+/**
+ * メッシュネットワークセットアップ
+ */
 void TrapModule::setupMesh(const uint16_t types) {
     // set before init() so that you can see startup messages
     _mesh.setDebugMsgTypes(types);
@@ -18,7 +20,9 @@ void TrapModule::setupMesh(const uint16_t types) {
     _config._nodeId = _mesh.getNodeId();
 }
 
-// 実施タスクセットアップ
+/**
+ * 実施タスクセットアップ
+ */
 void TrapModule::setupTask() {
     // LED Setting
     _blinkNodesTask.set(BLINK_PERIOD, (_mesh.getNodeList().size() + 1) * 2,
@@ -94,7 +98,9 @@ void TrapModule::update() {
 /********************************************
  * モジュール設定値操作
  *******************************************/
-// モジュールパラメータ設定
+/**
+ * モジュールパラメータ設定
+ */
 bool TrapModule::setConfig(JsonObject &config) {
     if (!config.success()) {
         DEBUG_MSG_LN("json parse failed");
@@ -108,7 +114,9 @@ bool TrapModule::setConfig(JsonObject &config) {
     return false;
 }
 
-// 現在時刻設定
+/**
+ * 現在時刻設定
+ */
 bool TrapModule::setCurrentTime(time_t current) {
     setTime(current);
     DEBUG_MSG_F("current time:%d/%d/%d %d:%d:%d\n", year(), month(), day(), hour(), minute(),
@@ -116,7 +124,9 @@ bool TrapModule::setCurrentTime(time_t current) {
     return syncCurrentTime();
 }
 
-// GPS 初期化
+/**
+ * GPS 初期化
+ */
 bool TrapModule::initGps() {
     _config.initGps();
     if (_mesh.getNodeList().size() == 0) {
@@ -130,7 +140,7 @@ bool TrapModule::initGps() {
 }
 
 /********************************************
- * モジュール情報取得１
+ * モジュール情報取得
  *******************************************/
 /**
  * GPS 取得
@@ -311,7 +321,9 @@ void TrapModule::sendModuleState() {
     updateBattery();
     updateTrapFire();
     // モジュール状態情報作成
-    JsonObject &state = _config.getModuleState();
+    DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
+    JsonObject &state = jsonBuf.createObject();
+    _config.collectModuleState(state);
     if (sendParent(state)) {
         _config._isSendModuelState = true;
         moduleStateTaskStop();
@@ -374,7 +386,9 @@ void TrapModule::sendPicture() {
 /*************************************
  * タスク関連
  ************************************/
-// 接続モジュール数 LED 点滅
+/**
+ * 接続モジュール数 LED 点滅
+ */
 void TrapModule::blinkLed() {
     if (_config._ledOnFlag) {
         _config._ledOnFlag = false;
@@ -513,7 +527,9 @@ void TrapModule::snapCameraTask(void *arg) {
 /*************************************
  * Debug
  ************************************/
-// debug メッセージ送信
+/**
+ * Debug メッセージ送信
+ */
 bool TrapModule::sendDebugMesage(String msg, uint32_t nodeId) {
     if (nodeId != 0) {
         DEBUG_MSG_LN("send debug message single");

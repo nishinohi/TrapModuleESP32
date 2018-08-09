@@ -3,11 +3,11 @@
 /***********************************
  * module method
  **********************************/
-// モジュール情報を取得
-JsonObject &ModuleConfig::getModuleInfo(painlessMesh &mesh) {
-    DEBUG_MSG_LN("getModuleInfo");
-    DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
-    JsonObject &moduleInfo = jsonBuf.createObject();
+/**
+ * モジュール情報を取得
+ */
+void ModuleConfig::collectModuleInfo(painlessMesh &mesh, JsonObject& moduleInfo) {
+    DEBUG_MSG_LN("collectModuleInfo");
     moduleInfo[KEY_NODE_ID] = mesh.getNodeId();
     moduleInfo[KEY_TRAP_MODE] = _trapMode;
     moduleInfo[KEY_WORK_TIME] = _workTime;
@@ -27,13 +27,12 @@ JsonObject &ModuleConfig::getModuleInfo(painlessMesh &mesh) {
     for (SimpleList<uint32_t>::iterator it = nodes.begin(); it != nodes.end(); ++it) {
         nodeList.add(*it);
     }
-    return moduleInfo;
 }
 
-// モジュール状態を取得
-JsonObject &ModuleConfig::getModuleState() {
-    DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
-    JsonObject &state = jsonBuf.createObject();
+/**
+ * モジュール状態を取得
+ */
+void ModuleConfig::collectModuleState(JsonObject& state) {
     state[KEY_MODULE_STATE] = true;
     state[KEY_TRAP_FIRE] = _trapFire;
     state[KEY_CAMERA_ENABLE] = _cameraEnable;
@@ -41,10 +40,11 @@ JsonObject &ModuleConfig::getModuleState() {
     uint16_t battery = analogRead(A0);
     battery = battery * VOLTAGE_DIVIDE;
     state[KEY_CURRENT_BATTERY] = battery;
-    return state;
 }
 
-// デフォルト設定を書き込む
+/**
+ * デフォルト設定を書き込む
+ */
 void ModuleConfig::setDefaultModuleConfig() {
     DEBUG_MSG_LN("Set Default Module Config");
     _workTime = DEF_WORK_TIME;
