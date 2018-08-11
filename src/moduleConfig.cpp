@@ -366,7 +366,7 @@ void ModuleConfig::collectModuleConfig(JsonObject &obj) {
 void ModuleConfig::createModulesInfo(String &modulesInfoStr) {
     DynamicJsonBuffer JsonBuf(JSON_BUF_NUM);
     JsonObject &modulesInfo = JsonBuf.createObject();
-    // 親モジュール開始時のみ送信
+    // 罠モード開始時のみ送信
     if (_isTrapStart) {
         modulesInfo[KEY_PARENT_NODE_ID] = _nodeId;
         modulesInfo[KEY_CURRENT_TIME] = now();
