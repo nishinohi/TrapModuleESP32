@@ -20,8 +20,8 @@
 #define CLIENT_ID "maxj066rj51"
 #define SERVER_PORT 1883
 // 親機用 GPIO 設定
-#define FONA_RX 32
-#define FONA_TX 33
+#define FONA_RX 26
+#define FONA_TX 27
 #define FONA_RST 25
 #define GPS_ANTENA 2
 // mqtt topic
