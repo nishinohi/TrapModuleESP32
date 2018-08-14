@@ -20,16 +20,16 @@ void setup() {
     trapModule.checkStart();
     // mesh
     // ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE
-    trapModule.setupCamera();
     DEBUG_MSG_LN("camera setup");
-    trapModule.setupMesh(ERROR);
+    trapModule.setupCamera();
     DEBUG_MSG_LN("mesh setup");
+    trapModule.setupMesh(ERROR);
     trapModule.setupTask();
     // Server
-    trapServer.setupServer();
     DEBUG_MSG_LN("server setup");
+    trapServer.setupServer();
+    DEBUG_MSG_LN("server begin");
     trapServer.beginServer();
-    DEBUG_MSG_LN("server start");
 }
 
 void loop() { trapModule.update(); }

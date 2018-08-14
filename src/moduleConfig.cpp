@@ -402,23 +402,18 @@ void ModuleConfig::collectTrapUpdateInfo(painlessMesh &mesh, JsonObject &info) {
  * 親モジュールフラグを更新する
  */
 void ModuleConfig::updateParentState() {
-    updateParentNodeId();
+    // 自身を含めた ID と受信した親モジュールリストの最大値を取得
+    _parentNodeId = _nodeId;
+    for (auto &parentNodeId : _parentNodeIdList) {
+        _parentNodeId = max(_parentNodeId, parentNodeId);
+    }
+    // 自身を親モジュールかどうか判断
     if (_parentNodeId == _nodeId) {
         DEBUG_MSG_LN("work as parent.");
         _isParent = true;
     } else {
         DEBUG_MSG_LN("work as child.");
         _isParent = false;
-    }
-}
-
-/**
- * 親モジュール ID リスト内と自身の ID の中で最大のものを親モジュール ID にする
- */
-void ModuleConfig::updateParentNodeId() {
-    _parentNodeId = _nodeId;
-    for (auto &parentNodeId : _parentNodeIdList) {
-        _parentNodeId = max(_parentNodeId, parentNodeId);
     }
 }
 

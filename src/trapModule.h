@@ -47,7 +47,7 @@ class TrapModule {
     bool initGps();
     // モジュール情報取得
     String getMeshGraph() { return _mesh.subConnectionJson(); };
-    void collectModuleInfo(JsonObject& moduleInfo) {
+    void collectModuleInfo(JsonObject &moduleInfo) {
         _config.collectModuleInfo(_mesh, moduleInfo);
     };
     bool getGps();
@@ -89,18 +89,16 @@ class TrapModule {
     void nodeTimeAdjustedCallback(int32_t offset);
     // task
     void blinkLed();
+    void setTask(Task &task, const unsigned long interval, const long iteration,
+                 TaskCallback aCallback, const bool isEnable);
     void checkBatteryLimit();
-    void moduleStateTaskStart(long iteration = TASK_FOREVER) {
-        if (!_sendModuleStateTask.isEnabled()) {
-            _sendModuleStateTask.setIterations(iteration);
-            _sendModuleStateTask.enable();
+    void taskStart(Task &task, unsigned long duration = 0, long iteration = -1);
+    void taskStop(Task &task) {
+        if (task.isEnabled()) {
+            task.disable();
         }
     }
-    void moduleStateTaskStop() {
-        if (_sendModuleStateTask.isEnabled()) {
-            _sendModuleStateTask.disable();
-        }
-    }
+    void startSendModuleState();
     // util
     void saveBase64Image(const char *data, const char *name = NULL);
     bool sendBroadcast(JsonObject &obj) {

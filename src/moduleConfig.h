@@ -75,8 +75,6 @@ class ModuleConfig {
     void setParameter(T &targetParam, const T &setParam, const int maxV, const int minV);
     bool saveModuleConfig(const JsonObject &config);
     void updateGpsInfo(const char *lat, const char *lon);
-    // 親限定
-    void updateParentNodeId();
 };
 
 #endif // INCLUDE_GUARD_MODULECONFIG
