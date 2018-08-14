@@ -25,31 +25,22 @@ void TrapModule::setupMesh(const uint16_t types) {
  */
 void TrapModule::setupTask() {
     // LED Setting
-    _blinkNodesTask.set(BLINK_PERIOD, (_mesh.getNodeList().size() + 1) * 2,
-                        std::bind(&TrapModule::blinkLed, this));
-    _mesh.scheduler.addTask(_blinkNodesTask);
-    _blinkNodesTask.enable();
+    setTask(_blinkNodesTask, BLINK_PERIOD, (_mesh.getNodeList().size() + 1) * 2,
+            std::bind(&TrapModule::blinkLed, this), true);
     // module state 送信が輻輳しないよう送信間隔をランダムにする
     randomSeed(now());
-    _sendModuleStateTask.set(random(DEF_INTERVAL, MODULE_STATE_INTERVAL), TASK_FOREVER,
-                             std::bind(&TrapModule::sendModuleState, this));
-    _mesh.scheduler.addTask(_sendModuleStateTask);
+    setTask(_sendModuleStateTask, random(DEF_INTERVAL, MODULE_STATE_INTERVAL), TASK_FOREVER,
+            std::bind(&TrapModule::sendModuleState, this), false);
     // picture
-    _sendPictureTask.set(DEF_INTERVAL, DEF_ITERATION,
-                         std::bind(&TrapModule::sendPicture, this));
-    _mesh.scheduler.addTask(_sendPictureTask);
+    setTask(_sendPictureTask, DEF_INTERVAL, DEF_ITERATION,
+            std::bind(&TrapModule::sendPicture, this), false);
     // battery check
-    _checkBatteryLimitTask.set(BATTERY_CHECK_INTERVAL, TASK_FOREVER,
-                               std::bind(&TrapModule::checkBatteryLimit, this));
-    _mesh.scheduler.addTask(_checkBatteryLimitTask);
     // 設置モード時はバッテリーチェックを有効にする
-    if (!_config._trapMode) {
-        _checkBatteryLimitTask.enable();
-    }
+    setTask(_checkBatteryLimitTask, BATTERY_CHECK_INTERVAL, TASK_FOREVER,
+            std::bind(&TrapModule::checkBatteryLimit, this), !_config._trapMode);
     // DeepSleep
-    _deepSleepTask.set(SYNC_SLEEP_INTERVAL, TASK_FOREVER,
-                       std::bind(&TrapModule::shiftDeepSleep, this));
-    _mesh.scheduler.addTask(_deepSleepTask);
+    setTask(_deepSleepTask, SYNC_SLEEP_INTERVAL, TASK_FOREVER,
+            std::bind(&TrapModule::shiftDeepSleep, this), false);
 }
 
 /**
@@ -87,11 +78,8 @@ void TrapModule::update() {
     }
     // 稼働時間超過により強制 DeepSleep
     if (now() - _config._wakeTime > _config._workTime) {
-        if (_deepSleepTask.isEnabled()) {
-            return;
-        }
         DEBUG_MSG_LN("work time limit.");
-        _deepSleepTask.enableDelayed(SYNC_SLEEP_INTERVAL);
+        taskStart(_deepSleepTask, SYNC_SLEEP_INTERVAL);
     }
 }
 
@@ -102,10 +90,6 @@ void TrapModule::update() {
  * モジュールパラメータ設定
  */
 bool TrapModule::setConfig(JsonObject &config) {
-    if (!config.success()) {
-        DEBUG_MSG_LN("json parse failed");
-        return false;
-    }
     config[KEY_CONFIG_UPDATE] = true;
     if (syncAllModuleConfigs(config)) {
         _config.updateModuleConfig(config);
@@ -171,7 +155,7 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
     // モジュール状態送信要求が来た場合は送信済みか否かにかかわらず送信する
     if (msgJson.containsKey(KEY_REQUEST_MODULE_STATE)) {
         DEBUG_MSG_LN("request module state");
-        moduleStateTaskStart();
+        taskStart(_sendModuleStateTask);
     }
     // 画像保存
     if (msgJson.containsKey(KEY_PICTURE)) {
@@ -181,8 +165,8 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
     // DeepSleepする前に全ノードのバッテリー状態などを取得している必要があるので最後に呼ぶこと
     if (msgJson.containsKey(KEY_SYNC_SLEEP)) {
         DEBUG_MSG_LN("Sync Sleep start");
-        moduleStateTaskStop();
-        _deepSleepTask.enableDelayed(SYNC_SLEEP_INTERVAL);
+        taskStop(_sendModuleStateTask);
+        taskStart(_deepSleepTask, SYNC_SLEEP_INTERVAL);
     }
 }
 
@@ -193,19 +177,7 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
 void TrapModule::newConnectionCallback(uint32_t nodeId) {
     DEBUG_MSG_F("--> startHere: New Connection, nodeId = %u\n", nodeId);
     refreshMeshDetail();
-    // 設置モードのときは何もしない
-    if (!_config._trapMode || _config._isTrapStart) {
-        return;
-    }
-    if (_config._isSendModuelState) {
-        return;
-    }
-    for (auto &nodeId : _mesh.getNodeList()) {
-        if (nodeId == _config._parentNodeId) {
-            moduleStateTaskStart();
-            break;
-        }
-    }
+    startSendModuleState();
 }
 
 /**
@@ -215,19 +187,7 @@ void TrapModule::newConnectionCallback(uint32_t nodeId) {
 void TrapModule::changedConnectionCallback() {
     DEBUG_MSG_F("Changed connections %s\n", _mesh.subConnectionJson().c_str());
     refreshMeshDetail();
-    // 設置モードのときは何もしない
-    if (!_config._trapMode || _config._isTrapStart) {
-        return;
-    }
-    if (_config._isSendModuelState) {
-        return;
-    }
-    for (auto &nodeId : _mesh.getNodeList()) {
-        if (nodeId == _config._parentNodeId) {
-            moduleStateTaskStart();
-            break;
-        }
-    }
+    startSendModuleState();
 }
 
 void TrapModule::nodeTimeAdjustedCallback(int32_t offset) {
@@ -314,7 +274,7 @@ void TrapModule::sendModuleState() {
     DEBUG_MSG_LN("sendModuleState");
     if (_config._parentNodeId == DEF_NODEID) {
         DEBUG_MSG_LN("parent module not found");
-        moduleStateTaskStop();
+        taskStop(_sendModuleStateTask);
         return;
     }
     // センサ情報更新
@@ -326,7 +286,7 @@ void TrapModule::sendModuleState() {
     _config.collectModuleState(state);
     if (sendParent(state)) {
         _config._isSendModuelState = true;
-        moduleStateTaskStop();
+        taskStop(_sendModuleStateTask);
     }
     // 送信に成功しなかった場合輻輳を避けるため送信間隔を変更
     randomSeed(now());
@@ -340,7 +300,7 @@ void TrapModule::sendPicture() {
     DEBUG_MSG_LN("sendPicture");
     // 送信先がいなければ何もしないz
     if (_mesh.getNodeList().size() == 0) {
-        _sendPictureTask.disable();
+        taskStop(_sendPictureTask);
         return;
     }
     if (!SPIFFS.exists(DEF_IMG_PATH)) {
@@ -373,14 +333,11 @@ void TrapModule::sendPicture() {
     DEBUG_MSG_LN(msg);
     if (_mesh.sendBroadcast(msg)) {
         DEBUG_MSG_LN("send picture success");
-        _sendPictureTask.disable();
-    } else {
-        if (_sendPictureTask.isLastIteration()) {
-            DEBUG_MSG_LN("send picture failed");
-        } else {
-            DEBUG_MSG_LN("retry send picture...");
-        }
+        taskStop(_sendPictureTask);
+        return;
     }
+    DEBUG_MSG_LN(_sendPictureTask.isLastIteration() ? "send picture failed"
+                                                    : "retry send picture...");
 }
 
 /*************************************
@@ -465,8 +422,56 @@ void TrapModule::checkBatteryLimit() {
     DEBUG_MSG_LN("checkBattery");
     updateBattery();
     if (_config._isBatteryDead) {
-        _checkBatteryLimitTask.disable();
+        taskStop(_checkBatteryLimitTask);
         shiftDeepSleep();
+    }
+}
+
+/**
+ * タスクをスケジューラーにセット
+ */
+void TrapModule::setTask(Task &task, const unsigned long interval, const long iteration,
+                         TaskCallback aCallback, const bool isEnable) {
+    task.set(interval, iteration, aCallback);
+    _mesh.scheduler.addTask(task);
+    if (isEnable) {
+        task.enable();
+    }
+}
+
+/**
+ * タスク開始
+ */
+void TrapModule::taskStart(Task &task, unsigned long duration, long iteration) {
+    if (iteration != -1) {
+        task.setIterations(iteration);
+    }
+    if (task.isEnabled()) {
+        return;
+    }
+    if (duration == 0) {
+        task.enable();
+    } else {
+        task.enableDelayed(duration);
+    }
+}
+
+/**
+ * モジュール状態送信開始
+ */
+void TrapModule::startSendModuleState() {
+    // 設置モードのときは何もしない
+    if (!_config._trapMode || _config._isTrapStart) {
+        return;
+    }
+    if (_config._isSendModuelState) {
+        return;
+    }
+    for (auto &nodeId : _mesh.getNodeList()) {
+        if (nodeId == _config._parentNodeId) {
+            taskStart(_sendModuleStateTask);
+            break;
+        }
     }
 }
 
@@ -513,7 +518,7 @@ void TrapModule::snapCameraTask(void *arg) {
         if (trapModule->_camera.saveCameraData()) {
             DEBUG_MSG_LN("snap success");
             // メッセージ送信タスク実行中でなければ送信タスク開始
-            trapModule->_sendPictureTask.setIterations(5);
+            trapModule->_sendPictureTask.setIterations(DEF_ITERATION);
             trapModule->_sendPictureTask.enable();
         } else {
             DEBUG_MSG_LN("snap failed");
@@ -536,11 +541,9 @@ bool TrapModule::sendDebugMesage(String msg, uint32_t nodeId) {
         return _mesh.sendSingle(nodeId, msg);
     }
     DEBUG_MSG_LN("send debug message broadcast");
-    if (_mesh.getNodeList().size() == 0) {
-        receivedCallback(getNodeId(), msg);
-        return true;
-    }
-    return _mesh.sendBroadcast(msg);
+    bool success = _mesh.getNodeList().size() == 0 ? true : _mesh.sendBroadcast(msg);
+    receivedCallback(getNodeId(), msg);
+    return success;
 }
 
 /*************************************

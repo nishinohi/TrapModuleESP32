@@ -4,7 +4,6 @@
 #include "trapCommon.h"
 #include <HardwareSerial.h>
 
-// camera
 #define CAMERA_ACTIVE
 #define OV528_SIZE_80_60 1 // 80x60
 #define OV528_SIZE_QQVGA 3 // 160x120
@@ -16,6 +15,8 @@
 #define PIC_FMT OV528_SIZE_QVGA
 #define cameraRX 5
 #define cameraTX 4
+// 初期化タイムアウト
+#define INITIALIZE_TIMEOUT 1500
 
 class Camera {
   public:

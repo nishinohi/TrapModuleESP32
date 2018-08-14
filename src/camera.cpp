@@ -53,15 +53,14 @@ uint16_t Camera::readBytes(uint8_t buf[], uint16_t len, uint16_t timeout_ms) {
 bool Camera::initialize() {
     char cmd[] = {0xaa, 0x0d | _cameraAddr, 0x00, 0x00, 0x00, 0x00};
     unsigned char resp[6];
-    Serial.print("initializing camera...");
+    DEBUG_MSG("initializing camera");
 
-    unsigned long timeout = 3000;
     unsigned long current = millis();
-    while (millis() - current < timeout) {
+    while (millis() - current < INITIALIZE_TIMEOUT) {
         TASK_DELAY(1);
         sendCmd(cmd, 6);
         if (readBytes((uint8_t *)resp, 6, 1000) != 6) {
-            Serial.print(".");
+            DEBUG_MSG(".");
             continue;
         }
         if (resp[0] == 0xaa && resp[1] == (0x0e | _cameraAddr) && resp[2] == 0x0d && resp[4] == 0 &&
