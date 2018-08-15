@@ -51,8 +51,8 @@
         <button class="button" onclick="getGps()">GPS 取得</button>
         <button class="button" onclick="setCurrentTime()">現在時刻送信</button>
         <br>
-        <button class="button" id="CameraEnable" onclick="snapShot()">カメラ撮影</button>
-        <select style="display: inline-block" id="PictureFormat">
+        <button class="button" id="camera" onclick="snapShot()">カメラ撮影</button>
+        <select style="display: inline-block" id="picture_format">
             <option value="3">QQVGA</option>
             <option value="5">QVGA</option>
             <option value="7">VGA</option>
@@ -68,7 +68,7 @@
         <h1>Module Info</h1>
         <ul>
             <li>CurrentTime
-                <ul id="CurrentTime">
+                <ul id="current_time">
                     <li>NaN</li>
                 </ul>
             </li>
@@ -76,8 +76,8 @@
                 <a id="TrapLocation" target="_blank">Location</a>
                 <ul>
                     <li>[lat, lon] = [
-                        <span id="GpsLat">NaN</span>,
-                        <span id="GpsLon">NaN</span>
+                        <span id="lat">NaN</span>,
+                        <span id="lon">NaN</span>
                         ]
                     </li>
                 </ul>
@@ -85,54 +85,54 @@
             <li>IsParent
                 <ul>
                     <li>
-                        <span id="IsParent">NaN</span>
+                        <span id="is_parent">NaN</span>
                     </li>
                 </ul>
             </li>
             <li>TrapMode
                 <ul>
                     <li>
-                        <span id="TrapMode">NaN</span>
+                        <span id="trap_mode">NaN</span>
                     </li>
                 </ul>
             </li>
             <li>NodeID
                 <ul>
                     <li>
-                        <span id="NodeId">NaN</span>
+                        <span id="module_id">NaN</span>
                     </li>
                 </ul>
             </li>
             <li>ActiveTime
                 <ul>
                     <li>
-                        <span id="ActiveStart">NaN</span> -
-                        <span id="ActiveEnd">NaN</span>
+                        <span id="active_start">NaN</span> -
+                        <span id="active_end">NaN</span>
                     </li>
                 </ul>
             </li>
             <li>TrapFire
                 <ul>
                     <li>
-                        <span id="TrapFire">NaN</span>
+                        <span id="trap_fire">NaN</span>
                     </li>
                 </ul>
             </li>
             <li>WokeTime
                 <ul>
                     <li>
-                        <span id="WorkTime">NaN</span>[sec]</li>
+                        <span id="work_time">NaN</span>[sec]</li>
                 </ul>
             </li>
             <li>ModuleList
-                <ol id="NodeList">
+                <ol id="node_list">
                     <li>NaN</li>
                 </ol>
             </li>
             <li>ParentNodeId
                 <ul>
                     <li>
-                        <span id="ParentNodeId">NaN</span>
+                        <span id="parent_id">NaN</span>
                     </li>
                 </ul>
             </li>

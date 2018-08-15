@@ -31,7 +31,6 @@ class ModuleConfig {
     // フラグ関連
     bool _isTrapStart = false;          // 罠起動モード移行フラグ
     bool _ledOnFlag = false;            // LED点滅フラグ
-    bool _isCurrentBatterySend = false; // バッテリー残量送信済みフラグ
     bool _isBatteryDead = false;        // バッテリー切れフラグ
     bool _isSendModuleState = false;    // モジュール状態送信済みフラグ
     // カメラモジュール関連

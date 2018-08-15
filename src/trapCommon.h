@@ -31,35 +31,33 @@
 // json buffer number
 #define JSON_BUF_NUM 4096
 // 設定値 JSON KEY
-#define KEY_WORK_TIME "WorkTime"
-#define KEY_TRAP_MODE "TrapMode" // false:トラップ設置モード, true:トラップ起動モード
-#define KEY_PARENT_NODE_ID "ParentNodeId"
-#define KEY_TRAP_FIRE "TrapFire"
-#define KEY_GPS_LAT "GpsLat"
-#define KEY_GPS_LON "GpsLon"
-#define KEY_WAKE_TIME "WakeTime"
-#define KEY_CURRENT_TIME "CurrentTime"
-#define KEY_ACTIVE_START "ActiveStart"
-#define KEY_ACTIVE_END "ActiveEnd"
-#define KEY_NODE_NUM "NodeNum"
+#define KEY_WORK_TIME "work_time"
+#define KEY_ACTIVE_START "active_start"
+#define KEY_ACTIVE_END "active_end"
+#define KEY_TRAP_MODE "trap_mode" // false:トラップ設置モード, true:トラップ起動モード
+#define KEY_TRAP_FIRE "trap_fire"
+#define KEY_GPS_LAT "lat"
+#define KEY_GPS_LON "lon"
+#define KEY_PARENT_NODE_ID "parent_id"
+#define KEY_NODE_NUM "node_num"
+#define KEY_WAKE_TIME "wake_time"
+#define KEY_CURRENT_TIME "current_time"
 // メッセージ JSON KEY
-#define KEY_CONFIG_UPDATE "ConfigUpdate"
-#define KEY_REQUEST_MODULE_STATE "RequestModuleState"
-#define KEY_PARENT_INFO "parentInfo"
-#define KEY_MODULE_STATE "ModuleState"
-#define KEY_NODE_LIST "NodeList"
-#define KEY_TRAP_FIRE_MESSAGE "TrapFireMessage"
-#define KEY_BATTERY_DEAD "BatteryDead"
-#define KEY_CURRENT_BATTERY "CurrentBattery"
-#define KEY_NODE_ID "NodeId"
-#define KEY_PICTURE "CameraImage"
-#define KEY_INIT_GPS "InitGps"
-#define KEY_GET_GPS "GetGps"
-#define KEY_MESH_GRAPH "MeshGraph"
-#define KEY_SYNC_SLEEP "SyncSleep"
-#define KEY_REAL_TIME "RealTime"
-#define KEY_CAMERA_ENABLE "CameraEnable"
-#define KEY_PICTURE_FORMAT "PictureFormat"
+#define KEY_CONFIG_UPDATE "config_update"
+#define KEY_REQUEST_MODULE_STATE "request_module_state"
+#define KEY_MODULE_STATE "module_state"
+#define KEY_NODE_LIST "node_list"
+#define KEY_BATTERY_DEAD "battery_dead"
+#define KEY_CURRENT_BATTERY "remaining_battery"
+#define KEY_NODE_ID "module_id"
+#define KEY_PICTURE "camera_image"
+#define KEY_INIT_GPS "init_gps"
+#define KEY_GET_GPS "get_gps"
+#define KEY_MESH_GRAPH "mesh_graph"
+#define KEY_SYNC_SLEEP "sync_sleep"
+#define KEY_REAL_TIME "real_time"
+#define KEY_CAMERA_ENABLE "camera"
+#define KEY_PICTURE_FORMAT "picture_format"
 // デフォルト設定値
 #define DEF_WORK_TIME 180   // 3分間稼働[sec]
 #define DEF_TRAP_MODE false // 設置モード
@@ -108,9 +106,9 @@
 #define SEND_PARENT_INTERVAL 3000         // 親モジュール情報送信間隔
 #define SEND_SYNC_SLEEP_INTERVAL 20000    // 同期停止メッセージ送信感覚
 #define IMSI_LEN 16                       // ISMI(15桁の数字 + 1(終端文字))
-#define KEY_FIRED_MODULES "FiredModules"  // JSON KEY
-#define KEY_IS_PARENT "IsParent"          // 親モジュールとして振る舞うかどうか
-#define KEY_MODULES_INFO "ModulesInfo"    // 送信する接続されたモジュール情報
+#define KEY_PARENT_INFO "parent_info"     // 親モジュール情報
+#define KEY_IS_PARENT "is_parent"         // 親モジュールとして振る舞うかどうか
+#define KEY_MODULES_INFO "modules"        // 送信する接続されたモジュール情報
 #define CELLULAR_TASK_NAME "cellularTask" // 携帯モジュールタスク
 
 #endif // INCLUDE_GUARD_COMMON
