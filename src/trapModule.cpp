@@ -285,7 +285,7 @@ void TrapModule::sendModuleState() {
     JsonObject &state = jsonBuf.createObject();
     _config.collectModuleState(state);
     if (sendParent(state)) {
-        _config._isSendModuelState = true;
+        _config._isSendModuleState = true;
         taskStop(_sendModuleStateTask);
     }
     // 送信に成功しなかった場合輻輳を避けるため送信間隔を変更
@@ -464,7 +464,7 @@ void TrapModule::startSendModuleState() {
     if (!_config._trapMode || _config._isTrapStart) {
         return;
     }
-    if (_config._isSendModuelState) {
+    if (_config._isSendModuleState) {
         return;
     }
     for (auto &nodeId : _mesh.getNodeList()) {
