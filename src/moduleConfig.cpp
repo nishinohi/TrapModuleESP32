@@ -48,16 +48,16 @@ void ModuleConfig::collectModuleState(JsonObject& state) {
 void ModuleConfig::setDefaultModuleConfig() {
     DEBUG_MSG_LN("Set Default Module Config");
     _workTime = DEF_WORK_TIME;
-    _trapFire = DEF_TRAP_FIRE;
-    _trapMode = DEF_TRAP_MODE;
-    memset(_lat, '\0', GPS_STR_LEN);
-    memset(_lon, '\0', GPS_STR_LEN);
-    _wakeTime = DEF_WAKE_TIME;
-    _currentTime = DEF_CURRENT_TIME;
     _activeStart = DEF_ACTIVE_START;
     _activeEnd = DEF_ACTIVE_END;
-    _nodeNum = DEF_NODE_NUM;
+    _trapMode = DEF_TRAP_MODE;
+    _trapFire = DEF_TRAP_FIRE;
+    memset(_lat, '\0', GPS_STR_LEN);
+    memset(_lon, '\0', GPS_STR_LEN);
     _parentNodeId = DEF_NODEID;
+    _nodeNum = DEF_NODE_NUM;
+    _wakeTime = DEF_WAKE_TIME;
+    _currentTime = DEF_CURRENT_TIME;
 }
 
 /**

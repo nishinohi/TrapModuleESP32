@@ -1,20 +1,16 @@
-const KEY_WORK_TIME = 'WorkTime';
-const KEY_TRAP_MODE = 'TrapMode';
-const KEY_NODE_ID = 'NodeId';
-const KEY_NODE_LIST = 'NodeList';
-const KEY_TRAP_FIRE_MESSAGE = 'TrapFireMessage';
-const KEY_BATTERY_DEAD = 'BatteryDead';
-const KEY_PARENT_NODE_ID = 'ParentNodeId';
-const KEY_PICTURE = 'CameraImage';
-const KEY_CAMERA_ENABLE = 'CameraEnable';
-const KEY_TRAP_FIRE = 'TrapFire';
-const KEY_GPS_LAT = 'GpsLat';
-const KEY_GPS_LON = 'GpsLon';
-const KEY_MESH_GRAPH = 'MeshGraph';
-const KEY_ACTIVE_START = 'ActiveStart';
-const KEY_ACTIVE_END = 'ActiveEnd';
-const KEY_CURRENT_TIME = 'CurrentTime';
-const KEY_PICTURE_FORMAT = 'PictureFormat'
+const KEY_WORK_TIME = 'work_time';
+const KEY_TRAP_MODE = 'trap_mode';
+const KEY_NODE_ID = 'module_id';
+const KEY_NODE_LIST = 'node_list';
+const KEY_CAMERA_ENABLE = 'camera';
+const KEY_TRAP_FIRE = 'trap_fire';
+const KEY_GPS_LAT = 'lat';
+const KEY_GPS_LON = 'lon';
+const KEY_MESH_GRAPH = 'mesh_graph';
+const KEY_ACTIVE_START = 'active_start';
+const KEY_ACTIVE_END = 'active_end';
+const KEY_CURRENT_TIME = 'current_time';
+const KEY_PICTURE_FORMAT = 'picture_format'
 
 var sigmaUuid = 0;
 var sigmaObj;
@@ -210,7 +206,7 @@ function setCurrentTime() {
     let current = new Date();
     // モジュールは現在時刻を UTC(sec) で管理しているので UTC での表示時刻が local での表示時刻と一致するようにずらす
     let tempLocalEpoch = parseInt((current.getTime() - (current.getTimezoneOffset() * 60 * 1000)) / 1000);
-    let currentTime = { CurrentTime: tempLocalEpoch };
+    let currentTime = { current_time: tempLocalEpoch };
     postAndDoAfter(currentTime, updateTime, setCurrentTime.name);
 }
 
@@ -219,10 +215,10 @@ function setCurrentTime() {
  */
 function setConfig() {
     let config = {
-        WorkTime: document.getElementById('workTimeConfig').value,
-        TrapMode: document.getElementById('modeConfig').value,
-        ActiveStart: sliderObj.getValue().split(',')[0],
-        ActiveEnd: sliderObj.getValue().split(',')[1]
+        work_time: document.getElementById('workTimeConfig').value,
+        trap_mode: document.getElementById('modeConfig').value,
+        active_start: sliderObj.getValue().split(',')[0],
+        active_end: sliderObj.getValue().split(',')[1]
     };
     postAndDoAfter(config, updateModuleInfo, setConfig.name);
 }
@@ -242,7 +238,7 @@ function sendMessage() {
  * 画像取得
  */
 function snapShot() {
-    let picFmt = { PictureFormat: document.getElementById('PictureFormat').value };
+    let picFmt = { picture_format: document.getElementById(KEY_PICTURE_FORMAT).value };
     postAndDoAfter(picFmt, updateImage, snapShot.name);
 }
 
@@ -364,7 +360,7 @@ function updateImage(src) {
  * コールバック関数として呼び出されるので引数を設定しているが使用しない
  */
 function updateTime(param) {
-    let moduleTime = document.getElementById('CurrentTime').firstElementChild;
+    let moduleTime = document.getElementById(KEY_CURRENT_TIME).firstElementChild;
     if (moduleTime != null) {
         if (timerId !== -1) {
             clearInterval(timerId);
