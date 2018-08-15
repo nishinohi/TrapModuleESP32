@@ -1,0 +1,32 @@
+/tm/network/mosules/period/aaaa
+{
+   "parent_id": 2752384817,
+   "current_time": 1534006433,
+   "modules": [
+       {
+           "module_id": 2752384817,
+           "remaining_battery": 0,
+           "trap_fire": true
+       },
+       {
+           "module_id": 2751639281,
+           "remaining_battery": 0,
+           "trap_fire": true
+       },
+       {
+           "module_id": 2751617897,
+           "remaining_battery": 0,
+           "trap_fire": false
+       },
+       {
+           "module_id": 3296765133,
+           "remaining_battery": 0,
+           "trap_fire": false
+       },
+       {
+           "module_id": 2751638657,
+           "remaining_battery": 0,
+           "trap_fire": false
+       }
+   ]
+}

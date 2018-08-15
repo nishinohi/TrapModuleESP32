@@ -42,7 +42,7 @@ void TrapModule::setupTask() {
     setTask(_deepSleepTask, SYNC_SLEEP_INTERVAL, TASK_FOREVER,
             std::bind(&TrapModule::shiftDeepSleep, this), false);
     // request Module State task
-    setTask(_requestModuleStateTask, DEF_INTERVAL, TASK_FOREVER,
+    setTask(_requestModuleStateTask, MODULE_STATE_INTERVAL, TASK_FOREVER,
             std::bind(&TrapModule::sendRequestModuleState, this), false);
     // send GPS data task
     setTask(_sendGPSDataTask, DEF_INTERVAL, DEF_ITERATION,
@@ -86,7 +86,7 @@ void TrapModule::startTrapMode() {
         shiftDeepSleep();
         return;
     }
-    taskStart(_requestModuleStateTask, DEF_INTERVAL);
+    taskStart(_requestModuleStateTask);
 }
 
 /********************************************
@@ -120,7 +120,7 @@ void TrapModule::update() {
     // 稼働時間超過により強制 DeepSleep
     if (now() - _config._wakeTime > _config._workTime) {
         DEBUG_MSG_LN("work time limit.");
-        _sendSyncSleepTask.disable();
+        taskStop(_sendSyncSleepTask);
         _config.updateNodeNum(_mesh.getNodeList());
         taskStart(_deepSleepTask, SYNC_SLEEP_INTERVAL);
     }
@@ -244,8 +244,9 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
         _config.pushNoDuplicateModuleState(from, msgJson);
         // 全てのモジュールからモジュール状態を受信したら deepSleep メッセージ送信
         if (_config._moduleStateList.size() >= _config._nodeNum) {
+            taskStop(_requestModuleStateTask);
             _config.updateNodeNum(_mesh.getNodeList());
-            _sendSyncSleepTask.enable();
+            taskStart(_sendSyncSleepTask);
         }
     }
     // 画像保存
@@ -469,7 +470,7 @@ void TrapModule::sendSyncSleep() {
 void TrapModule::sendParentModuleInfo() {
     DEBUG_MSG_LN("sendParentModuleInfo");
     if (_mesh.getNodeList().size() == 0) {
-        _sendParentInfoTask.disable();
+        taskStop(_sendParentInfoTask);
         return;
     }
     DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
@@ -484,7 +485,7 @@ void TrapModule::sendParentModuleInfo() {
         obj[KEY_PARENT_NODE_ID] = getNodeId();
     }
     if (sendBroadcast(obj)) {
-        _sendParentInfoTask.disable();
+        taskStop(_sendParentInfoTask);
     }
 }
 
@@ -494,7 +495,6 @@ void TrapModule::sendParentModuleInfo() {
 void TrapModule::sendRequestModuleState() {
     DEBUG_MSG_LN("sendRequestModuleState");
     if (_mesh.getNodeList().size() == 0) {
-        _requestModuleStateTask.disable();
         return;
     }
     DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
@@ -505,7 +505,6 @@ void TrapModule::sendRequestModuleState() {
     obj[KEY_CONFIG_UPDATE] = true;
     obj[KEY_PARENT_NODE_ID] = getNodeId();
     if (sendBroadcast(obj)) {
-        _requestModuleStateTask.disable();
     }
 }
 
@@ -515,7 +514,7 @@ void TrapModule::sendRequestModuleState() {
 void TrapModule::sendGpsData() {
     DEBUG_MSG_LN("sendGpsData");
     if (_mesh.getNodeList().size() == 0) {
-        _sendGPSDataTask.disable();
+        taskStop(_sendGPSDataTask);
         return;
     }
     DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
@@ -525,7 +524,7 @@ void TrapModule::sendGpsData() {
     gpsData[KEY_GPS_LON] = _config._lon;
     gpsData[KEY_CURRENT_TIME] = now();
     if (sendBroadcast(gpsData)) {
-        _sendGPSDataTask.disable();
+        taskStop(_sendGPSDataTask);
     }
 }
 

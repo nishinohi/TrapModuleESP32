@@ -34,17 +34,16 @@ class ModuleConfig {
     bool _isCurrentBatterySend = false; // バッテリー残量送信済みフラグ
     bool _isBatteryDead = false;        // バッテリー切れフラグ
     bool _isSendModuleState = false;    // モジュール状態送信済みフラグ
-    bool _isParent = true;              // 親モジュールとして振る舞うかどうか
-    bool _isStarted = false;            // 罠起動モード開始済みフラグ
     // カメラモジュール関連
     bool _cameraEnable = false;
     // 時間誤差修正
     time_t _realTime = 0;
     unsigned long _realTimeDiff = 0;
-    // 親モジュール ID リスト（一時格納用）
-    SimpleList<uint32_t> _parentNodeIdList;
-    // モジュール機能状態保存リスト
-    SimpleList<ModuleState> _moduleStateList;
+    // 親限定
+    bool _isParent = true;              // 親モジュールとして振る舞うかどうか
+    bool _isStarted = false;            // 罠起動モード開始済みフラグ
+    SimpleList<uint32_t> _parentNodeIdList; // 親モジュール ID リスト（一時格納用）
+    SimpleList<ModuleState> _moduleStateList; // モジュール機能状態保存リスト
 
   public:
     ModuleConfig(){};
