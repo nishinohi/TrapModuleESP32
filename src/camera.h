@@ -13,8 +13,8 @@
 #define PIC_PKT_LEN 500
 #define CAM_ADDR 0
 #define PIC_FMT OV528_SIZE_QVGA
-#define cameraRX 5
-#define cameraTX 4
+#define CAMEARA_RX 16
+#define CAMERA_TX 17
 // 初期化タイムアウト
 #define INITIALIZE_TIMEOUT 1500
 
@@ -29,7 +29,7 @@ class Camera {
     byte _cameraAddr = (CAM_ADDR << 5); // addr
 
   public:
-    Camera() { _camSerial.begin(115200); };
+    Camera() { _camSerial.begin(115200, SERIAL_8N1, CAMEARA_RX, CAMERA_TX); };
     bool initialize();
     bool saveCameraData();
     void setResolution(int resolution) { _resolution = resolution; };
