@@ -377,19 +377,26 @@ void ModuleConfig::createModulesInfo(String &modulesInfoStr, bool isStart) {
     // モジュール状態情報構築
     JsonArray &modulesState = modulesInfo.createNestedArray(KEY_MODULES_INFO);
     // 親モジュールの状態を追加
-    JsonObject& parentState = JsonBuf.createObject();
+    JsonObject &parentState = JsonBuf.createObject();
     collectModuleState(parentState);
-    modulesState.add(parentState);
+    ModuleState parentInfo = {
+        _nodeId,
+        parentState[KEY_CURRENT_BATTERY],
+        parentState[KEY_BATTERY_DEAD],
+        parentState[KEY_TRAP_FIRE],
+        parentState[KEY_CAMERA_ENABLE]
+    };
+    _moduleStateList.push_back(parentInfo);
     for (auto &moduleState : _moduleStateList) {
-        JsonObject &childState = JsonBuf.createObject();
-        childState[KEY_NODE_ID] = moduleState.nodeId;
-        childState[KEY_CURRENT_BATTERY] = moduleState.batery;
+        JsonObject &targetState = JsonBuf.createObject();
+        targetState[KEY_NODE_ID] = moduleState.nodeId;
+        targetState[KEY_CURRENT_BATTERY] = moduleState.batery;
         if (_isTrapStart) {
-            childState[KEY_CAMERA_ENABLE] = moduleState.cameraEnable;
+            targetState[KEY_CAMERA_ENABLE] = moduleState.cameraEnable;
         } else {
-            childState[KEY_TRAP_FIRE] = moduleState.trapFire;
+            targetState[KEY_TRAP_FIRE] = moduleState.trapFire;
         }
-        modulesState.add(childState);
+        modulesState.add(targetState);
     }
     modulesInfo.printTo(modulesInfoStr);
 }
