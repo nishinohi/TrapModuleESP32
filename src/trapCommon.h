@@ -88,8 +88,9 @@
 #define DEF_ITERATION 3             // メッセージ送信リトライ数
 // バッテリー関連
 // #define BATTERY_CHECK_ACTIVE
-#define BATTERY_LIMIT 3750 // 放電終止電圧(0.9V) * 電池 4 本(1[V] = 1024)
-#define VOLTAGE_DIVIDE 6   // 分圧比
+#define BATTERY_LIMIT 4460 // 放電終止電圧(0.9V) * 電池 4 本(1[V] = 1240)
+#define VOLTAGE_DIVIDE 2   // 分圧比
+#define REAL_BATTERY_VALUE(v) (v) * VOLTAGE_DIVIDE / 1240
 // GPS ロケーション文字列長
 #define GPS_STR_LEN 16
 // camera
