@@ -71,6 +71,8 @@ void Cellular::sendTrapModuleInfo(String &contents, const SendType sendType) {
             topic = PERIOD_TOPIC;
             break;
         default:
+            topic = TEST_TOPIC;
+            break;
         }
         topic.concat(_imsi);
         topic.concat("/");
