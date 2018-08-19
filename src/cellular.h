@@ -26,6 +26,17 @@
 #define GPS_ANTENA 2
 // mqtt topic
 #define TEST_TOPIC "/tm/test/"
+#define SETTING_TOPIC "/tm/network/mosules/setting/"
+#define PERIOD_TOPIC "/tm/network/mosules/period/"
+
+/**
+ * MQTT の送信タイプ
+ */
+enum SendType {
+  TEST = 0,
+  SETTING,
+  PERIOD
+};
 
 class Cellular {
   private:
@@ -55,7 +66,7 @@ class Cellular {
     };
     ~Cellular(){};
 
-    void sendTrapModuleInfo(String& contents);
+    void sendTrapModuleInfo(String& contents, const SendType sendType = TEST);
 
   private:
     bool fonaSetup();

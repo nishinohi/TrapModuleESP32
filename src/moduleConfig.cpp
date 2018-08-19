@@ -363,11 +363,11 @@ void ModuleConfig::collectModuleConfig(JsonObject &obj) {
 /**
  * 送信するモジュール情報文字列を作成する
  */
-void ModuleConfig::createModulesInfo(String &modulesInfoStr) {
+void ModuleConfig::createModulesInfo(String &modulesInfoStr, bool isStart) {
     DynamicJsonBuffer JsonBuf(JSON_BUF_NUM);
     JsonObject &modulesInfo = JsonBuf.createObject();
-    // 罠モード開始時のみ送信
-    if (_isTrapStart) {
+    // setting 情報も含める
+    if (isStart) {
         modulesInfo[KEY_PARENT_NODE_ID] = _nodeId;
         modulesInfo[KEY_CURRENT_TIME] = now();
         modulesInfo[KEY_GPS_LAT] = _lat;
@@ -375,18 +375,22 @@ void ModuleConfig::createModulesInfo(String &modulesInfoStr) {
         modulesInfo[KEY_ACTIVE_START] = _activeStart;
         modulesInfo[KEY_ACTIVE_END] = _activeEnd;
     }
-    // 子モジュール情報
-    JsonArray &childInfos = modulesInfo.createNestedArray(KEY_MODULES_INFO);
+    // モジュール状態情報構築
+    JsonArray &modulesState = modulesInfo.createNestedArray(KEY_MODULES_INFO);
+    // 親モジュールの状態を追加
+    JsonObject& parentState = JsonBuf.createObject();
+    collectModuleState(parentState);
+    modulesState.add(parentState);
     for (auto &moduleState : _moduleStateList) {
-        JsonObject &childInfo = JsonBuf.createObject();
-        childInfo[KEY_NODE_ID] = moduleState.nodeId;
-        childInfo[KEY_CURRENT_BATTERY] = moduleState.batery;
+        JsonObject &childState = JsonBuf.createObject();
+        childState[KEY_NODE_ID] = moduleState.nodeId;
+        childState[KEY_CURRENT_BATTERY] = moduleState.batery;
         if (_isTrapStart) {
-            childInfo[KEY_CAMERA_ENABLE] = moduleState.cameraEnable;
+            childState[KEY_CAMERA_ENABLE] = moduleState.cameraEnable;
         } else {
-            childInfo[KEY_TRAP_FIRE] = moduleState.trapFire;
+            childState[KEY_TRAP_FIRE] = moduleState.trapFire;
         }
-        childInfos.add(childInfo);
+        modulesState.add(childState);
     }
     modulesInfo.printTo(modulesInfoStr);
 }

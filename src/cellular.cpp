@@ -51,7 +51,7 @@ bool Cellular::fonaOpenNetwork(uint8_t tryCount) {
 /**
  * 罠モジュール情報を送信する
  */
-void Cellular::sendTrapModuleInfo(String &contents) {
+void Cellular::sendTrapModuleInfo(String &contents, const SendType sendType) {
     // 作動した罠の通知を送信する
     _fonaStart = fonaSetup();
     if (!_fonaStart) {
@@ -59,7 +59,19 @@ void Cellular::sendTrapModuleInfo(String &contents) {
     }
     // 罠モジュール情報送信
     if (fonaOpenNetwork(5) && connectMqttServer(5)) {
-        String topic = TEST_TOPIC;
+        String topic;
+        switch (sendType) {
+        case TEST:
+            topic = TEST_TOPIC;
+            break;
+        case SETTING:
+            topic = SETTING_TOPIC;
+            break;
+        case PERIOD:
+            topic = PERIOD_TOPIC;
+            break;
+        default:
+        }
         topic.concat(_imsi);
         topic.concat("/");
         pushMqtt(topic.c_str(), contents.c_str());

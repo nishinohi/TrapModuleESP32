@@ -33,6 +33,7 @@ class ModuleConfig {
     bool _ledOnFlag = false;            // LED点滅フラグ
     bool _isBatteryDead = false;        // バッテリー切れフラグ
     bool _isSendModuleState = false;    // モジュール状態送信済みフラグ
+    bool _isSleep = false;              // スリープ状態遷移フラグ
     // カメラモジュール関連
     bool _cameraEnable = false;
     // 時間誤差修正
@@ -61,7 +62,7 @@ class ModuleConfig {
     bool loadModuleConfigFile();
     // 親機用
     void collectModuleConfig(JsonObject &obj);
-    void createModulesInfo(String &modulesInfoStr);
+    void createModulesInfo(String &modulesInfoStr, bool isStart);
     void collectTrapUpdateInfo(painlessMesh &mesh, JsonObject &obj);
     void updateParentState();
     void updateNodeNum(SimpleList<uint32_t> nodeList);

@@ -62,8 +62,7 @@ class TrapModule {
     // 罠モード開始処理
     void startTrapMode();
     // mqtt server に情報送信
-    void sendTrapStartInfo();
-    void sendTrapUpdateInfo();
+    void sendModulesInfo();
     // メッセージ送信
     bool syncAllModuleConfigs(JsonObject &config);
     bool syncCurrentTime();

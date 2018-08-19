@@ -108,6 +108,11 @@ void TrapModule::update() {
         _config._isStarted = true;
         startTrapMode();
     }
+    // DeepSleep 開始
+    if (_config._isSleep && !_deepSleepTask.isEnabled()) {
+        DEBUG_MSG_LN("deep sleep start.");
+        taskStart(_deepSleepTask, SYNC_SLEEP_INTERVAL);
+    }
     // 設置モードか罠モード作動開始状態の場合は以降の処理は無視
     if (!_config._trapMode || _config._isTrapStart) {
         return;
@@ -119,10 +124,10 @@ void TrapModule::update() {
     }
     // 稼働時間超過により強制 DeepSleep
     if (now() - _config._wakeTime > _config._workTime) {
-        DEBUG_MSG_LN("work time limit.");
-        taskStop(_sendSyncSleepTask);
-        _config.updateNodeNum(_mesh.getNodeList());
-        taskStart(_deepSleepTask, SYNC_SLEEP_INTERVAL);
+        if (!_config._isSleep) {
+            DEBUG_MSG_LN("work time limit.");
+            shiftDeepSleep();
+        }
     }
 }
 
@@ -238,8 +243,8 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
         DEBUG_MSG_LN("request module state");
         taskStart(_sendModuleStateTask);
     }
-    // モジュール状態受信
-    if (msgJson.containsKey(KEY_MODULE_STATE)) {
+    // モジュール状態受信(設置モード時は無視)
+    if (msgJson.containsKey(KEY_MODULE_STATE) && _config._trapMode) {
         DEBUG_MSG_LN("get module state");
         _config.pushNoDuplicateModuleState(from, msgJson);
         // 全てのモジュールからモジュール状態を受信したら deepSleep メッセージ送信
@@ -257,8 +262,7 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
     // DeepSleepする前に全ノードのバッテリー状態などを取得している必要があるので最後に呼ぶこと
     if (msgJson.containsKey(KEY_SYNC_SLEEP)) {
         DEBUG_MSG_LN("Sync Sleep start");
-        taskStop(_sendModuleStateTask);
-        taskStart(_deepSleepTask, SYNC_SLEEP_INTERVAL);
+        _config._isSleep = true;
     }
 }
 
@@ -451,7 +455,7 @@ void TrapModule::sendSyncSleep() {
     DEBUG_MSG_LN("sendSyncSleep");
     if (_mesh.getNodeList().size() == 0) {
         taskStop(_sendSyncSleepTask);
-        taskStart(_deepSleepTask, SYNC_SLEEP_INTERVAL);
+        _config._isSleep = true;
         return;
     }
     DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
@@ -459,7 +463,7 @@ void TrapModule::sendSyncSleep() {
     syncObj[KEY_SYNC_SLEEP] = true;
     if (sendBroadcast(syncObj)) {
         taskStop(_sendSyncSleepTask);
-        taskStart(_deepSleepTask, SYNC_SLEEP_INTERVAL);
+        _config._isSleep = true;
     }
 }
 
@@ -491,6 +495,8 @@ void TrapModule::sendParentModuleInfo() {
 
 /**
  * モジュール状態送信要求
+ * メッシュノード全ての状態情報を取得したタイミングでタスクを停止するので
+ * 情報送信の成功をトリガーにタスクを停止することはない
  */
 void TrapModule::sendRequestModuleState() {
     DEBUG_MSG_LN("sendRequestModuleState");
@@ -504,8 +510,7 @@ void TrapModule::sendRequestModuleState() {
     // モジュール状態の送信対象の親モジュール ID を送信
     obj[KEY_CONFIG_UPDATE] = true;
     obj[KEY_PARENT_NODE_ID] = getNodeId();
-    if (sendBroadcast(obj)) {
-    }
+    sendBroadcast(obj);
 }
 
 /**
@@ -565,13 +570,12 @@ void TrapModule::shiftDeepSleep() {
             break;
         }
     }
-    // 検知情報などのモジュール情報を送信
+    // 自身のセンサ情報更新
+    updateBattery();
+    updateTrapFire();
+    // モジュール状態情報を送信
     if (_config._isParent) {
-        if (_config._isTrapStart) {
-            sendTrapStartInfo();
-        } else {
-            sendTrapUpdateInfo();
-        }
+        sendModulesInfo();
     }
     DEBUG_MSG_LN("Shift Deep Sleep");
     if (_config._isBatteryDead) {
@@ -729,23 +733,14 @@ void TrapModule::snapCameraTask(void *arg) {
  * MQTT
  ************************************/
 /**
- * 罠モード開始時の設定値等を含んだ情報をサーバーに送信
+ * モジュール状態情報をサーバーに送信
  */
-void TrapModule::sendTrapStartInfo() {
-    DEBUG_MSG_LN("sendTrapStartInfo");
+void TrapModule::sendModulesInfo() {
+    DEBUG_MSG_LN("sendModulesInfo");
     String trapStartinfo;
-    _config.createModulesInfo(trapStartinfo);
-    _cellular.sendTrapModuleInfo(trapStartinfo);
-}
-
-/**
- * 稼働中の各種情報を送信
- */
-void TrapModule::sendTrapUpdateInfo() {
-    DEBUG_MSG_LN("sendTrapUpdateInfo");
-    String trapStartinfo;
-    _config.createModulesInfo(trapStartinfo);
-    _cellular.sendTrapModuleInfo(trapStartinfo);
+    _config.createModulesInfo(trapStartinfo, _config._isTrapStart);
+    SendType sendType = _config._isTrapStart ? SETTING : PERIOD;
+    _cellular.sendTrapModuleInfo(trapStartinfo, sendType);
 }
 
 /*************************************
