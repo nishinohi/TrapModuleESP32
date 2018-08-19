@@ -85,7 +85,7 @@ void TrapModule::update() {
     if (now() - _config._wakeTime > _config._workTime) {
         if (!_config._isSleep) {
             DEBUG_MSG_LN("work time limit.");
-            _config._isSleep = true;
+            shiftDeepSleep();
         }
     }
 }
