@@ -33,6 +33,7 @@ class ModuleConfig {
     bool _ledOnFlag = false;            // LED点滅フラグ
     bool _isBatteryDead = false;        // バッテリー切れフラグ
     bool _isSendModuleState = false;    // モジュール状態送信済みフラグ
+    bool _isSleep = false;              // スリープ状態遷移フラグ
     // カメラモジュール関連
     bool _cameraEnable = false;
     // 時間誤差修正

@@ -72,14 +72,21 @@ void TrapModule::update() {
     } else {
         digitalWrite(LED, !_config._ledOnFlag);
     }
+    // DeepSleep 開始
+    if (_config._isSleep && !_deepSleepTask.isEnabled()) {
+        DEBUG_MSG_LN("deep sleep start.");
+        taskStart(_deepSleepTask, SYNC_SLEEP_INTERVAL);
+    }
     // 設置モードか罠モード作動開始状態の場合は以降の処理は無視
     if (!_config._trapMode || _config._isTrapStart) {
         return;
     }
     // 稼働時間超過により強制 DeepSleep
     if (now() - _config._wakeTime > _config._workTime) {
-        DEBUG_MSG_LN("work time limit.");
-        taskStart(_deepSleepTask, SYNC_SLEEP_INTERVAL);
+        if (!_config._isSleep) {
+            DEBUG_MSG_LN("work time limit.");
+            _config._isSleep = true;
+        }
     }
 }
 
@@ -165,8 +172,7 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
     // DeepSleepする前に全ノードのバッテリー状態などを取得している必要があるので最後に呼ぶこと
     if (msgJson.containsKey(KEY_SYNC_SLEEP)) {
         DEBUG_MSG_LN("Sync Sleep start");
-        taskStop(_sendModuleStateTask);
-        taskStart(_deepSleepTask, SYNC_SLEEP_INTERVAL);
+        _config._isSleep = true;
     }
 }
 
