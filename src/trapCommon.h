@@ -59,9 +59,9 @@
 #define KEY_CAMERA_ENABLE "camera"
 #define KEY_PICTURE_FORMAT "picture_format"
 // デフォルト設定値
-#define DEF_WORK_TIME 180       // 3分間稼働[sec]
-#define DEF_TRAP_MODE false     // 設置モード
-#define DEF_TRAP_FIRE false     // 罠作動済みフラグ
+#define DEF_WORK_TIME 180   // 3分間稼働[sec]
+#define DEF_TRAP_MODE false // 設置モード
+#define DEF_TRAP_FIRE false // 罠作動済みフラグ
 #define DEF_GPS_LAT "\0"
 #define DEF_GPS_LON "\0"
 #define DEF_ACTIVE_START 0
@@ -83,13 +83,14 @@
 // Task 関連
 #define SYNC_SLEEP_INTERVAL 3000    // 同期 DeepSleep 遅延時間[msec]
 #define BATTERY_CHECK_INTERVAL 5000 // バッテリー残量チェック間隔[msec]
-#define MODULE_STATE_INTERVAL 3000 // モジュール状態送信間隔ランダム[msec]
-#define DEF_INTERVAL 1000  // メッセージ送信間隔[msec]
-#define DEF_ITERATION 3                // メッセージ送信リトライ数
+#define MODULE_STATE_INTERVAL 3000  // モジュール状態送信間隔ランダム[msec]
+#define DEF_INTERVAL 1000           // メッセージ送信間隔[msec]
+#define DEF_ITERATION 3             // メッセージ送信リトライ数
 // バッテリー関連
 // #define BATTERY_CHECK_ACTIVE
-#define BATTERY_LIMIT 3750 // 放電終止電圧(0.9V) * 電池 4 本(1[V] = 1024)
-#define VOLTAGE_DIVIDE 6   // 分圧比
+#define BATTERY_LIMIT 4460 // 放電終止電圧(0.9V) * 電池 4 本(1[V] = 1240)
+#define VOLTAGE_DIVIDE 2   // 分圧比
+#define REAL_BATTERY_VALUE(v) (v) * VOLTAGE_DIVIDE / 1240
 // GPS ロケーション文字列長
 #define GPS_STR_LEN 16
 // camera

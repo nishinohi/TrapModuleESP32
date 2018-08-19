@@ -37,9 +37,8 @@ void ModuleConfig::collectModuleState(JsonObject& state) {
     state[KEY_TRAP_FIRE] = _trapFire;
     state[KEY_CAMERA_ENABLE] = _cameraEnable;
     state[KEY_BATTERY_DEAD] = _isBatteryDead;
-    uint16_t battery = analogRead(A0);
-    battery = battery * VOLTAGE_DIVIDE;
-    state[KEY_CURRENT_BATTERY] = battery;
+    double realBattery = REAL_BATTERY_VALUE(analogRead(A0));
+    state[KEY_CURRENT_BATTERY] = realBattery;
 }
 
 /**
