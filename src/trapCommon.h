@@ -100,16 +100,4 @@
 #define TASK_DELAY(delayMsec) vTaskDelay((delayMsec) / portTICK_RATE_MS)
 #define CAMERA_TASK_NAME "cameraTask"
 
-// 親モジュール
-#define CHILDREN_MAX 32                   // 罠作動モジュール保存最大数
-#define GPS_TRY_COUNT 20                  // GPS 取得試行回数
-#define GPS_GET_INTERVAL 10000            // GPS データ取得間隔[msec]
-#define SEND_PARENT_INTERVAL 3000         // 親モジュール情報送信間隔
-#define SEND_SYNC_SLEEP_INTERVAL 20000    // 同期停止メッセージ送信感覚
-#define IMSI_LEN 16                       // ISMI(15桁の数字 + 1(終端文字))
-#define KEY_PARENT_INFO "parent_info"     // 親モジュール情報
-#define KEY_IS_PARENT "is_parent"         // 親モジュールとして振る舞うかどうか
-#define KEY_MODULES_INFO "modules"        // 送信する接続されたモジュール情報
-#define CELLULAR_TASK_NAME "cellularTask" // 携帯モジュールタスク
-
 #endif // INCLUDE_GUARD_COMMON

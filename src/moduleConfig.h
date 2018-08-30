@@ -39,11 +39,6 @@ class ModuleConfig {
     // 時間誤差修正
     time_t _realTime = 0;
     unsigned long _realTimeDiff = 0;
-    // 親限定
-    bool _isParent = true;              // 親モジュールとして振る舞うかどうか
-    bool _isStarted = false;            // 罠起動モード開始済みフラグ
-    SimpleList<uint32_t> _parentNodeIdList; // 親モジュール ID リスト（一時格納用）
-    SimpleList<ModuleState> _moduleStateList; // モジュール機能状態保存リスト
 
   public:
     ModuleConfig(){};
@@ -60,13 +55,6 @@ class ModuleConfig {
     time_t calcSleepTime(const time_t &tNow, const time_t &nextWakeTime);
     void pushNoDuplicateNodeId(const uint32_t &nodeId, SimpleList<uint32_t> &list);
     bool loadModuleConfigFile();
-    // 親機用
-    void collectModuleConfig(JsonObject &obj);
-    void createModulesInfo(String &modulesInfoStr, bool isStart);
-    void collectTrapUpdateInfo(painlessMesh &mesh, JsonObject &obj);
-    void updateParentState();
-    void updateNodeNum(SimpleList<uint32_t> nodeList);
-    void pushNoDuplicateModuleState(const uint32_t& nodeId, JsonObject &stateJson);
 
   private:
     void setDefaultModuleConfig();

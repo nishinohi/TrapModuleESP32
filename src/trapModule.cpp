@@ -41,18 +41,6 @@ void TrapModule::setupTask() {
     // DeepSleep
     setTask(_deepSleepTask, SYNC_SLEEP_INTERVAL, TASK_FOREVER,
             std::bind(&TrapModule::shiftDeepSleep, this), false);
-    // request Module State task
-    setTask(_requestModuleStateTask, MODULE_STATE_INTERVAL, TASK_FOREVER,
-            std::bind(&TrapModule::sendRequestModuleState, this), false);
-    // send GPS data task
-    setTask(_sendGPSDataTask, DEF_INTERVAL, DEF_ITERATION,
-            std::bind(&TrapModule::sendGpsData, this), false);
-    // send Sync Sleep task
-    setTask(_sendSyncSleepTask, DEF_INTERVAL, TASK_FOREVER,
-            std::bind(&TrapModule::sendSyncSleep, this), false);
-    // send Parent ModuleInfo Task
-    setTask(_sendParentInfoTask, SEND_PARENT_INTERVAL, DEF_ITERATION,
-            std::bind(&TrapModule::sendParentModuleInfo, this), false);
 }
 
 /**
@@ -70,25 +58,6 @@ void TrapModule::checkStart() {
     }
 }
 
-/**
- * 罠モード開始
- */
-void TrapModule::startTrapMode() {
-    DEBUG_MSG_LN("startTrapMode");
-    // 罠モード開始
-    _config.updateParentState();
-    if (!_config._isParent) {
-        return;
-    }
-    _config.updateNodeNum(_mesh.getNodeList());
-    // 単独稼働の場合はそのまま終了
-    if (_config._nodeNum == 0) {
-        shiftDeepSleep();
-        return;
-    }
-    taskStart(_requestModuleStateTask);
-}
-
 /********************************************
  * loop メソッド
  *******************************************/
@@ -103,11 +72,6 @@ void TrapModule::update() {
     } else {
         digitalWrite(LED, !_config._ledOnFlag);
     }
-    // 罠モード開始時に一度だけ実行する
-    if (_config._isTrapStart && !_config._isStarted) {
-        _config._isStarted = true;
-        startTrapMode();
-    }
     // DeepSleep 開始
     if (_config._isSleep && !_deepSleepTask.isEnabled()) {
         DEBUG_MSG_LN("deep sleep start.");
@@ -115,11 +79,6 @@ void TrapModule::update() {
     }
     // 設置モードか罠モード作動開始状態の場合は以降の処理は無視
     if (!_config._trapMode || _config._isTrapStart) {
-        return;
-    }
-    // 単独稼働の場合はそのまま終了
-    if (_config._nodeNum == 0) {
-        shiftDeepSleep();
         return;
     }
     // 稼働時間超過により強制 DeepSleep
@@ -175,43 +134,10 @@ bool TrapModule::initGps() {
  * モジュール情報取得
  *******************************************/
 /**
- * GPS取得
- * GPS 取得タスクを開始するだけなので、必ず成功になる
- */
-bool TrapModule::getGps() {
-    DEBUG_MSG_LN("onGetGps");
-    if (_config._isParent) {
-        return beginMultiTask(CELLULAR_TASK_NAME, TrapModule::getGpsTask, _taskHandle[1], this, 3);
-    }
-    return sendGetGps();
-}
-
-/**
  * GPS 取得
+ * 子機では GPS 取得要求を親機に送信するだけ
  */
-void TrapModule::getGpsTask(void *arg) {
-    TrapModule *pTrapModule = reinterpret_cast<TrapModule *>(arg);
-    Scheduler cellularRunner;
-    cellularRunner.addTask(pTrapModule->_cellular._getGPSDataTask);
-    pTrapModule->_cellular._getGPSDataTask.enable();
-    while (1) {
-        // 取得メソッド終了
-        if (!pTrapModule->_cellular._getGPSDataTask.isEnabled()) {
-            size_t latLen = strlen(pTrapModule->_cellular._lat);
-            size_t lonLen = strlen(pTrapModule->_cellular._lon);
-            if (latLen != 0 && lonLen != 0) {
-                pTrapModule->_config.initGps();
-                memcpy(pTrapModule->_config._lat, pTrapModule->_cellular._lat, latLen);
-                memcpy(pTrapModule->_config._lon, pTrapModule->_cellular._lon, lonLen);
-            }
-            pTrapModule->_cellular._getGPSDataTask.setIterations(GPS_TRY_COUNT);
-            pTrapModule->_cellular._getGPSDataTask.enable();
-            vTaskSuspend(pTrapModule->_taskHandle[1]);
-        }
-        TASK_DELAY(1);
-        cellularRunner.execute();
-    }
-}
+bool TrapModule::getGps() { return sendGetGps(); }
 
 /********************************************
  * painlessMesh callback
@@ -233,26 +159,10 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
         _config.updateModuleConfig(msgJson);
         _config.saveCurrentModuleConfig();
     }
-    // 親モジュール情報
-    if (msgJson.containsKey(KEY_PARENT_INFO)) {
-        DEBUG_MSG_LN("parent module info");
-        _config.pushNoDuplicateNodeId(msgJson[KEY_PARENT_NODE_ID], _config._parentNodeIdList);
-    }
     // モジュール状態送信要求が来た場合は送信済みか否かにかかわらず送信する
     if (msgJson.containsKey(KEY_REQUEST_MODULE_STATE)) {
         DEBUG_MSG_LN("request module state");
         taskStart(_sendModuleStateTask);
-    }
-    // モジュール状態受信(設置モード時は無視)
-    if (msgJson.containsKey(KEY_MODULE_STATE) && _config._trapMode) {
-        DEBUG_MSG_LN("get module state");
-        _config.pushNoDuplicateModuleState(from, msgJson);
-        // 全てのモジュールからモジュール状態を受信したら deepSleep メッセージ送信
-        if (_config._moduleStateList.size() >= _config._nodeNum) {
-            taskStop(_requestModuleStateTask);
-            _config.updateNodeNum(_mesh.getNodeList());
-            taskStart(_sendSyncSleepTask);
-        }
     }
     // 画像保存
     if (msgJson.containsKey(KEY_PICTURE)) {
@@ -273,12 +183,6 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
 void TrapModule::newConnectionCallback(uint32_t nodeId) {
     DEBUG_MSG_F("--> startHere: New Connection, nodeId = %u\n", nodeId);
     refreshMeshDetail();
-    if (_config._isParent) {
-        // 何度も broadcast する必要はないので遅延送信
-        taskStart(_sendParentInfoTask, SEND_PARENT_INTERVAL);
-        return;
-    }
-    // 以降は子モジュールと同じ
     startSendModuleState();
 }
 
@@ -289,12 +193,6 @@ void TrapModule::newConnectionCallback(uint32_t nodeId) {
 void TrapModule::changedConnectionCallback() {
     DEBUG_MSG_F("Changed connections %s\n", _mesh.subConnectionJson().c_str());
     refreshMeshDetail();
-    if (_config._isParent) {
-        // 何度も broadcast する必要はないので遅延送信
-        taskStart(_sendParentInfoTask, SEND_PARENT_INTERVAL);
-        return;
-    }
-    // 以降は子モジュールと同じ
     startSendModuleState();
 }
 
@@ -448,91 +346,6 @@ void TrapModule::sendPicture() {
                                                     : "retry send picture...");
 }
 
-/**
- * 同期停止メッセージ送信
- */
-void TrapModule::sendSyncSleep() {
-    DEBUG_MSG_LN("sendSyncSleep");
-    if (_mesh.getNodeList().size() == 0) {
-        taskStop(_sendSyncSleepTask);
-        _config._isSleep = true;
-        return;
-    }
-    DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
-    JsonObject &syncObj = jsonBuf.createObject();
-    syncObj[KEY_SYNC_SLEEP] = true;
-    if (sendBroadcast(syncObj)) {
-        taskStop(_sendSyncSleepTask);
-        _config._isSleep = true;
-    }
-}
-
-/**
- * 親機の nodeId を送信する
- * メッシュネットワークに更新があった場合に送信する
- */
-void TrapModule::sendParentModuleInfo() {
-    DEBUG_MSG_LN("sendParentModuleInfo");
-    if (_mesh.getNodeList().size() == 0) {
-        taskStop(_sendParentInfoTask);
-        return;
-    }
-    DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
-    JsonObject &obj = jsonBuf.createObject();
-    if (_config._trapMode) {
-        // 罠モードの場合は親モジュールとの現在時刻同期を実行
-        obj[KEY_CONFIG_UPDATE] = true;
-        obj[KEY_CURRENT_TIME] = now();
-    } else {
-        // 設置モード時は親フラグ更新判定で使用する親モジュール ID を送信する
-        obj[KEY_PARENT_INFO] = true;
-        obj[KEY_PARENT_NODE_ID] = getNodeId();
-    }
-    if (sendBroadcast(obj)) {
-        taskStop(_sendParentInfoTask);
-    }
-}
-
-/**
- * モジュール状態送信要求
- * メッシュノード全ての状態情報を取得したタイミングでタスクを停止するので
- * 情報送信の成功をトリガーにタスクを停止することはない
- */
-void TrapModule::sendRequestModuleState() {
-    DEBUG_MSG_LN("sendRequestModuleState");
-    if (_mesh.getNodeList().size() == 0) {
-        return;
-    }
-    DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
-    JsonObject &obj = jsonBuf.createObject();
-    _config.collectModuleConfig(obj);
-    obj[KEY_REQUEST_MODULE_STATE] = true;
-    // モジュール状態の送信対象の親モジュール ID を送信
-    obj[KEY_CONFIG_UPDATE] = true;
-    obj[KEY_PARENT_NODE_ID] = getNodeId();
-    sendBroadcast(obj);
-}
-
-/**
- * GPS データ送信
- */
-void TrapModule::sendGpsData() {
-    DEBUG_MSG_LN("sendGpsData");
-    if (_mesh.getNodeList().size() == 0) {
-        taskStop(_sendGPSDataTask);
-        return;
-    }
-    DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
-    JsonObject &gpsData = jsonBuf.createObject();
-    gpsData[KEY_CONFIG_UPDATE] = true;
-    gpsData[KEY_GPS_LAT] = _config._lat;
-    gpsData[KEY_GPS_LON] = _config._lon;
-    gpsData[KEY_CURRENT_TIME] = now();
-    if (sendBroadcast(gpsData)) {
-        taskStop(_sendGPSDataTask);
-    }
-}
-
 /*************************************
  * タスク関連
  ************************************/
@@ -569,13 +382,6 @@ void TrapModule::shiftDeepSleep() {
         if (WiFi.status() == WL_DISCONNECTED) {
             break;
         }
-    }
-    // 自身のセンサ情報更新
-    updateBattery();
-    updateTrapFire();
-    // モジュール状態情報を送信
-    if (_config._isParent) {
-        sendModulesInfo();
     }
     DEBUG_MSG_LN("Shift Deep Sleep");
     if (_config._isBatteryDead) {
@@ -730,20 +536,6 @@ void TrapModule::snapCameraTask(void *arg) {
 }
 
 /*************************************
- * MQTT
- ************************************/
-/**
- * モジュール状態情報をサーバーに送信
- */
-void TrapModule::sendModulesInfo() {
-    DEBUG_MSG_LN("sendModulesInfo");
-    String trapStartinfo;
-    _config.createModulesInfo(trapStartinfo, _config._isTrapStart);
-    SendType sendType = _config._isTrapStart ? SETTING : PERIOD;
-    _cellular.sendTrapModuleInfo(trapStartinfo, sendType);
-}
-
-/*************************************
  * Debug
  ************************************/
 /**
@@ -794,22 +586,4 @@ void TrapModule::refreshMeshDetail() {
         DEBUG_MSG_F(" %u", node);
     }
     DEBUG_MSG_LN();
-}
-
-/**
- * 任意のタスクを開始
- */
-bool TrapModule::beginMultiTask(const char *taskName, TaskFunction_t func, TaskHandle_t taskHandle,
-                                void *arg, const uint8_t priority, const uint8_t core) {
-    // タスク作成前の場合はタスクを作成
-    if (strncmp(pcTaskGetTaskName(taskHandle), taskName, strlen(taskName)) != 0) {
-        xTaskCreatePinnedToCore(func, taskName, TASK_MEMORY, arg, priority, &(taskHandle), core);
-        return true;
-    } else {
-        if (eTaskGetState(taskHandle) == eSuspended) {
-            vTaskResume(taskHandle);
-        }
-        return true;
-    }
-    return false;
 }

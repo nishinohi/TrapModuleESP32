@@ -6,7 +6,7 @@
 /**
  * モジュール情報を取得
  */
-void ModuleConfig::collectModuleInfo(painlessMesh &mesh, JsonObject &moduleInfo) {
+void ModuleConfig::collectModuleInfo(painlessMesh &mesh, JsonObject& moduleInfo) {
     DEBUG_MSG_LN("collectModuleInfo");
     moduleInfo[KEY_NODE_ID] = mesh.getNodeId();
     moduleInfo[KEY_TRAP_MODE] = _trapMode;
@@ -18,7 +18,6 @@ void ModuleConfig::collectModuleInfo(painlessMesh &mesh, JsonObject &moduleInfo)
     moduleInfo[KEY_ACTIVE_END] = _activeEnd;
     moduleInfo[KEY_CAMERA_ENABLE] = _cameraEnable;
     moduleInfo[KEY_PARENT_NODE_ID] = _parentNodeId;
-    moduleInfo[KEY_IS_PARENT] = _isParent;
     // 現在時刻
     bool isTimeSet = timeStatus() != timeStatus_t::timeNotSet;
     moduleInfo[KEY_CURRENT_TIME] = isTimeSet ? now() : DEF_CURRENT_TIME;
@@ -33,7 +32,7 @@ void ModuleConfig::collectModuleInfo(painlessMesh &mesh, JsonObject &moduleInfo)
 /**
  * モジュール状態を取得
  */
-void ModuleConfig::collectModuleState(JsonObject &state) {
+void ModuleConfig::collectModuleState(JsonObject& state) {
     state[KEY_MODULE_STATE] = true;
     state[KEY_TRAP_FIRE] = _trapFire;
     state[KEY_CAMERA_ENABLE] = _cameraEnable;
@@ -98,7 +97,6 @@ bool ModuleConfig::loadModuleConfigFile() {
     }
     // 設置モードでの起動時にロードしない内容はここで除外する
     if (!config.containsKey(KEY_TRAP_MODE) || config[KEY_TRAP_MODE] == false) {
-        config.remove(KEY_IS_PARENT);
         config.remove(KEY_PARENT_NODE_ID);
         config.remove(KEY_TRAP_FIRE);
         config.remove(KEY_WAKE_TIME);
@@ -138,10 +136,6 @@ void ModuleConfig::updateModuleConfig(const JsonObject &config) {
     // 稼働終了時刻
     if (config.containsKey(KEY_ACTIVE_END)) {
         setParameter(_activeEnd, static_cast<uint8_t>(config[KEY_ACTIVE_END]), 24, 0);
-    }
-    // 親モジュール振る舞いフラグ
-    if (config.containsKey(KEY_IS_PARENT)) {
-        _isParent = config[KEY_IS_PARENT];
     }
     // 親モジュール ID 追加
     if (config.containsKey(KEY_PARENT_NODE_ID)) {
@@ -228,7 +222,6 @@ bool ModuleConfig::saveCurrentModuleConfig() {
     config[KEY_ACTIVE_START] = _activeStart;
     config[KEY_ACTIVE_END] = _activeEnd;
     config[KEY_PARENT_NODE_ID] = _parentNodeId;
-    config[KEY_IS_PARENT] = _isParent;
     bool isTimeSet = timeStatus() != timeStatus_t::timeNotSet;
     config[KEY_WAKE_TIME] = isTimeSet && _trapMode ? _wakeTime : DEF_WAKE_TIME;
     config[KEY_CURRENT_TIME] = isTimeSet && _trapMode ? _currentTime : DEF_CURRENT_TIME;
@@ -343,120 +336,4 @@ time_t ModuleConfig::calcSleepTime(const time_t &tNow, const time_t &nextWakeTim
     }
     DEBUG_MSG_F("calcSleepTime:%lu\n", MAX_SLEEP_INTERVAL / 2);
     return MAX_SLEEP_INTERVAL / 2;
-}
-
-/***********************************
- * 親機用メソッド
- **********************************/
-/**
- * モジュールの設定値を取得
- */
-void ModuleConfig::collectModuleConfig(JsonObject &obj) {
-    obj[KEY_WORK_TIME] = _workTime;
-    obj[KEY_TRAP_MODE] = _trapMode;
-    obj[KEY_ACTIVE_START] = _activeStart;
-    obj[KEY_ACTIVE_END] = _activeEnd;
-    obj[KEY_CURRENT_TIME] = now();
-}
-
-/**
- * 送信するモジュール情報文字列を作成する
- */
-void ModuleConfig::createModulesInfo(String &modulesInfoStr, bool isStart) {
-    DynamicJsonBuffer JsonBuf(JSON_BUF_NUM);
-    JsonObject &modulesInfo = JsonBuf.createObject();
-    // setting 情報も含める
-    if (isStart) {
-        modulesInfo[KEY_PARENT_NODE_ID] = _nodeId;
-        modulesInfo[KEY_CURRENT_TIME] = now();
-        modulesInfo[KEY_GPS_LAT] = _lat;
-        modulesInfo[KEY_GPS_LON] = _lon;
-        modulesInfo[KEY_ACTIVE_START] = _activeStart;
-        modulesInfo[KEY_ACTIVE_END] = _activeEnd;
-    }
-    // モジュール状態情報構築
-    JsonArray &modulesState = modulesInfo.createNestedArray(KEY_MODULES_INFO);
-    // 親モジュールの状態を追加
-    JsonObject& parentState = JsonBuf.createObject();
-    collectModuleState(parentState);
-    modulesState.add(parentState);
-    for (auto &moduleState : _moduleStateList) {
-        JsonObject &childState = JsonBuf.createObject();
-        childState[KEY_NODE_ID] = moduleState.nodeId;
-        childState[KEY_CURRENT_BATTERY] = moduleState.batery;
-        if (_isTrapStart) {
-            childState[KEY_CAMERA_ENABLE] = moduleState.cameraEnable;
-        } else {
-            childState[KEY_TRAP_FIRE] = moduleState.trapFire;
-        }
-        modulesState.add(childState);
-    }
-    modulesInfo.printTo(modulesInfoStr);
-}
-
-/**
- * 稼働中の各種情報を取得
- */
-void ModuleConfig::collectTrapUpdateInfo(painlessMesh &mesh, JsonObject &info) {
-    collectModuleInfo(mesh, info);
-}
-
-/**
- * 親モジュールフラグを更新する
- */
-void ModuleConfig::updateParentState() {
-    // 自身を含めた ID と受信した親モジュールリストの最大値を取得
-    _parentNodeId = _nodeId;
-    for (auto &parentNodeId : _parentNodeIdList) {
-        _parentNodeId = max(_parentNodeId, parentNodeId);
-    }
-    // 自身を親モジュールかどうか判断
-    if (_parentNodeId == _nodeId) {
-        DEBUG_MSG_LN("work as parent.");
-        _isParent = true;
-    } else {
-        DEBUG_MSG_LN("work as child.");
-        _isParent = false;
-    }
-}
-
-/**
- * モジュール数を更新する
- * バッテリー切れ情報を受信したモジュー ID がモジュールリストに存在している場合、
- * それを差し引いたモジュール数設定値を更新する
- * この処理中にメッシュのリストが更新される可能性もあるのでメッシュモジュールリストの参照渡しはしないでおく
- */
-void ModuleConfig::updateNodeNum(SimpleList<uint32_t> nodeList) {
-    _nodeNum = nodeList.size();
-    for (auto &moduleState : _moduleStateList) {
-        if (!moduleState.batteryDead) {
-            continue;
-        }
-        for (auto &nodeId : nodeList) {
-            // バッテリー切れモジュール台数分モジュール数を減らす
-            if (moduleState.nodeId == nodeId) {
-                --_nodeNum;
-                break;
-            }
-        }
-    }
-    DEBUG_MSG_F("updated module num:%d\n", _nodeNum);
-}
-
-/**
- * 重複なしモジュール状態追加
- */
-void ModuleConfig::pushNoDuplicateModuleState(const uint32_t &nodeId, JsonObject &stateJson) {
-    for (auto &_state : _moduleStateList) {
-        if (_state.nodeId == nodeId) {
-            return;
-        }
-    }
-    ModuleState state;
-    state.nodeId = nodeId;
-    state.batery = stateJson[KEY_CURRENT_BATTERY];
-    state.batteryDead = stateJson[KEY_BATTERY_DEAD];
-    state.trapFire = stateJson[KEY_TRAP_FIRE];
-    state.cameraEnable = stateJson[KEY_CAMERA_ENABLE];
-    _moduleStateList.push_back(state);
 }

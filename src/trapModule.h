@@ -2,7 +2,6 @@
 #define INCLUDE_GUARD_TRAPMODULE
 
 #include "camera.h"
-#include "cellular.h"
 #include "moduleConfig.h"
 #include "trapCommon.h"
 #include <ArduinoBase64.h>
@@ -14,7 +13,6 @@ class TrapModule {
     ModuleConfig _config;
     Camera _camera;
     painlessMesh _mesh;
-    Cellular _cellular;
 
     // タスク関連
     Task _deepSleepTask;       // DeepSleep以降タスク
@@ -22,13 +20,8 @@ class TrapModule {
     Task _sendPictureTask;     // 写真撮影フラグ
     Task _sendModuleStateTask; // モジュール状態送信タスク
     Task _checkBatteryLimitTask; // バッテリー残量チェックタスク（設置モードで使用する）
-    // 親モジュール機能
-    Task _sendGPSDataTask;           // GPS 送信タスク
-    Task _sendSyncSleepTask;         // 同期停止メッセージ送信タスク
-    Task _sendParentInfoTask;        // 親モジュール情報送信タスク
-    Task _requestModuleStateTask; // モジュール状態送信要求タスク
-    // マルチタスクハンドラ
-    TaskHandle_t _taskHandle[2]; // 0:カメラタスク、1:Cellular タスク
+
+    TaskHandle_t _taskHandle[1];
 
   public:
     TrapModule(){};
@@ -51,7 +44,6 @@ class TrapModule {
         _config.collectModuleInfo(_mesh, moduleInfo);
     };
     bool getGps();
-    static void getGpsTask(void *arg);
     // カメラ機能
     bool snapCamera(int resolution = -1);
     static void snapCameraTask(void *arg);
@@ -59,21 +51,12 @@ class TrapModule {
     bool sendDebugMesage(String msg, uint32_t nodeId = 0);
 
   private:
-    // 罠モード開始処理
-    void startTrapMode();
-    // mqtt server に情報送信
-    void sendModulesInfo();
     // メッセージ送信
     bool syncAllModuleConfigs(JsonObject &config);
     bool syncCurrentTime();
     void sendPicture();
     bool sendGetGps();
     void sendModuleState();
-    // 親限定メッセージ送信
-    void sendSyncSleep();
-    void sendGpsData();
-    void sendParentModuleInfo();
-    void sendRequestModuleState();
     // モジュール情報取得
     uint32_t getNodeId() { return _config._nodeId != 0 ? _config._nodeId : _mesh.getNodeId(); };
     // センサ情報
@@ -111,8 +94,6 @@ class TrapModule {
         return _mesh.sendSingle(_config._parentNodeId, msg);
     }
     void refreshMeshDetail();
-    bool beginMultiTask(const char *taskName, TaskFunction_t func, TaskHandle_t taskHandle,
-                        void *arg, const uint8_t priority, const uint8_t core = 0);
 };
 
 #endif // INCLUDE_GUARD_TRAPMODULE
