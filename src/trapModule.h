@@ -10,7 +10,6 @@
 
 class TrapModule {
   private:
-    ModuleConfig _config;
     Camera _camera;
     painlessMesh _mesh;
 
@@ -22,6 +21,9 @@ class TrapModule {
     Task _checkBatteryLimitTask; // バッテリー残量チェックタスク（設置モードで使用する）
 
     TaskHandle_t _taskHandle[1];
+
+  public:
+    ModuleConfig _config;
 
   public:
     TrapModule(){};

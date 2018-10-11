@@ -1,8 +1,10 @@
+#include "bleSetting.h"
 #include "trapCommon.h"
 #include "trapServer.h"
 
 TrapModule trapModule;
-TrapServer trapServer(&trapModule);
+// TrapServer trapServer(&trapModule);
+BleSetting bleSetting;
 
 void setup() {
     Serial.begin(115200);
@@ -25,11 +27,15 @@ void setup() {
     DEBUG_MSG_LN("mesh setup");
     trapModule.setupMesh(ERROR);
     trapModule.setupTask();
+    // Ble
+    ModuleConfig *temp = &trapModule._config;
+    bleSetting.init(&temp);
+    bleSetting.start();
     // Server
-    DEBUG_MSG_LN("server setup");
-    trapServer.setupServer();
-    DEBUG_MSG_LN("server begin");
-    trapServer.beginServer();
+    // DEBUG_MSG_LN("server setup");
+    // trapServer.setupServer();
+    // DEBUG_MSG_LN("server begin");
+    // trapServer.beginServer();
 }
 
 void loop() { trapModule.update(); }

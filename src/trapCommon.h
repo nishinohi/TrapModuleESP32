@@ -62,8 +62,8 @@
 #define DEF_WORK_TIME 180   // 3分間稼働[sec]
 #define DEF_TRAP_MODE false // 設置モード
 #define DEF_TRAP_FIRE false // 罠作動済みフラグ
-#define DEF_GPS_LAT "\0"
-#define DEF_GPS_LON "\0"
+#define DEF_GPS_LAT "NaN"
+#define DEF_GPS_LON "NaN"
 #define DEF_ACTIVE_START 0
 #define DEF_ACTIVE_END 24
 #define DEF_WAKE_TIME 0
