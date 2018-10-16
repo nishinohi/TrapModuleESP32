@@ -2,7 +2,7 @@
 
 void BleSetting::init(ModuleConfig **ppModuleConfig) {
     _pModuleConfig = *ppModuleConfig;
-    BLEDevice::init("TrapModuleSetting");
+    BLEDevice::init(BLE_DEVICE_NAME);
     _pServer = BLEDevice::createServer();
     _pService = _pServer->createService(TRAP_MODULE_SERVICE_UUID);
     createTrapModuleCharacteristic();
@@ -15,7 +15,8 @@ void BleSetting::createTrapModuleCharacteristic() {
         _pService->createCharacteristic(MODULE_INFO_UUID, BLECharacteristic::PROPERTY_READ);
     _trapModuleCharactaristicMap[MODULE_SETTING_UUID] = _pService->createCharacteristic(
         MODULE_SETTING_UUID, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
-    _trapModuleCharactaristicMap[MODULE_SETTING_UUID]->setCallbacks(new SettingCallbacks());
+    _trapModuleCharactaristicMap[MODULE_SETTING_UUID]->setCallbacks(
+        new SettingCallbacks(&_pModuleConfig));
 }
 
 // モジュール設定値を更新
@@ -36,4 +37,26 @@ template <class T> String BleSetting::convertConfigToString(T value, String key)
     String configStr;
     obj.printTo(configStr);
     return configStr;
+}
+
+/************************************
+ * BLE Callback
+ **********************************/
+void SettingCallbacks::onWrite(BLECharacteristic *pChara) {
+    std::string value = pChara->getValue();
+    if (value.length() > 0) {
+        DEBUG_MSG_LN("*********");
+        DEBUG_MSG("New value: ");
+        for (int i = 0; i < value.length(); i++)
+            DEBUG_MSG(value[i]);
+        DEBUG_MSG_LN("\n*********");
+    }
+
+    DynamicJsonBuffer jsonbuf(JSON_BUF_NUM);
+    JsonObject &moduleConfig = jsonbuf.parseObject(value.c_str());
+    if (!moduleConfig.success()) {
+        DEBUG_MSG_LN("failed to read config message");
+        return;
+    }
+    _pModuleConfig->updateModuleConfig(moduleConfig);
 }

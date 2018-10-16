@@ -5,6 +5,8 @@
 #include <TimeLib.h>
 #include <painlessMesh.h>
 
+#define CONFIG_FILE_PATH "/config.json"
+
 // モジュール状態構
 struct ModuleState {
     uint32_t nodeId;

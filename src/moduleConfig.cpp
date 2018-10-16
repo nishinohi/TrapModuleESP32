@@ -95,7 +95,7 @@ void ModuleConfig::setDefaultModuleConfig() {
  */
 bool ModuleConfig::loadModuleConfigFile() {
     DEBUG_MSG_LN("loadModuleConfigFile");
-    File file = SPIFFS.open("/config.json", "r");
+    File file = SPIFFS.open(CONFIG_FILE_PATH, "r");
     // 初回起動
     if (!file) {
         DEBUG_MSG_LN("file not found...\nmaybe this is first using of this module");

@@ -10,6 +10,7 @@
 #include <map>
 #include <painlessMesh.h>
 
+#define BLE_DEVICE_NAME "TrapModuleSetting"
 // Module Info Service
 #define TRAP_MODULE_SERVICE_UUID "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 // Module Setting Charactaristic
@@ -21,11 +22,11 @@ class BleSetting {
   private:
     BLEServer *_pServer;
     BLEService *_pService;
-    BLEService *_pServicetemp;
     BLEAdvertising *_pAdvertising;
 
     std::map<std::string, BLECharacteristic *> _trapModuleCharactaristicMap;
 
+  public:
     ModuleConfig *_pModuleConfig;
 
   private:
@@ -45,19 +46,13 @@ class BleSetting {
 };
 
 class SettingCallbacks : public BLECharacteristicCallbacks {
-    void onWrite(BLECharacteristic *pChara) {
-        std::string value = pChara->getValue();
+  private:
+    ModuleConfig *_pModuleConfig;
 
-        if (value.length() > 0) {
-            Serial.println("*********");
-            Serial.print("New value: ");
-            for (int i = 0; i < value.length(); i++)
-                Serial.print(value[i]);
+  public:
+    SettingCallbacks(ModuleConfig **ppModuleConfig) { _pModuleConfig = *ppModuleConfig; }
 
-            Serial.println();
-            Serial.println("*********");
-        }
-    }
+    void onWrite(BLECharacteristic *pChara);
 };
 
 #endif // BLE_SETTING
