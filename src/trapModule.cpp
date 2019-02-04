@@ -190,27 +190,27 @@ bool TrapModule::getGps() {
  * GPS 取得
  */
 void TrapModule::getGpsTask(void *arg) {
-    TrapModule *pTrapModule = reinterpret_cast<TrapModule *>(arg);
-    Scheduler cellularRunner;
-    cellularRunner.addTask(pTrapModule->_cellular._getGPSDataTask);
-    pTrapModule->_cellular._getGPSDataTask.enable();
-    while (1) {
-        // 取得メソッド終了
-        if (!pTrapModule->_cellular._getGPSDataTask.isEnabled()) {
-            size_t latLen = strlen(pTrapModule->_cellular._lat);
-            size_t lonLen = strlen(pTrapModule->_cellular._lon);
-            if (latLen != 0 && lonLen != 0) {
-                pTrapModule->_config.initGps();
-                memcpy(pTrapModule->_config._lat, pTrapModule->_cellular._lat, latLen);
-                memcpy(pTrapModule->_config._lon, pTrapModule->_cellular._lon, lonLen);
-            }
-            pTrapModule->_cellular._getGPSDataTask.setIterations(GPS_TRY_COUNT);
-            pTrapModule->_cellular._getGPSDataTask.enable();
-            vTaskSuspend(pTrapModule->_taskHandle[1]);
-        }
-        TASK_DELAY(1);
-        cellularRunner.execute();
-    }
+    // TrapModule *pTrapModule = reinterpret_cast<TrapModule *>(arg);
+    // Scheduler cellularRunner;
+    // cellularRunner.addTask(pTrapModule->_cellular._getGPSDataTask);
+    // pTrapModule->_cellular._getGPSDataTask.enable();
+    // while (1) {
+    //     // 取得メソッド終了
+    //     if (!pTrapModule->_cellular._getGPSDataTask.isEnabled()) {
+    //         size_t latLen = strlen(pTrapModule->_cellular._lat);
+    //         size_t lonLen = strlen(pTrapModule->_cellular._lon);
+    //         if (latLen != 0 && lonLen != 0) {
+    //             pTrapModule->_config.initGps();
+    //             memcpy(pTrapModule->_config._lat, pTrapModule->_cellular._lat, latLen);
+    //             memcpy(pTrapModule->_config._lon, pTrapModule->_cellular._lon, lonLen);
+    //         }
+    //         pTrapModule->_cellular._getGPSDataTask.setIterations(GPS_TRY_COUNT);
+    //         pTrapModule->_cellular._getGPSDataTask.enable();
+    //         vTaskSuspend(pTrapModule->_taskHandle[1]);
+    //     }
+    //     TASK_DELAY(1);
+    //     cellularRunner.execute();
+    // }
 }
 
 /********************************************
