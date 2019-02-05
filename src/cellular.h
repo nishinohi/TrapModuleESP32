@@ -15,15 +15,17 @@
 #define PASSWORD "sora"
 // MQTT サーバー接続設定（SORACOM Beam 利用）
 #define MQTT_SERVER_HOST "beam.soracom.io"
-#define MQTT_CLIENT_ID "maxj066rj51" // なんでもOK
 #define MQTT_SERVER_PORT 1883
 // 親機用 GPIO 設定
 #define CELLULAR_RX 26
 #define CELLULAR_TX 27
 // mqtt topic
+#define SUBSCRIBE_TOPIC "/tm/subscribe/"
 #define TEST_TOPIC "/tm/test/"
 #define SETTING_TOPIC "/tm/network/mosules/setting/"
 #define PERIOD_TOPIC "/tm/network/mosules/period/"
+// timeout
+#define DEFAULT_TIMEOUT 5000
 
 /**
  * MQTT の送信タイプ
@@ -48,6 +50,7 @@ class Cellular {
 
     bool startModule();
     bool stopModule();
+
     void sendTrapModuleInfo(String &contents, const SendType sendType = TEST);
 
   private:
@@ -55,12 +58,18 @@ class Cellular {
     bool shutdown();
     bool activate(const char *apn, const char *useName, const char *password);
     bool deactivate();
+
     int socketOpen();
     bool socketClose(int connectId);
-    bool connectMqttServer();
-    bool disconnectMqttServer();
-    bool publish(const char *topic, const char *message);
-    bool subscribe();
+    bool connectMqttServer(const char *clientId = NULL);
+    void disconnectMqttServer() { _mqttClient.disconnect(); }
+    bool reconnectMqttServer(unsigned long timeout = DEFAULT_TIMEOUT, const char *clientId = NULL);
+
+    bool publish(const char *topic, const char *payload) {
+        return _mqttClient.publish(topic, payload);
+    }
+    bool subscribe(const char *topic) { return _mqttClient.subscribe(topic); }
+    bool unsubscribe(const char *topic) { return _mqttClient.unsubscribe(topic); }
     static void subScribeCallback(char *topic, byte *payload, unsigned int length);
 };
 

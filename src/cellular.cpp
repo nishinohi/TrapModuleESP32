@@ -29,10 +29,13 @@ bool Cellular::wakeup() {
  * モジュール電源OFF
  */
 bool Cellular::shutdown() {
+    bool success = true;
     if (!_wio.TurnOff()) {
         DEBUG_MSG_LN("### ERROR! ###");
+        success = false;
     }
     _wio.PowerSupplyLTE(false);
+    return success;
 }
 
 /**
@@ -79,21 +82,63 @@ bool Cellular::socketClose(int connectId) {
     return true;
 }
 
-bool Cellular::connectMqttServer() {
+String createRandomId() {
+    DEBUG_MSG_LN("### createRandomId");
+    randomSeed(millis());
+    String clientId = "MqttClient-";
+    clientId += String(random(0xffff), HEX);
+    return clientId;
+}
+
+bool Cellular::connectMqttServer(const char *clientId) {
     DEBUG_MSG_LN("### Connecting to MQTT server \"" MQTT_SERVER_HOST "\"");
     _mqttClient.setServer(MQTT_SERVER_HOST, MQTT_SERVER_PORT);
     _mqttClient.setCallback(subScribeCallback);
     _mqttClient.setClient(_wioClient);
-    if (!_mqttClient.connect(MQTT_CLIENT_ID)) {
+    // MQTT クライアントIDが未指定の場合はランダムIDを生成して接続
+    if (!clientId) {
+        String randomId = createRandomId();
+        clientId = randomId.c_str();
+    }
+    if (!_mqttClient.connect(clientId)) {
         DEBUG_MSG_LN("### ERROR! ###");
         return false;
     }
     return true;
 }
 
-bool Cellular::disconnectMqttServer() {}
+/**
+ * MQTT サーバー再接続
+ */
+bool Cellular::reconnectMqttServer(unsigned long timeout, const char *clientId) {
+    // clientIdが未指定の場合は接続試行の度にIDを変更する
+    bool randomIdTry = !clientId;
+    unsigned long current = millis();
+    while (timeout > millis() - current) {
+        DEBUG_MSG("### Attempting MQTT connection...");
+        // MQTT クライアントIDが未指定の場合はランダムIDを生成して接続
+        if (randomIdTry) {
+            String randomId = createRandomId();
+            clientId = randomId.c_str();
+        }
+        // Attempt to connect
+        if (_mqttClient.connect(clientId)) {
+            DEBUG_MSG_LN("### connected");
+            return true;
+        }
+        DEBUG_MSG("### failed, rc=");
+        DEBUG_MSG(_mqttClient.state());
+        DEBUG_MSG_LN("### try again in 1 seconds");
+        delay(1000);
+    }
+    DEBUG_MSG_LN("### recoonect timeout!");
+    return false;
+}
 
-bool Cellular::publish(const char *topic, const char *message) {}
-bool Cellular::subscribe() {}
-
-void Cellular::subScribeCallback(char *topic, byte *payload, unsigned int length) {}
+void Cellular::subScribeCallback(char *topic, byte *payload, unsigned int length) {
+    DEBUG_MSG_LN("### subScribeCallback");
+    DEBUG_MSG_LN("### TOPIC");
+    DEBUG_MSG_LN(topic);
+    DEBUG_MSG_LN("### payload");
+    DEBUG_MSG_LN((char *)payload);
+}
