@@ -24,6 +24,8 @@
 #define TEST_TOPIC "/tm/test/"
 #define SETTING_TOPIC "/tm/network/mosules/setting/"
 #define PERIOD_TOPIC "/tm/network/mosules/period/"
+// NTP
+#define NTP_SERVER "ntp.nict.jp"
 // timeout
 #define DEFAULT_TIMEOUT 5000
 
@@ -40,7 +42,6 @@ class Cellular {
 
   public:
     char _imsi[IMSI_LEN];
-    bool _fonaStart = false;
     char _lat[GPS_STR_LEN] = "\0";
     char _lon[GPS_STR_LEN] = "\0";
 
@@ -51,19 +52,28 @@ class Cellular {
     bool startModule();
     bool stopModule();
 
-    void sendTrapModuleInfo(String &contents, const SendType sendType = TEST);
+    struct tm getTime();
+
+    void sendTrapModuleInfo(const String &contents, const SendType sendType = TEST);
 
   private:
     bool wakeup();
     bool shutdown();
     bool activate(const char *apn, const char *useName, const char *password);
     bool deactivate();
+    bool readImsi(char *imsi, int imsiSize);
 
     int socketOpen();
     bool socketClose(int connectId);
-    bool connectMqttServer(const char *clientId = NULL);
+
+    bool connectMqttServer(const char *hostAddress, const uint16_t port,
+                           const char *clientId = NULL);
     void disconnectMqttServer() { _mqttClient.disconnect(); }
     bool reconnectMqttServer(unsigned long timeout = DEFAULT_TIMEOUT, const char *clientId = NULL);
+    void setSubscribeCallback(void (*callback)(char *, uint8_t *, unsigned int)) {
+        _mqttClient.setCallback(callback);
+    }
+    void setClient(Client &client) { _mqttClient.setClient(client); }
 
     bool publish(const char *topic, const char *payload) {
         return _mqttClient.publish(topic, payload);

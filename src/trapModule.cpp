@@ -575,7 +575,10 @@ void TrapModule::shiftDeepSleep() {
     updateTrapFire();
     // モジュール状態情報を送信
     if (_config._isParent) {
-        sendModulesInfo();
+        if (startModule()) {
+            sendModulesInfo();
+        }
+        stopModule();
     }
     DEBUG_MSG_LN("Shift Deep Sleep");
     if (_config._isBatteryDead) {
@@ -737,10 +740,10 @@ void TrapModule::snapCameraTask(void *arg) {
  */
 void TrapModule::sendModulesInfo() {
     DEBUG_MSG_LN("sendModulesInfo");
-    String trapStartinfo;
-    _config.createModulesInfo(trapStartinfo, _config._isTrapStart);
+    String trapStartInfo;
+    _config.createModulesInfo(trapStartInfo, _config._isTrapStart);
     SendType sendType = _config._isTrapStart ? SETTING : PERIOD;
-    _cellular.sendTrapModuleInfo(trapStartinfo, sendType);
+    _cellular.sendTrapModuleInfo(trapStartInfo, sendType);
 }
 
 /*************************************

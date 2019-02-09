@@ -3,9 +3,91 @@
 /**
  * モジュール起動
  */
-bool Cellular::startModule() {}
-bool Cellular::stopModule() {}
-void Cellular::sendTrapModuleInfo(String &contents, const SendType sendType) {}
+bool Cellular::startModule() {
+    DEBUG_MSG_LN("### startModule");
+    // wio seyup
+    if (!wakeup()) {
+        DEBUG_MSG_LN("### wakeup failed");
+        return false;
+    }
+    if (!activate(APN, USERNAME, PASSWORD)) {
+        DEBUG_MSG_LN("### activate failed");
+        return false;
+    }
+    if (!readImsi(_imsi, IMSI_LEN)) {
+        DEBUG_MSG_LN("### readImsi failed");
+        return false;
+    }
+    getTime();
+    // mqtt setting
+    setSubscribeCallback(subScribeCallback);
+    setClient(_wioClient);
+    if (!connectMqttServer(MQTT_SERVER_HOST, MQTT_SERVER_PORT)) {
+        return false;
+    }
+
+    return true;
+}
+
+/**
+ * モジュール停止
+ */
+bool Cellular::stopModule() {
+    DEBUG_MSG_LN("### stopModule");
+    disconnectMqttServer();
+    if (!shutdown()) {
+        DEBUG_MSG_LN("### forced shutdown");
+    }
+}
+
+/**
+ * 現在時刻取得
+ * tm_yearは1900年からの経過年数
+ */
+struct tm Cellular::getTime() {
+    DEBUG_MSG_LN("### getTime");
+    time_t t = time(NULL);
+    struct tm currentTime = *localtime(&t);
+    if (!_wio.SyncTime(NTP_SERVER)) {
+        DEBUG_MSG_LN("### SyncTime failed");
+        return currentTime;
+    }
+    if (!_wio.GetTime(&currentTime)) {
+        DEBUG_MSG_LN("### GetTime failed");
+    }
+    DEBUG_MSG_F("%d/%d/%d %d:%d:%d", currentTime.tm_year, currentTime.tm_mon, currentTime.tm_mday,
+                currentTime.tm_hour, currentTime.tm_min, currentTime.tm_sec);
+    return currentTime;
+}
+
+/**
+ * 罠検知情報通知
+ */
+void Cellular::sendTrapModuleInfo(const String &contents, const SendType sendType) {
+    DEBUG_MSG_LN("sendTrapModuleInfo");
+    String topic;
+    switch (sendType) {
+    case TEST:
+        topic = TEST_TOPIC;
+        break;
+    case SETTING:
+        topic = SETTING_TOPIC;
+        break;
+    case PERIOD:
+        topic = PERIOD_TOPIC;
+        break;
+    default:
+        topic = TEST_TOPIC;
+    }
+    topic.concat(_imsi);
+    DEBUG_MSG_F("topic:\n%s\n", topic.c_str());
+    DEBUG_MSG_F("period:\n%s\n", contents.c_str());
+    publish(topic.c_str(), contents.c_str());
+}
+
+/************************************************
+                     private
+*************************************************/
 
 /**
  * モジュール電源ON
@@ -60,6 +142,13 @@ bool Cellular::deactivate() {
     return true;
 }
 
+bool Cellular::readImsi(char *imsi, int imsiSize) {
+    DEBUG_MSG_LN("### readImsi");
+    bool succes = _wio.GetIMSI(imsi, imsiSize) == -1 ? false : true;
+    DEBUG_MSG_LN(imsi);
+    return succes;
+}
+
 /**
  * Socket オープン
  */
@@ -90,11 +179,10 @@ String createRandomId() {
     return clientId;
 }
 
-bool Cellular::connectMqttServer(const char *clientId) {
-    DEBUG_MSG_LN("### Connecting to MQTT server \"" MQTT_SERVER_HOST "\"");
-    _mqttClient.setServer(MQTT_SERVER_HOST, MQTT_SERVER_PORT);
-    _mqttClient.setCallback(subScribeCallback);
-    _mqttClient.setClient(_wioClient);
+bool Cellular::connectMqttServer(const char *hostAddress, const uint16_t port,
+                                 const char *clientId) {
+    DEBUG_MSG_F("### Connecting to MQTT server \"%s\"", hostAddress);
+    _mqttClient.setServer(hostAddress, port);
     // MQTT クライアントIDが未指定の場合はランダムIDを生成して接続
     if (!clientId) {
         String randomId = createRandomId();

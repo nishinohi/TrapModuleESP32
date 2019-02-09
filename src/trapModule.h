@@ -23,9 +23,9 @@ class TrapModule {
     Task _sendModuleStateTask; // モジュール状態送信タスク
     Task _checkBatteryLimitTask; // バッテリー残量チェックタスク（設置モードで使用する）
     // 親モジュール機能
-    Task _sendGPSDataTask;           // GPS 送信タスク
-    Task _sendSyncSleepTask;         // 同期停止メッセージ送信タスク
-    Task _sendParentInfoTask;        // 親モジュール情報送信タスク
+    Task _sendGPSDataTask;        // GPS 送信タスク
+    Task _sendSyncSleepTask;      // 同期停止メッセージ送信タスク
+    Task _sendParentInfoTask;     // 親モジュール情報送信タスク
     Task _requestModuleStateTask; // モジュール状態送信要求タスク
     // マルチタスクハンドラ
     TaskHandle_t _taskHandle[2]; // 0:カメラタスク、1:Cellular タスク
@@ -62,6 +62,8 @@ class TrapModule {
     // 罠モード開始処理
     void startTrapMode();
     // mqtt server に情報送信
+    bool startModule() { return _cellular.startModule(); }
+    bool stopModule() { return _cellular.stopModule(); }
     void sendModulesInfo();
     // メッセージ送信
     bool syncAllModuleConfigs(JsonObject &config);
