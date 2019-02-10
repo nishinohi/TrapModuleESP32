@@ -41,9 +41,9 @@ class TrapModule {
     void checkStart();
     // loop
     void update();
-    // モジュール設定値操作
-    bool setConfig(JsonObject &config);
-    bool setCurrentTime(time_t current);
+    // モジュール設定同期
+    bool syncConfig(JsonObject &config);
+    bool syncCurrentTime(time_t current);
     bool initGps();
     bool startModule() { return _cellular.startModule(); }
     bool stopModule() { return _cellular.stopModule(); }
@@ -67,8 +67,8 @@ class TrapModule {
     // mqtt server に情報送信
     void sendModulesInfo();
     // メッセージ送信
-    bool syncAllModuleConfigs(JsonObject &config);
-    bool syncCurrentTime();
+    bool sendModuleConfig(JsonObject &config);
+    bool sendCurrentTime();
     void sendPicture();
     bool sendGetGps();
     void sendModuleState();

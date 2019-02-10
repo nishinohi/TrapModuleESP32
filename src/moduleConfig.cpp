@@ -18,7 +18,6 @@ void ModuleConfig::collectModuleInfo(painlessMesh &mesh, JsonObject &moduleInfo)
     moduleInfo[KEY_ACTIVE_END] = _activeEnd;
     moduleInfo[KEY_CAMERA_ENABLE] = _cameraEnable;
     moduleInfo[KEY_PARENT_NODE_ID] = _parentNodeId;
-    moduleInfo[KEY_IS_PARENT] = _isParent;
     // 現在時刻
     bool isTimeSet = timeStatus() != timeStatus_t::timeNotSet;
     moduleInfo[KEY_CURRENT_TIME] = isTimeSet ? now() : DEF_CURRENT_TIME;
@@ -93,8 +92,7 @@ bool ModuleConfig::loadModuleConfigFile() {
         return false;
     }
     // 強制設置モード起動スイッチ
-    if (digitalRead(FORCE_SETTING_MODE_PIN) == HIGH) {
-        DEBUG_MSG_LN("force setting mode");
+    if (digitalRead(FORCE_SETTING_MODE_PIN)) {
         config[KEY_TRAP_MODE] = false;
     }
     // 設置モードでの起動時にロードしない内容はここで除外する
@@ -106,6 +104,10 @@ bool ModuleConfig::loadModuleConfigFile() {
         config.remove(KEY_CURRENT_TIME);
     }
     updateModuleConfig(config);
+    // 強制設置モードの場合は設定値を保存する
+    if (digitalRead(FORCE_SETTING_MODE_PIN)) {
+        saveModuleConfig(config);
+    }
     // 罠起動モード移行フラグは、設定値読み込み(loadModuleConfig)後に罠モード変更があった場合に変化する
     _isTrapStart = false;
     file.close();

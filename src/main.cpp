@@ -20,7 +20,7 @@ void setup() {
     trapModule.checkStart();
     // 現在時刻取得
     if (trapModule.startModule()) {
-        trapModule.setCurrentTime(trapModule.getNTPTime());
+        setTime(trapModule.getNTPTime());
         trapModule.stopModule();
     }
     // mesh
