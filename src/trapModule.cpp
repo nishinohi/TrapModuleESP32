@@ -394,7 +394,8 @@ void TrapModule::shiftDeepSleep() {
 #endif
         return;
     }
-    // 次回起動時刻表示
+    time_t currentTime = now();
+    DEBUG_MSG_F("currentTime:%s\n", asctime(gmtime(&currentTime)));
     DEBUG_MSG_F("wakeTime:%s\n", asctime(gmtime(&_config._wakeTime)));
     // calcSleepTime()の返り値をマイクロ秒にするとなぜか変になるので一旦ミリ秒で返してからマイクロ秒にする
     uint64_t deepSleepTime = _config.calcSleepTime(now(), _config._wakeTime);

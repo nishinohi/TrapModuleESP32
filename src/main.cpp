@@ -17,7 +17,7 @@ void setup() {
     // モジュール読み込み
     trapModule.loadModuleConfig();
     // 起動前チェック
-    if (trapModule.checkStart()) {
+    if (!trapModule.checkStart()) {
         trapModule.shiftDeepSleep();
     }
     // mesh
