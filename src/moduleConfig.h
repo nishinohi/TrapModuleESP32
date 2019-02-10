@@ -27,13 +27,12 @@ class ModuleConfig {
     uint32_t _parentNodeId = DEF_NODEID;     // 親モジュール ID
     uint8_t _nodeNum = DEF_NODE_NUM;         // 前回起動時のノード数
     time_t _wakeTime = DEF_WAKE_TIME;        // 次回起動時刻
-    time_t _currentTime = DEF_CURRENT_TIME;  // 現在時刻
     // フラグ関連
-    bool _isTrapStart = false;          // 罠起動モード移行フラグ
-    bool _ledOnFlag = false;            // LED点滅フラグ
-    bool _isBatteryDead = false;        // バッテリー切れフラグ
-    bool _isSendModuleState = false;    // モジュール状態送信済みフラグ
-    bool _isSleep = false;              // スリープ状態遷移フラグ
+    bool _isTrapStart = false;       // 罠起動モード移行フラグ
+    bool _ledOnFlag = false;         // LED点滅フラグ
+    bool _isBatteryDead = false;     // バッテリー切れフラグ
+    bool _isSendModuleState = false; // モジュール状態送信済みフラグ
+    bool _isSleep = false;           // スリープ状態遷移フラグ
     // カメラモジュール関連
     bool _cameraEnable = false;
     // 時間誤差修正
@@ -44,8 +43,8 @@ class ModuleConfig {
     ModuleConfig(){};
 
     void setWakeTime();
-    void collectModuleInfo(painlessMesh &mesh, JsonObject& moduleInfo);
-    void collectModuleState(JsonObject& state);
+    void collectModuleInfo(painlessMesh &mesh, JsonObject &moduleInfo);
+    void collectModuleState(JsonObject &state);
     void updateModuleConfig(const JsonObject &config);
     bool saveCurrentModuleConfig();
     void initGps() {

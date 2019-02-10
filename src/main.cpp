@@ -16,8 +16,10 @@ void setup() {
     pinMode(LED, OUTPUT);
     // モジュール読み込み
     trapModule.loadModuleConfig();
-    // 起動時刻チェック
-    trapModule.checkStart();
+    // 起動前チェック
+    if (trapModule.checkStart()) {
+        trapModule.shiftDeepSleep();
+    }
     // mesh
     // ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE
     DEBUG_MSG_LN("camera setup");

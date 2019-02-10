@@ -38,24 +38,22 @@ void TrapModule::setupTask() {
     // 設置モード時はバッテリーチェックを有効にする
     setTask(_checkBatteryLimitTask, BATTERY_CHECK_INTERVAL, TASK_FOREVER,
             std::bind(&TrapModule::checkBatteryLimit, this), !_config._trapMode);
-    // DeepSleep
-    setTask(_deepSleepTask, SYNC_SLEEP_INTERVAL, TASK_FOREVER,
-            std::bind(&TrapModule::shiftDeepSleep, this), false);
 }
 
 /**
  * 起動前チェック
  */
-void TrapModule::checkStart() {
+bool TrapModule::checkStart() {
     updateBattery();
     if (_config._isBatteryDead) {
         DEBUG_MSG_LN("cannot start because battery already dead.");
-        shiftDeepSleep();
+        return false;
     }
     if (_config._trapMode && now() < _config._wakeTime) {
         DEBUG_MSG_LN("cannot start because current time is before waketime.");
-        shiftDeepSleep();
+        return false;
     }
+    return true;
 }
 
 /********************************************
@@ -73,9 +71,10 @@ void TrapModule::update() {
         digitalWrite(LED, !_config._ledOnFlag);
     }
     // DeepSleep 開始
-    if (_config._isSleep && !_deepSleepTask.isEnabled()) {
+    if (_config._isSleep) {
         DEBUG_MSG_LN("deep sleep start.");
-        taskStart(_deepSleepTask, SYNC_SLEEP_INTERVAL);
+        delay(SYNC_SLEEP_INTERVAL);
+        shiftDeepSleep();
     }
     // 設置モードか罠モード作動開始状態の場合は以降の処理は無視
     if (!_config._trapMode || _config._isTrapStart) {
@@ -83,10 +82,8 @@ void TrapModule::update() {
     }
     // 稼働時間超過により強制 DeepSleep
     if (now() - _config._wakeTime > _config._workTime) {
-        if (!_config._isSleep) {
-            DEBUG_MSG_LN("work time limit.");
-            shiftDeepSleep();
-        }
+        DEBUG_MSG_LN("work time limit.");
+        _config._isSleep = true;
     }
 }
 
@@ -372,8 +369,11 @@ void TrapModule::blinkLed() {
  * バッテリー切れの場合は完全終了
  */
 void TrapModule::shiftDeepSleep() {
+    DEBUG_MSG_LN("Shift Deep Sleep");
     DEBUG_MSG_LN("mesh Stop");
     _mesh.stop();
+    // wifi off
+    DEBUG_MSG_LN("wifi off");
     WiFi.mode(WIFI_OFF);
     unsigned long dif = millis();
     while (millis() - dif < 5000) {
@@ -383,7 +383,7 @@ void TrapModule::shiftDeepSleep() {
             break;
         }
     }
-    DEBUG_MSG_LN("Shift Deep Sleep");
+    // バッテリーが限界の場合は手動で起動するまでDeepSleep
     if (_config._isBatteryDead) {
         DEBUG_MSG_LN("Battery limit!\nshutdown...");
 #ifdef ESP32
@@ -394,21 +394,9 @@ void TrapModule::shiftDeepSleep() {
 #endif
         return;
     }
-    _config.setWakeTime();
-    time_t tNow = now();
-    // 次回起動時の現在時刻（現在時刻 + DeepSleep時間）をセットする
-    _config._currentTime = tNow + _config.calcSleepTime(tNow, _config._wakeTime);
-    _config.saveCurrentModuleConfig();
-#ifdef DEBUG_ESP_PORT
-    time_t temp = now();
-    setTime(_config._wakeTime);
-    DEBUG_MSG_F("wakeTime:%d/%d/%d %d:%d:%d\n", year(), month(), day(), hour(), minute(), second());
-    setTime(_config._currentTime);
-    DEBUG_MSG_F("currentTime:%d/%d/%d %d:%d:%d\n", year(), month(), day(), hour(), minute(),
-                second());
-    setTime(temp);
-#endif
-    // calcSleepTime() の返り値をそのままESP.deepSleep()の返り値にすると変になる
+    // 次回起動時刻表示
+    DEBUG_MSG_F("wakeTime:%s\n", asctime(gmtime(&_config._wakeTime)));
+    // calcSleepTime()の返り値をマイクロ秒にするとなぜか変になるので一旦ミリ秒で返してからマイクロ秒にする
     uint64_t deepSleepTime = _config.calcSleepTime(now(), _config._wakeTime);
     deepSleepTime = deepSleepTime * 1000000L;
 #ifdef ESP32
@@ -429,7 +417,7 @@ void TrapModule::checkBatteryLimit() {
     updateBattery();
     if (_config._isBatteryDead) {
         taskStop(_checkBatteryLimitTask);
-        shiftDeepSleep();
+        _config._isSleep = true;
     }
 }
 
