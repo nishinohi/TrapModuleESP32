@@ -55,7 +55,7 @@ void TrapServer::onSetConfig(AsyncWebServerRequest *request) {
         config[KEY_ACTIVE_END] = temp.toInt();
     }
     // 設定された変更値で全モジュールの設定値を更新
-    if (_trapModule->setConfig(config)) {
+    if (_trapModule->syncConfig(config)) {
         String cfg;
         config.printTo(cfg);
         request->send(200, "application/json", cfg);
@@ -100,7 +100,7 @@ void TrapServer::onSetCurrentTime(AsyncWebServerRequest *request) {
         request->send(500);
         return;
     }
-    if (_trapModule->setCurrentTime(request->arg(KEY_CURRENT_TIME).toInt())) {
+    if (_trapModule->syncCurrentTime(request->arg(KEY_CURRENT_TIME).toInt())) {
         request->send(200);
     } else {
         request->send(500);

@@ -34,9 +34,9 @@ class TrapModule {
     void checkStart();
     // loop
     void update();
-    // モジュール設定値操作
-    bool setConfig(JsonObject &config);
-    bool setCurrentTime(time_t current);
+    // モジュール設定同期
+    bool syncConfig(JsonObject &config);
+    bool syncCurrentTime(time_t current);
     bool initGps();
     // モジュール情報取得
     String getMeshGraph() { return _mesh.subConnectionJson(); };
@@ -52,8 +52,8 @@ class TrapModule {
 
   private:
     // メッセージ送信
-    bool syncAllModuleConfigs(JsonObject &config);
-    bool syncCurrentTime();
+    bool sendModuleConfig(JsonObject &config);
+    bool sendCurrentTime();
     void sendPicture();
     bool sendGetGps();
     void sendModuleState();

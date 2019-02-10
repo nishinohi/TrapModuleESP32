@@ -96,9 +96,9 @@ void TrapModule::update() {
 /**
  * モジュールパラメータ設定
  */
-bool TrapModule::setConfig(JsonObject &config) {
+bool TrapModule::syncConfig(JsonObject &config) {
     config[KEY_CONFIG_UPDATE] = true;
-    if (syncAllModuleConfigs(config)) {
+    if (sendModuleConfig(config)) {
         _config.updateModuleConfig(config);
         return _config.saveCurrentModuleConfig();
     }
@@ -108,11 +108,11 @@ bool TrapModule::setConfig(JsonObject &config) {
 /**
  * 現在時刻設定
  */
-bool TrapModule::setCurrentTime(time_t current) {
+bool TrapModule::syncCurrentTime(time_t current) {
     setTime(current);
     DEBUG_MSG_F("current time:%d/%d/%d %d:%d:%d\n", year(), month(), day(), hour(), minute(),
                 second());
-    return syncCurrentTime();
+    return sendCurrentTime();
 }
 
 /**
@@ -235,8 +235,8 @@ void TrapModule::updateTrapFire() {
 /**
  * 設定値を全モジュールに同期する
  **/
-bool TrapModule::syncAllModuleConfigs(JsonObject &config) {
-    DEBUG_MSG_LN("syncAllModuleConfigs");
+bool TrapModule::sendModuleConfig(JsonObject &config) {
+    DEBUG_MSG_LN("sendModuleConfig");
     if (_mesh.getNodeList().size() == 0) {
         return true;
     }
@@ -244,8 +244,8 @@ bool TrapModule::syncAllModuleConfigs(JsonObject &config) {
 }
 
 // 現在時刻同期
-bool TrapModule::syncCurrentTime() {
-    DEBUG_MSG_LN("syncCurrentTime");
+bool TrapModule::sendCurrentTime() {
+    DEBUG_MSG_LN("sendCurrentTime");
     if (_mesh.getNodeList().size() == 0) {
         return true;
     }

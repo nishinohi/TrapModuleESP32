@@ -12,7 +12,7 @@ void setup() {
     DEBUG_MSG_LN("Trap Module Start");
     // GPIO 設定
     pinMode(TRAP_CHECK_PIN, INPUT);
-    pinMode(FORCE_TRAP_MODE_PIN, INPUT);
+    pinMode(FORCE_SETTING_MODE_PIN, INPUT);
     pinMode(LED, OUTPUT);
     // モジュール読み込み
     trapModule.loadModuleConfig();

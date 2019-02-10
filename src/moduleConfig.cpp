@@ -6,7 +6,7 @@
 /**
  * モジュール情報を取得
  */
-void ModuleConfig::collectModuleInfo(painlessMesh &mesh, JsonObject& moduleInfo) {
+void ModuleConfig::collectModuleInfo(painlessMesh &mesh, JsonObject &moduleInfo) {
     DEBUG_MSG_LN("collectModuleInfo");
     moduleInfo[KEY_NODE_ID] = mesh.getNodeId();
     moduleInfo[KEY_TRAP_MODE] = _trapMode;
@@ -32,7 +32,7 @@ void ModuleConfig::collectModuleInfo(painlessMesh &mesh, JsonObject& moduleInfo)
 /**
  * モジュール状態を取得
  */
-void ModuleConfig::collectModuleState(JsonObject& state) {
+void ModuleConfig::collectModuleState(JsonObject &state) {
     state[KEY_MODULE_STATE] = true;
     state[KEY_TRAP_FIRE] = _trapFire;
     state[KEY_CAMERA_ENABLE] = _cameraEnable;
@@ -92,7 +92,7 @@ bool ModuleConfig::loadModuleConfigFile() {
         return false;
     }
     // 強制設置モード起動スイッチ
-    if (!digitalRead(FORCE_TRAP_MODE_PIN)) {
+    if (digitalRead(FORCE_SETTING_MODE_PIN)) {
         config[KEY_TRAP_MODE] = false;
     }
     // 設置モードでの起動時にロードしない内容はここで除外する
@@ -103,6 +103,10 @@ bool ModuleConfig::loadModuleConfigFile() {
         config.remove(KEY_CURRENT_TIME);
     }
     updateModuleConfig(config);
+    // 強制設置モードの場合は設定値を保存する
+    if (digitalRead(FORCE_SETTING_MODE_PIN)) {
+        saveModuleConfig(config);
+    }
     // 罠起動モード移行フラグは、設定値読み込み(loadModuleConfig)後に罠モード変更があった場合に変化する
     _isTrapStart = false;
     file.close();
