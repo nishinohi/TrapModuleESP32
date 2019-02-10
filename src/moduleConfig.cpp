@@ -93,7 +93,8 @@ bool ModuleConfig::loadModuleConfigFile() {
         return false;
     }
     // 強制設置モード起動スイッチ
-    if (!digitalRead(FORCE_TRAP_MODE_PIN)) {
+    if (digitalRead(FORCE_SETTING_MODE_PIN) == HIGH) {
+        DEBUG_MSG_LN("force setting mode");
         config[KEY_TRAP_MODE] = false;
     }
     // 設置モードでの起動時にロードしない内容はここで除外する
@@ -379,13 +380,9 @@ void ModuleConfig::createModulesInfo(String &modulesInfoStr, bool isStart) {
     // 親モジュールの状態を追加
     JsonObject &parentState = JsonBuf.createObject();
     collectModuleState(parentState);
-    ModuleState parentInfo = {
-        _nodeId,
-        parentState[KEY_CURRENT_BATTERY],
-        parentState[KEY_BATTERY_DEAD],
-        parentState[KEY_TRAP_FIRE],
-        parentState[KEY_CAMERA_ENABLE]
-    };
+    ModuleState parentInfo = {_nodeId, parentState[KEY_CURRENT_BATTERY],
+                              parentState[KEY_BATTERY_DEAD], parentState[KEY_TRAP_FIRE],
+                              parentState[KEY_CAMERA_ENABLE]};
     _moduleStateList.push_back(parentInfo);
     for (auto &moduleState : _moduleStateList) {
         JsonObject &targetState = JsonBuf.createObject();

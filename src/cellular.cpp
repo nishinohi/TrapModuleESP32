@@ -1,5 +1,19 @@
 #include "cellular.h"
+/************************************************
+                    helper
+*************************************************/
 
+String createRandomId() {
+    DEBUG_MSG_LN("### createRandomId");
+    randomSeed(millis());
+    String clientId = "MqttClient-";
+    clientId += String(random(0xffff), HEX);
+    return clientId;
+}
+
+/************************************************
+                    public
+*************************************************/
 /**
  * モジュール起動
  */
@@ -18,14 +32,6 @@ bool Cellular::startModule() {
         DEBUG_MSG_LN("### readImsi failed");
         return false;
     }
-    getTime();
-    // mqtt setting
-    setSubscribeCallback(subScribeCallback);
-    setClient(_wioClient);
-    if (!connectMqttServer(MQTT_SERVER_HOST, MQTT_SERVER_PORT)) {
-        return false;
-    }
-
     return true;
 }
 
@@ -34,7 +40,6 @@ bool Cellular::startModule() {
  */
 bool Cellular::stopModule() {
     DEBUG_MSG_LN("### stopModule");
-    disconnectMqttServer();
     if (!shutdown()) {
         DEBUG_MSG_LN("### forced shutdown");
     }
@@ -44,20 +49,47 @@ bool Cellular::stopModule() {
  * 現在時刻取得
  * tm_yearは1900年からの経過年数
  */
-struct tm Cellular::getTime() {
+time_t Cellular::getTime() {
     DEBUG_MSG_LN("### getTime");
-    time_t t = time(NULL);
-    struct tm currentTime = *localtime(&t);
+    struct tm currentTime;
     if (!_wio.SyncTime(NTP_SERVER)) {
         DEBUG_MSG_LN("### SyncTime failed");
-        return currentTime;
+        return 0;
     }
     if (!_wio.GetTime(&currentTime)) {
         DEBUG_MSG_LN("### GetTime failed");
+        return 0;
     }
-    DEBUG_MSG_F("%d/%d/%d %d:%d:%d", currentTime.tm_year, currentTime.tm_mon, currentTime.tm_mday,
-                currentTime.tm_hour, currentTime.tm_min, currentTime.tm_sec);
-    return currentTime;
+    DEBUG_MSG_LN(asctime(&currentTime));
+    return mktime(&currentTime);
+}
+
+/**
+ * MQTT 初回設定
+ */
+void Cellular::initMqttSetting() {
+    // mqtt setting
+    setSubscribeCallback(subScribeCallback);
+    setClient(_wioClient);
+}
+
+/**
+ * MQTT サーバー接続
+ */
+bool Cellular::connectMqttServer(const char *hostAddress, const uint16_t port,
+                                 const char *clientId) {
+    DEBUG_MSG_F("### Connecting to MQTT server \"%s\"", hostAddress);
+    _mqttClient.setServer(hostAddress, port);
+    // MQTT クライアントIDが未指定の場合はランダムIDを生成して接続
+    if (!clientId) {
+        String randomId = createRandomId();
+        clientId = randomId.c_str();
+    }
+    if (!_mqttClient.connect(clientId)) {
+        DEBUG_MSG_LN("### ERROR! ###");
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -165,30 +197,6 @@ int Cellular::socketOpen() {
  */
 bool Cellular::socketClose(int connectId) {
     if (!_wio.SocketClose(connectId)) {
-        DEBUG_MSG_LN("### ERROR! ###");
-        return false;
-    }
-    return true;
-}
-
-String createRandomId() {
-    DEBUG_MSG_LN("### createRandomId");
-    randomSeed(millis());
-    String clientId = "MqttClient-";
-    clientId += String(random(0xffff), HEX);
-    return clientId;
-}
-
-bool Cellular::connectMqttServer(const char *hostAddress, const uint16_t port,
-                                 const char *clientId) {
-    DEBUG_MSG_F("### Connecting to MQTT server \"%s\"", hostAddress);
-    _mqttClient.setServer(hostAddress, port);
-    // MQTT クライアントIDが未指定の場合はランダムIDを生成して接続
-    if (!clientId) {
-        String randomId = createRandomId();
-        clientId = randomId.c_str();
-    }
-    if (!_mqttClient.connect(clientId)) {
         DEBUG_MSG_LN("### ERROR! ###");
         return false;
     }

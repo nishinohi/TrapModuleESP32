@@ -52,8 +52,12 @@ class Cellular {
     bool startModule();
     bool stopModule();
 
-    struct tm getTime();
+    time_t getTime();
 
+    void initMqttSetting();
+    bool connectMqttServer(const char *hostAddress, const uint16_t port,
+                           const char *clientId = NULL);
+    void disconnectMqttServer() { _mqttClient.disconnect(); }
     void sendTrapModuleInfo(const String &contents, const SendType sendType = TEST);
 
   private:
@@ -66,9 +70,6 @@ class Cellular {
     int socketOpen();
     bool socketClose(int connectId);
 
-    bool connectMqttServer(const char *hostAddress, const uint16_t port,
-                           const char *clientId = NULL);
-    void disconnectMqttServer() { _mqttClient.disconnect(); }
     bool reconnectMqttServer(unsigned long timeout = DEFAULT_TIMEOUT, const char *clientId = NULL);
     void setSubscribeCallback(void (*callback)(char *, uint8_t *, unsigned int)) {
         _mqttClient.setCallback(callback);

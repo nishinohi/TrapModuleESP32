@@ -575,10 +575,7 @@ void TrapModule::shiftDeepSleep() {
     updateTrapFire();
     // モジュール状態情報を送信
     if (_config._isParent) {
-        if (startModule()) {
-            sendModulesInfo();
-        }
-        stopModule();
+        sendModulesInfo();
     }
     DEBUG_MSG_LN("Shift Deep Sleep");
     if (_config._isBatteryDead) {
@@ -740,10 +737,19 @@ void TrapModule::snapCameraTask(void *arg) {
  */
 void TrapModule::sendModulesInfo() {
     DEBUG_MSG_LN("sendModulesInfo");
+    if (!_cellular.startModule()) {
+        return;
+    }
+    _cellular.initMqttSetting();
+    if (!_cellular.connectMqttServer(MQTT_SERVER_HOST, MQTT_SERVER_PORT)) {
+        return;
+    }
     String trapStartInfo;
     _config.createModulesInfo(trapStartInfo, _config._isTrapStart);
     SendType sendType = _config._isTrapStart ? SETTING : PERIOD;
     _cellular.sendTrapModuleInfo(trapStartInfo, sendType);
+    _cellular.disconnectMqttServer();
+    _cellular.stopModule();
 }
 
 /*************************************

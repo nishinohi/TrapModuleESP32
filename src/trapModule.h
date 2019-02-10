@@ -45,6 +45,9 @@ class TrapModule {
     bool setConfig(JsonObject &config);
     bool setCurrentTime(time_t current);
     bool initGps();
+    bool startModule() { return _cellular.startModule(); }
+    bool stopModule() { return _cellular.stopModule(); }
+    time_t getNTPTime() { return _cellular.getTime(); }
     // モジュール情報取得
     String getMeshGraph() { return _mesh.subConnectionJson(); };
     void collectModuleInfo(JsonObject &moduleInfo) {
@@ -62,8 +65,6 @@ class TrapModule {
     // 罠モード開始処理
     void startTrapMode();
     // mqtt server に情報送信
-    bool startModule() { return _cellular.startModule(); }
-    bool stopModule() { return _cellular.stopModule(); }
     void sendModulesInfo();
     // メッセージ送信
     bool syncAllModuleConfigs(JsonObject &config);

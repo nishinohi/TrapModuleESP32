@@ -12,12 +12,17 @@ void setup() {
     DEBUG_MSG_LN("Trap Module Start");
     // GPIO 設定
     pinMode(TRAP_CHECK_PIN, INPUT);
-    pinMode(FORCE_TRAP_MODE_PIN, INPUT);
+    pinMode(FORCE_SETTING_MODE_PIN, INPUT);
     pinMode(LED, OUTPUT);
     // モジュール読み込み
     trapModule.loadModuleConfig();
     // 起動時刻チェック
     trapModule.checkStart();
+    // 現在時刻取得
+    if (trapModule.startModule()) {
+        trapModule.setCurrentTime(trapModule.getNTPTime());
+        trapModule.stopModule();
+    }
     // mesh
     // ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE
     DEBUG_MSG_LN("camera setup");
