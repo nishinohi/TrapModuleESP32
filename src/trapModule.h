@@ -17,7 +17,6 @@ class TrapModule {
     Cellular _cellular;
 
     // タスク関連
-    Task _deepSleepTask;       // DeepSleep以降タスク
     Task _blinkNodesTask;      // LED タスク
     Task _sendPictureTask;     // 写真撮影フラグ
     Task _sendModuleStateTask; // モジュール状態送信タスク
@@ -38,7 +37,7 @@ class TrapModule {
     void setupTask();
     void setupCamera() { _config._cameraEnable = _camera.initialize(); };
     bool loadModuleConfig() { return _config.loadModuleConfigFile(); };
-    void checkStart();
+    bool checkStart();
     // loop
     void update();
     // モジュール設定同期
@@ -60,6 +59,8 @@ class TrapModule {
     static void snapCameraTask(void *arg);
     // debug 機能
     bool sendDebugMesage(String msg, uint32_t nodeId = 0);
+    // deepSleep
+    void shiftDeepSleep();
 
   private:
     // 罠モード開始処理
@@ -82,8 +83,6 @@ class TrapModule {
     // センサ情報
     void updateBattery();
     void updateTrapFire();
-    // deepSleep
-    void shiftDeepSleep();
     // mesh
     void receivedCallback(uint32_t from, String &msg);
     void newConnectionCallback(uint32_t nodeId);
@@ -101,6 +100,7 @@ class TrapModule {
         }
     }
     void startSendModuleState();
+    void startSyncSleeptask();
     // util
     void saveBase64Image(const char *data, const char *name = NULL);
     bool sendBroadcast(JsonObject &obj) {

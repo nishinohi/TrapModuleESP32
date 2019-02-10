@@ -56,7 +56,6 @@ void ModuleConfig::setDefaultModuleConfig() {
     _parentNodeId = DEF_NODEID;
     _nodeNum = DEF_NODE_NUM;
     _wakeTime = DEF_WAKE_TIME;
-    _currentTime = DEF_CURRENT_TIME;
 }
 
 /**
@@ -91,22 +90,26 @@ bool ModuleConfig::loadModuleConfigFile() {
         setDefaultModuleConfig();
         return false;
     }
-    // 強制設置モード起動スイッチ
-    if (digitalRead(FORCE_SETTING_MODE_PIN)) {
+    // 強制設置モード起動
+    if (digitalRead(FORCE_SETTING_MODE_PIN) == HIGH) {
         config[KEY_TRAP_MODE] = false;
     }
     // 設置モードでの起動時にロードしない内容はここで除外する
-    if (!config.containsKey(KEY_TRAP_MODE) || config[KEY_TRAP_MODE] == false) {
+    if (!config.containsKey(KEY_TRAP_MODE) || !config[KEY_TRAP_MODE]) {
         config.remove(KEY_IS_PARENT);
         config.remove(KEY_PARENT_NODE_ID);
         config.remove(KEY_TRAP_FIRE);
         config.remove(KEY_WAKE_TIME);
-        config.remove(KEY_CURRENT_TIME);
+    }
+    // 罠モードで起動した場合は現在時刻を起動時刻と同時刻にセット
+    if (config.containsKey(KEY_TRAP_MODE) && config[KEY_TRAP_MODE]) {
+        config[KEY_CURRENT_TIME] = config[KEY_WAKE_TIME];
     }
     updateModuleConfig(config);
-    // 強制設置モードの場合は設定値を保存する
+    // 罠モードから強制設置モードで起動しても、設定値更新せず電源を切ると
+    // 再度罠モードで起動してしまうのでここで一旦設定値を保存する
     if (digitalRead(FORCE_SETTING_MODE_PIN)) {
-        saveModuleConfig(config);
+        saveCurrentModuleConfig();
     }
     // 罠起動モード移行フラグは、設定値読み込み(loadModuleConfig)後に罠モード変更があった場合に変化する
     _isTrapStart = false;
@@ -231,11 +234,9 @@ bool ModuleConfig::saveCurrentModuleConfig() {
     config[KEY_ACTIVE_START] = _activeStart;
     config[KEY_ACTIVE_END] = _activeEnd;
     config[KEY_PARENT_NODE_ID] = _parentNodeId;
-    config[KEY_IS_PARENT] = _isParent;
-    bool isTimeSet = timeStatus() != timeStatus_t::timeNotSet;
-    config[KEY_WAKE_TIME] = isTimeSet && _trapMode ? _wakeTime : DEF_WAKE_TIME;
-    config[KEY_CURRENT_TIME] = isTimeSet && _trapMode ? _currentTime : DEF_CURRENT_TIME;
+    config[KEY_WAKE_TIME] = _wakeTime;
     config[KEY_NODE_NUM] = _nodeNum;
+    config[KEY_IS_PARENT] = _isParent;
 #ifdef DEBUG_ESP_PORT
     String configStr;
     config.printTo(configStr);

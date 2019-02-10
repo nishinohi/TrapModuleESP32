@@ -16,8 +16,10 @@ void setup() {
     pinMode(LED, OUTPUT);
     // モジュール読み込み
     trapModule.loadModuleConfig();
-    // 起動時刻チェック
-    trapModule.checkStart();
+    // 起動前チェック
+    if (!trapModule.checkStart()) {
+        trapModule.shiftDeepSleep();
+    }
     // 現在時刻取得
     if (trapModule.startModule()) {
         setTime(trapModule.getNTPTime());

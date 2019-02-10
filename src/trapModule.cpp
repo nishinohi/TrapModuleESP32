@@ -38,9 +38,6 @@ void TrapModule::setupTask() {
     // 設置モード時はバッテリーチェックを有効にする
     setTask(_checkBatteryLimitTask, BATTERY_CHECK_INTERVAL, TASK_FOREVER,
             std::bind(&TrapModule::checkBatteryLimit, this), !_config._trapMode);
-    // DeepSleep
-    setTask(_deepSleepTask, SYNC_SLEEP_INTERVAL, TASK_FOREVER,
-            std::bind(&TrapModule::shiftDeepSleep, this), false);
     // request Module State task
     setTask(_requestModuleStateTask, MODULE_STATE_INTERVAL, TASK_FOREVER,
             std::bind(&TrapModule::sendRequestModuleState, this), false);
@@ -58,20 +55,23 @@ void TrapModule::setupTask() {
 /**
  * 起動前チェック
  */
-void TrapModule::checkStart() {
+bool TrapModule::checkStart() {
     updateBattery();
     if (_config._isBatteryDead) {
         DEBUG_MSG_LN("cannot start because battery already dead.");
-        shiftDeepSleep();
+        return false;
     }
     if (_config._trapMode && now() < _config._wakeTime) {
         DEBUG_MSG_LN("cannot start because current time is before waketime.");
-        shiftDeepSleep();
+        return false;
     }
+    return true;
 }
 
 /**
  * 罠モード開始
+ * 自身が親モジュールとして動作するかチェックした後
+ * このジュールに状態情報送信要求を送信する
  */
 void TrapModule::startTrapMode() {
     DEBUG_MSG_LN("startTrapMode");
@@ -81,11 +81,6 @@ void TrapModule::startTrapMode() {
         return;
     }
     _config.updateNodeNum(_mesh.getNodeList());
-    // 単独稼働の場合はそのまま終了
-    if (_config._nodeNum == 0) {
-        shiftDeepSleep();
-        return;
-    }
     taskStart(_requestModuleStateTask);
 }
 
@@ -109,25 +104,28 @@ void TrapModule::update() {
         startTrapMode();
     }
     // DeepSleep 開始
-    if (_config._isSleep && !_deepSleepTask.isEnabled()) {
+    if (_config._isSleep) {
         DEBUG_MSG_LN("deep sleep start.");
-        taskStart(_deepSleepTask, SYNC_SLEEP_INTERVAL);
+        delay(SYNC_SLEEP_INTERVAL);
+        shiftDeepSleep();
     }
-    // 設置モードか罠モード作動開始状態の場合は以降の処理は無視
-    if (!_config._trapMode || _config._isTrapStart) {
+    // 設置モードの場合は以降の処理は無視
+    if (!_config._trapMode) {
         return;
     }
     // 単独稼働の場合はそのまま終了
     if (_config._nodeNum == 0) {
-        shiftDeepSleep();
+        startSyncSleeptask();
+        return;
+    }
+    // 設置モードから罠モード変更時は稼働時間超過は無視
+    if (_config._isTrapStart) {
         return;
     }
     // 稼働時間超過により強制 DeepSleep
     if (now() - _config._wakeTime > _config._workTime) {
-        if (!_config._isSleep) {
-            DEBUG_MSG_LN("work time limit.");
-            shiftDeepSleep();
-        }
+        DEBUG_MSG_LN("work time limit.");
+        _config._isSleep = true;
     }
 }
 
@@ -247,11 +245,10 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
     if (msgJson.containsKey(KEY_MODULE_STATE) && _config._trapMode) {
         DEBUG_MSG_LN("get module state");
         _config.pushNoDuplicateModuleState(from, msgJson);
-        // 全てのモジュールからモジュール状態を受信したら deepSleep メッセージ送信
+        // 全てのモジュールからモジュール状態を受信したら次回起動時刻を決定しDeepSleep要求送信
         if (_config._moduleStateList.size() >= _config._nodeNum) {
             taskStop(_requestModuleStateTask);
-            _config.updateNodeNum(_mesh.getNodeList());
-            taskStart(_sendSyncSleepTask);
+            startSyncSleeptask();
         }
     }
     // 画像保存
@@ -449,10 +446,12 @@ void TrapModule::sendPicture() {
 }
 
 /**
- * 同期停止メッセージ送信
+ * DeepSleepメッセージ送信
+ * 次回起動時刻もここで合わせて送信する
  */
 void TrapModule::sendSyncSleep() {
     DEBUG_MSG_LN("sendSyncSleep");
+    // 単独起動の場合終了
     if (_mesh.getNodeList().size() == 0) {
         taskStop(_sendSyncSleepTask);
         _config._isSleep = true;
@@ -460,6 +459,9 @@ void TrapModule::sendSyncSleep() {
     }
     DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
     JsonObject &syncObj = jsonBuf.createObject();
+    syncObj[KEY_CONFIG_UPDATE] = true;
+    syncObj[KEY_CURRENT_TIME] = now();
+    syncObj[KEY_WAKE_TIME] = _config._wakeTime;
     syncObj[KEY_SYNC_SLEEP] = true;
     if (sendBroadcast(syncObj)) {
         taskStop(_sendSyncSleepTask);
@@ -501,6 +503,7 @@ void TrapModule::sendParentModuleInfo() {
 void TrapModule::sendRequestModuleState() {
     DEBUG_MSG_LN("sendRequestModuleState");
     if (_mesh.getNodeList().size() == 0) {
+        taskStop(_requestModuleStateTask);
         return;
     }
     DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
@@ -559,8 +562,11 @@ void TrapModule::blinkLed() {
  * バッテリー切れの場合は完全終了
  */
 void TrapModule::shiftDeepSleep() {
+    DEBUG_MSG_LN("Shift Deep Sleep");
     DEBUG_MSG_LN("mesh Stop");
     _mesh.stop();
+    // wifi off
+    DEBUG_MSG_LN("wifi off");
     WiFi.mode(WIFI_OFF);
     unsigned long dif = millis();
     while (millis() - dif < 5000) {
@@ -570,14 +576,11 @@ void TrapModule::shiftDeepSleep() {
             break;
         }
     }
-    // 自身のセンサ情報更新
-    updateBattery();
-    updateTrapFire();
     // モジュール状態情報を送信
     if (_config._isParent) {
         sendModulesInfo();
     }
-    DEBUG_MSG_LN("Shift Deep Sleep");
+    // バッテリーが限界の場合は手動で起動するまでDeepSleep
     if (_config._isBatteryDead) {
         DEBUG_MSG_LN("Battery limit!\nshutdown...");
 #ifdef ESP32
@@ -588,21 +591,9 @@ void TrapModule::shiftDeepSleep() {
 #endif
         return;
     }
-    _config.setWakeTime();
-    time_t tNow = now();
-    // 次回起動時の現在時刻（現在時刻 + DeepSleep時間）をセットする
-    _config._currentTime = tNow + _config.calcSleepTime(tNow, _config._wakeTime);
-    _config.saveCurrentModuleConfig();
-#ifdef DEBUG_ESP_PORT
-    time_t temp = now();
-    setTime(_config._wakeTime);
-    DEBUG_MSG_F("wakeTime:%d/%d/%d %d:%d:%d\n", year(), month(), day(), hour(), minute(), second());
-    setTime(_config._currentTime);
-    DEBUG_MSG_F("currentTime:%d/%d/%d %d:%d:%d\n", year(), month(), day(), hour(), minute(),
-                second());
-    setTime(temp);
-#endif
-    // calcSleepTime() の返り値をそのままESP.deepSleep()の返り値にすると変になる
+    // 次回起動時刻表示
+    DEBUG_MSG_F("wakeTime:%s\n", asctime(gmtime(&_config._wakeTime)));
+    // calcSleepTime()の返り値をマイクロ秒にするとなぜか変になるので一旦ミリ秒で返してからマイクロ秒にする
     uint64_t deepSleepTime = _config.calcSleepTime(now(), _config._wakeTime);
     deepSleepTime = deepSleepTime * 1000000L;
 #ifdef ESP32
@@ -623,7 +614,7 @@ void TrapModule::checkBatteryLimit() {
     updateBattery();
     if (_config._isBatteryDead) {
         taskStop(_checkBatteryLimitTask);
-        shiftDeepSleep();
+        _config._isSleep = true;
     }
 }
 
@@ -673,6 +664,17 @@ void TrapModule::startSendModuleState() {
             break;
         }
     }
+}
+
+/**
+ * deepsleep要求送信タスク開始
+ * 開始前に次回起動時刻を設定して自身の設定値を保存
+ */
+void TrapModule::startSyncSleeptask() {
+    _config.updateNodeNum(_mesh.getNodeList());
+    _config.setWakeTime();
+    _config.saveCurrentModuleConfig();
+    taskStart(_sendSyncSleepTask);
 }
 
 /********************************************
@@ -737,6 +739,9 @@ void TrapModule::snapCameraTask(void *arg) {
  */
 void TrapModule::sendModulesInfo() {
     DEBUG_MSG_LN("sendModulesInfo");
+    // 自身のセンサ情報更新
+    updateBattery();
+    updateTrapFire();
     if (!_cellular.startModule()) {
         return;
     }
