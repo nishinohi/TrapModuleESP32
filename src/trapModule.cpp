@@ -72,7 +72,6 @@ void TrapModule::update() {
     }
     // DeepSleep 開始
     if (_config._isSleep) {
-        DEBUG_MSG_LN("deep sleep start.");
         delay(SYNC_SLEEP_INTERVAL);
         shiftDeepSleep();
     }
@@ -81,7 +80,7 @@ void TrapModule::update() {
         return;
     }
     // 稼働時間超過により強制 DeepSleep
-    if (now() - _config._wakeTime > _config._workTime) {
+    if (millis() > _config._workTime * 1000) {
         DEBUG_MSG_LN("work time limit.");
         _config._isSleep = true;
     }
@@ -434,7 +433,7 @@ void TrapModule::startSendModuleState() {
     if (_config._isSendModuleState) {
         return;
     }
-    taskStart(_sendModuleStateTask);
+    taskStart(_sendModuleStateTask, DEF_INTERVAL);
 }
 
 /********************************************
