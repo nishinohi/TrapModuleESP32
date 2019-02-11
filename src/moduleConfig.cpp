@@ -368,17 +368,6 @@ time_t ModuleConfig::calcSleepTime(const time_t &tNow, const time_t &nextWakeTim
  * 親機用メソッド
  **********************************/
 /**
- * モジュールの設定値を取得
- */
-void ModuleConfig::collectModuleConfig(JsonObject &obj) {
-    obj[KEY_WORK_TIME] = _workTime;
-    obj[KEY_TRAP_MODE] = _trapMode;
-    obj[KEY_ACTIVE_START] = _activeStart;
-    obj[KEY_ACTIVE_END] = _activeEnd;
-    obj[KEY_CURRENT_TIME] = now();
-}
-
-/**
  * 送信するモジュール情報文字列を作成する
  */
 void ModuleConfig::createModulesInfo(String &modulesInfoStr, bool isStart) {

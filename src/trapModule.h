@@ -46,7 +46,8 @@ class TrapModule {
     bool initGps();
     bool startModule() { return _cellular.startModule(); }
     bool stopModule() { return _cellular.stopModule(); }
-    time_t getNTPTime() { return _cellular.getTime(); }
+    bool isTrapMode() { return _config._trapMode; }
+    bool adjustCurrentTimeFromNTP();
     // モジュール情報取得
     String getMeshGraph() { return _mesh.subConnectionJson(); };
     void collectModuleInfo(JsonObject &moduleInfo) {

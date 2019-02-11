@@ -84,6 +84,22 @@ void TrapModule::startTrapMode() {
     taskStart(_requestModuleStateTask);
 }
 
+/**
+ * 現在時刻をNTPサーバーから取得した時刻に設定する
+ */
+bool TrapModule::adjustCurrentTimeFromNTP() {
+    if (!startModule()) {
+        return false;
+    }
+    time_t ntpTime = _cellular.getTime();
+    if (ntpTime == 0) {
+        return false;
+    }
+    setTime(ntpTime);
+    stopModule();
+    return true;
+}
+
 /********************************************
  * loop メソッド
  *******************************************/

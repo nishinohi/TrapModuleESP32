@@ -20,10 +20,9 @@ void setup() {
     if (!trapModule.checkStart()) {
         trapModule.shiftDeepSleep();
     }
-    // 現在時刻取得
-    if (trapModule.startModule()) {
-        setTime(trapModule.getNTPTime());
-        trapModule.stopModule();
+    // 現在時刻調整
+    if (trapModule.isTrapMode()) {
+        trapModule.adjustCurrentTimeFromNTP();
     }
     // mesh
     // ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE
