@@ -91,15 +91,18 @@ void TrapModule::update() {
  * モジュール設定値操作
  *******************************************/
 /**
- * モジュールパラメータ設定
+ * モジュール設定値同期
+ * 同期に成功して初めて自身の設定値を更新する
  */
 bool TrapModule::syncConfig(JsonObject &config) {
     config[KEY_CONFIG_UPDATE] = true;
-    if (sendModuleConfig(config)) {
-        _config.updateModuleConfig(config);
-        return _config.saveCurrentModuleConfig();
+    if (_mesh.getNodeList().size() > 0) {
+        if (!sendBroadcast(config)) {
+            return false;
+        }
     }
-    return false;
+    _config.updateModuleConfig(config);
+    return _config.saveCurrentModuleConfig();
 }
 
 /**
@@ -230,17 +233,8 @@ void TrapModule::updateTrapFire() {
  * メッセージング
  ******************************************************/
 /**
- * 設定値を全モジュールに同期する
- **/
-bool TrapModule::sendModuleConfig(JsonObject &config) {
-    DEBUG_MSG_LN("sendModuleConfig");
-    if (_mesh.getNodeList().size() == 0) {
-        return true;
-    }
-    return sendBroadcast(config);
-}
-
-// 現在時刻同期
+ * 現在時刻同期
+ */
 bool TrapModule::sendCurrentTime() {
     DEBUG_MSG_LN("sendCurrentTime");
     if (_mesh.getNodeList().size() == 0) {

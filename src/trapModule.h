@@ -53,7 +53,6 @@ class TrapModule {
 
   private:
     // メッセージ送信
-    bool sendModuleConfig(JsonObject &config);
     bool sendCurrentTime();
     void sendPicture();
     bool sendGetGps();
