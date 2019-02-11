@@ -25,7 +25,6 @@ class TrapServer {
     void onSnapShot(AsyncWebServerRequest *request);
     void onSendMessage(AsyncWebServerRequest *request);
     void onInitGps(AsyncWebServerRequest *request);
-    void onGetGps(AsyncWebServerRequest *request);
 };
 
 #endif // INCLUDE_GUARD_SERVER

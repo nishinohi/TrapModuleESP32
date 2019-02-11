@@ -18,7 +18,6 @@ void TrapServer::setupServer() {
               std::bind(&TrapServer::onSendMessage, this, std::placeholders::_1));
     server.on("/initGps", HTTP_POST,
               std::bind(&TrapServer::onInitGps, this, std::placeholders::_1));
-    server.on("/getGps", HTTP_GET, std::bind(&TrapServer::onGetGps, this, std::placeholders::_1));
     server.serveStatic("/", SPIFFS, "/").setDefaultFile("index.html");
     server.onNotFound([](AsyncWebServerRequest *request) { request->send(404); });
 }
@@ -155,18 +154,6 @@ void TrapServer::onSendMessage(AsyncWebServerRequest *request) {
 void TrapServer::onInitGps(AsyncWebServerRequest *request) {
     DEBUG_MSG_LN("onInitGps");
     if (_trapModule->initGps()) {
-        request->send(200);
-    } else {
-        request->send(500);
-    }
-}
-
-/**
- * GPS取得要求
- */
-void TrapServer::onGetGps(AsyncWebServerRequest *request) {
-    DEBUG_MSG_LN("onGetGps");
-    if (_trapModule->getGps()) {
         request->send(200);
     } else {
         request->send(500);

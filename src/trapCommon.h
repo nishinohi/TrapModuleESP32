@@ -52,7 +52,6 @@
 #define KEY_NODE_ID "module_id"
 #define KEY_PICTURE "camera_image"
 #define KEY_INIT_GPS "init_gps"
-#define KEY_GET_GPS "get_gps"
 #define KEY_MESH_GRAPH "mesh_graph"
 #define KEY_SYNC_SLEEP "sync_sleep"
 #define KEY_REAL_TIME "real_time"

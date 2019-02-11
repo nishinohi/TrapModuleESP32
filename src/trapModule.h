@@ -42,7 +42,6 @@ class TrapModule {
     void collectModuleInfo(JsonObject &moduleInfo) {
         _config.collectModuleInfo(_mesh, moduleInfo);
     };
-    bool getGps();
     // カメラ機能
     bool snapCamera(int resolution = -1);
     static void snapCameraTask(void *arg);
@@ -55,7 +54,6 @@ class TrapModule {
     // メッセージ送信
     bool sendCurrentTime();
     void sendPicture();
-    bool sendGetGps();
     void sendModuleState();
     // モジュール情報取得
     uint32_t getNodeId() { return _config._nodeId != 0 ? _config._nodeId : _mesh.getNodeId(); };

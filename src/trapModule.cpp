@@ -131,15 +131,6 @@ bool TrapModule::initGps() {
 }
 
 /********************************************
- * モジュール情報取得
- *******************************************/
-/**
- * GPS 取得
- * 子機では GPS 取得要求を親機に送信するだけ
- */
-bool TrapModule::getGps() { return sendGetGps(); }
-
-/********************************************
  * painlessMesh callback
  *******************************************/
 /**
@@ -244,21 +235,6 @@ bool TrapModule::sendCurrentTime() {
     currentTime[KEY_CONFIG_UPDATE] = true;
     currentTime[KEY_CURRENT_TIME] = now();
     return sendBroadcast(currentTime);
-}
-
-/**
- * GPS 取得要求を親モジュールに送信
- **/
-bool TrapModule::sendGetGps() {
-    DEBUG_MSG_LN("sendGetGps");
-    if (_config._parentNodeId == DEF_NODEID) {
-        DEBUG_MSG_LN("parent module not found");
-        return false;
-    }
-    DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
-    JsonObject &gpsGet = jsonBuf.createObject();
-    gpsGet[KEY_GET_GPS] = true;
-    return sendParent(gpsGet);
 }
 
 /**
