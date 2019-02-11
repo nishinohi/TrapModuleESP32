@@ -68,7 +68,6 @@ class TrapModule {
     // mqtt server に情報送信
     void sendModulesInfo();
     // メッセージ送信
-    bool sendModuleConfig(JsonObject &config);
     bool sendCurrentTime();
     void sendPicture();
     bool sendGetGps();

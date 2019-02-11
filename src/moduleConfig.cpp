@@ -30,6 +30,21 @@ void ModuleConfig::collectModuleInfo(painlessMesh &mesh, JsonObject &moduleInfo)
 }
 
 /**
+ * モジュール設定値を取得
+ * ただし、引数のmoduleConfigに予め設定されている値は上書きしない
+ */
+void ModuleConfig::collectModuleConfig(JsonObject &moduleConfig) {
+    moduleConfig[KEY_WORK_TIME] = _workTime;
+    moduleConfig[KEY_ACTIVE_START] = _activeStart;
+    moduleConfig[KEY_ACTIVE_END] = _activeEnd;
+    moduleConfig[KEY_PARENT_NODE_ID] = _parentNodeId;
+    moduleConfig[KEY_GPS_LAT] = _lat;
+    moduleConfig[KEY_GPS_LON] = _lon;
+    moduleConfig[KEY_WAKE_TIME] = _wakeTime;
+    moduleConfig[KEY_TRAP_MODE] = _trapMode;
+}
+
+/**
  * モジュール状態を取得
  */
 void ModuleConfig::collectModuleState(JsonObject &state) {
@@ -149,7 +164,7 @@ void ModuleConfig::updateModuleConfig(const JsonObject &config) {
     if (config.containsKey(KEY_IS_PARENT)) {
         _isParent = config[KEY_IS_PARENT];
     }
-    // 親モジュール ID 追加
+    // 親モジュール ID
     if (config.containsKey(KEY_PARENT_NODE_ID)) {
         _parentNodeId = config[KEY_PARENT_NODE_ID];
     }
