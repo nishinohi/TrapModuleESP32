@@ -134,7 +134,7 @@ void TrapModule::update() {
         startSyncSleeptask();
         return;
     }
-    // 設置モードから罠モード変更時は稼働時間超過は無視
+    // 罠モード開始時は稼働時間超過は無視
     if (_config._isTrapStart) {
         return;
     }
@@ -160,7 +160,7 @@ bool TrapModule::syncConfig(JsonObject &config) {
         }
     }
     _config.updateModuleConfig(config);
-    return _config.saveCurrentModuleConfig();
+    return true;
 }
 
 /**
@@ -248,17 +248,16 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
     if (msgJson.containsKey(KEY_CONFIG_UPDATE)) {
         DEBUG_MSG_LN("Module config update");
         _config.updateModuleConfig(msgJson);
-        _config.saveCurrentModuleConfig();
-    }
-    // 親モジュール情報
-    if (msgJson.containsKey(KEY_PARENT_INFO)) {
-        DEBUG_MSG_LN("parent module info");
-        _config.pushNoDuplicateNodeId(msgJson[KEY_PARENT_NODE_ID], _config._parentNodeIdList);
     }
     // モジュール状態送信要求が来た場合は送信済みか否かにかかわらず送信する
     if (msgJson.containsKey(KEY_REQUEST_MODULE_STATE)) {
         DEBUG_MSG_LN("request module state");
         taskStart(_sendModuleStateTask);
+    }
+    // 親モジュール情報
+    if (msgJson.containsKey(KEY_PARENT_INFO)) {
+        DEBUG_MSG_LN("parent module info");
+        _config.pushNoDuplicateNodeId(msgJson[KEY_PARENT_NODE_ID], _config._parentNodeIdList);
     }
     // モジュール状態受信(設置モード時は無視)
     if (msgJson.containsKey(KEY_MODULE_STATE) && _config._trapMode) {
@@ -586,7 +585,9 @@ void TrapModule::shiftDeepSleep() {
             break;
         }
     }
-    // モジュール状態情報を送信
+    // 現在の設定値を保存
+    _config.saveCurrentModuleConfig();
+    // 全モジュールの情報をサーバーに送信
     if (_config._isParent) {
         sendModulesInfo();
     }
@@ -662,29 +663,28 @@ void TrapModule::taskStart(Task &task, unsigned long duration, long iteration) {
  * モジュール状態送信開始
  */
 void TrapModule::startSendModuleState() {
-    // 設置モードのときは何もしない
+    // 親モジュールは送信しない
+    if (_config._isParent) {
+        return;
+    }
+    // 設置モードか罠モード開始時は送信しない
     if (!_config._trapMode || _config._isTrapStart) {
         return;
     }
+    // 一度送信成功したら送らない
     if (_config._isSendModuleState) {
         return;
     }
-    for (auto &nodeId : _mesh.getNodeList()) {
-        if (nodeId == _config._parentNodeId) {
-            taskStart(_sendModuleStateTask);
-            break;
-        }
-    }
+    taskStart(_sendModuleStateTask);
 }
 
 /**
  * deepsleep要求送信タスク開始
- * 開始前に次回起動時刻を設定して自身の設定値を保存
+ * 開始前に現在のノード数と次回起動時刻を更新する
  */
 void TrapModule::startSyncSleeptask() {
     _config.updateNodeNum(_mesh.getNodeList());
     _config.setWakeTime();
-    _config.saveCurrentModuleConfig();
     taskStart(_sendSyncSleepTask);
 }
 
