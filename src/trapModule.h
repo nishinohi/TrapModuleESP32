@@ -22,7 +22,6 @@ class TrapModule {
     Task _sendModuleStateTask; // モジュール状態送信タスク
     Task _checkBatteryLimitTask; // バッテリー残量チェックタスク（設置モードで使用する）
     // 親モジュール機能
-    Task _sendGPSDataTask;        // GPS 送信タスク
     Task _sendSyncSleepTask;      // 同期停止メッセージ送信タスク
     Task _sendParentInfoTask;     // 親モジュール情報送信タスク
     Task _requestModuleStateTask; // モジュール状態送信要求タスク
@@ -53,8 +52,6 @@ class TrapModule {
     void collectModuleInfo(JsonObject &moduleInfo) {
         _config.collectModuleInfo(_mesh, moduleInfo);
     };
-    bool getGps();
-    static void getGpsTask(void *arg);
     // カメラ機能
     bool snapCamera(int resolution = -1);
     static void snapCameraTask(void *arg);
@@ -71,7 +68,6 @@ class TrapModule {
     // メッセージ送信
     bool sendCurrentTime();
     void sendPicture();
-    bool sendGetGps();
     void sendModuleState();
     // 親限定メッセージ送信
     void sendSyncSleep();

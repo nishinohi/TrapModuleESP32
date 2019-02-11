@@ -41,9 +41,6 @@ void TrapModule::setupTask() {
     // request Module State task
     setTask(_requestModuleStateTask, MODULE_STATE_INTERVAL, TASK_FOREVER,
             std::bind(&TrapModule::sendRequestModuleState, this), false);
-    // send GPS data task
-    setTask(_sendGPSDataTask, DEF_INTERVAL, DEF_ITERATION,
-            std::bind(&TrapModule::sendGpsData, this), false);
     // send Sync Sleep task
     setTask(_sendSyncSleepTask, DEF_INTERVAL, TASK_FOREVER,
             std::bind(&TrapModule::sendSyncSleep, this), false);
@@ -189,48 +186,6 @@ bool TrapModule::initGps() {
 }
 
 /********************************************
- * モジュール情報取得
- *******************************************/
-/**
- * GPS取得
- * GPS 取得タスクを開始するだけなので、必ず成功になる
- */
-bool TrapModule::getGps() {
-    DEBUG_MSG_LN("onGetGps");
-    if (_config._isParent) {
-        return beginMultiTask(CELLULAR_TASK_NAME, TrapModule::getGpsTask, _taskHandle[1], this, 3);
-    }
-    return sendGetGps();
-}
-
-/**
- * GPS 取得
- */
-void TrapModule::getGpsTask(void *arg) {
-    // TrapModule *pTrapModule = reinterpret_cast<TrapModule *>(arg);
-    // Scheduler cellularRunner;
-    // cellularRunner.addTask(pTrapModule->_cellular._getGPSDataTask);
-    // pTrapModule->_cellular._getGPSDataTask.enable();
-    // while (1) {
-    //     // 取得メソッド終了
-    //     if (!pTrapModule->_cellular._getGPSDataTask.isEnabled()) {
-    //         size_t latLen = strlen(pTrapModule->_cellular._lat);
-    //         size_t lonLen = strlen(pTrapModule->_cellular._lon);
-    //         if (latLen != 0 && lonLen != 0) {
-    //             pTrapModule->_config.initGps();
-    //             memcpy(pTrapModule->_config._lat, pTrapModule->_cellular._lat, latLen);
-    //             memcpy(pTrapModule->_config._lon, pTrapModule->_cellular._lon, lonLen);
-    //         }
-    //         pTrapModule->_cellular._getGPSDataTask.setIterations(GPS_TRY_COUNT);
-    //         pTrapModule->_cellular._getGPSDataTask.enable();
-    //         vTaskSuspend(pTrapModule->_taskHandle[1]);
-    //     }
-    //     TASK_DELAY(1);
-    //     cellularRunner.execute();
-    // }
-}
-
-/********************************************
  * painlessMesh callback
  *******************************************/
 /**
@@ -362,21 +317,6 @@ bool TrapModule::sendCurrentTime() {
     currentTime[KEY_CONFIG_UPDATE] = true;
     currentTime[KEY_CURRENT_TIME] = now();
     return sendBroadcast(currentTime);
-}
-
-/**
- * GPS 取得要求を親モジュールに送信
- **/
-bool TrapModule::sendGetGps() {
-    DEBUG_MSG_LN("sendGetGps");
-    if (_config._parentNodeId == DEF_NODEID) {
-        DEBUG_MSG_LN("parent module not found");
-        return false;
-    }
-    DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
-    JsonObject &gpsGet = jsonBuf.createObject();
-    gpsGet[KEY_GET_GPS] = true;
-    return sendParent(gpsGet);
 }
 
 /**
@@ -523,26 +463,6 @@ void TrapModule::sendRequestModuleState() {
     obj[KEY_CONFIG_UPDATE] = true;
     obj[KEY_PARENT_NODE_ID] = getNodeId();
     sendBroadcast(obj);
-}
-
-/**
- * GPS データ送信
- */
-void TrapModule::sendGpsData() {
-    DEBUG_MSG_LN("sendGpsData");
-    if (_mesh.getNodeList().size() == 0) {
-        taskStop(_sendGPSDataTask);
-        return;
-    }
-    DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
-    JsonObject &gpsData = jsonBuf.createObject();
-    gpsData[KEY_CONFIG_UPDATE] = true;
-    gpsData[KEY_GPS_LAT] = _config._lat;
-    gpsData[KEY_GPS_LON] = _config._lon;
-    gpsData[KEY_CURRENT_TIME] = now();
-    if (sendBroadcast(gpsData)) {
-        taskStop(_sendGPSDataTask);
-    }
 }
 
 /*************************************

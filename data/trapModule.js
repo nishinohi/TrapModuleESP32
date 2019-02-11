@@ -263,12 +263,6 @@ function initGps() {
         document.getElementById('TrapLocation').removeAttribute('href');
     }, initGps.name);
 }
-/**
- * GPS 取得
- */
-function getGps() {
-    getAndDoAfter(function (param) { }, getGps.name);
-}
 
 /**
  * モジュール情報更新
