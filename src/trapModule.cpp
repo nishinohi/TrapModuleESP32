@@ -450,19 +450,15 @@ void TrapModule::taskStart(Task &task, unsigned long duration, long iteration) {
  * モジュール状態送信開始
  */
 void TrapModule::startSendModuleState() {
-    // 設置モードのときは何もしない
+    // 設置モードか罠モード開始時は送信しない
     if (!_config._trapMode || _config._isTrapStart) {
         return;
     }
+    // 一度送信成功したら送らない
     if (_config._isSendModuleState) {
         return;
     }
-    for (auto &nodeId : _mesh.getNodeList()) {
-        if (nodeId == _config._parentNodeId) {
-            taskStart(_sendModuleStateTask);
-            break;
-        }
-    }
+    taskStart(_sendModuleStateTask);
 }
 
 /********************************************
