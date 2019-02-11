@@ -102,7 +102,7 @@ bool TrapModule::syncConfig(JsonObject &config) {
         }
     }
     _config.updateModuleConfig(config);
-    return _config.saveCurrentModuleConfig();
+    return true;
 }
 
 /**
@@ -157,7 +157,6 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
     if (msgJson.containsKey(KEY_CONFIG_UPDATE)) {
         DEBUG_MSG_LN("Module config update");
         _config.updateModuleConfig(msgJson);
-        _config.saveCurrentModuleConfig();
     }
     // モジュール状態送信要求が来た場合は送信済みか否かにかかわらず送信する
     if (msgJson.containsKey(KEY_REQUEST_MODULE_STATE)) {
@@ -377,6 +376,8 @@ void TrapModule::shiftDeepSleep() {
             break;
         }
     }
+    // 現在の設定値を保存
+    _config.saveCurrentModuleConfig();
     // バッテリーが限界の場合は手動で起動するまでDeepSleep
     if (_config._isBatteryDead) {
         DEBUG_MSG_LN("Battery limit!\nshutdown...");
