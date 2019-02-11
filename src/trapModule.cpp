@@ -242,7 +242,7 @@ void TrapModule::receivedCallback(uint32_t from, String &msg) {
 void TrapModule::newConnectionCallback(uint32_t nodeId) {
     DEBUG_MSG_F("--> startHere: New Connection, nodeId = %u\n", nodeId);
     refreshMeshDetail();
-    if (_config._isParent) {
+    if (_config._isParent && !_config._trapMode) {
         // 何度も broadcast する必要はないので遅延送信
         taskStart(_sendParentInfoTask, SEND_PARENT_INTERVAL);
         return;
@@ -258,7 +258,7 @@ void TrapModule::newConnectionCallback(uint32_t nodeId) {
 void TrapModule::changedConnectionCallback() {
     DEBUG_MSG_F("Changed connections %s\n", _mesh.subConnectionJson().c_str());
     refreshMeshDetail();
-    if (_config._isParent) {
+    if (_config._isParent && !_config._trapMode) {
         // 何度も broadcast する必要はないので遅延送信
         taskStart(_sendParentInfoTask, SEND_PARENT_INTERVAL);
         return;
@@ -418,8 +418,8 @@ void TrapModule::sendSyncSleep() {
 }
 
 /**
- * 親機の nodeId を送信する
- * メッシュネットワークに更新があった場合に送信する
+ * 複数の親機があった場合のために親機宛に親機情報を送信する
+ * モジュール設定値の親機IDを更新するわけではないので注意
  */
 void TrapModule::sendParentModuleInfo() {
     DEBUG_MSG_LN("sendParentModuleInfo");
@@ -429,22 +429,16 @@ void TrapModule::sendParentModuleInfo() {
     }
     DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
     JsonObject &obj = jsonBuf.createObject();
-    if (_config._trapMode) {
-        // 罠モードの場合は親モジュールとの現在時刻同期を実行
-        obj[KEY_CONFIG_UPDATE] = true;
-        obj[KEY_CURRENT_TIME] = now();
-    } else {
-        // 設置モード時は親フラグ更新判定で使用する親モジュール ID を送信する
-        obj[KEY_PARENT_INFO] = true;
-        obj[KEY_PARENT_NODE_ID] = getNodeId();
-    }
+    obj[KEY_PARENT_INFO] = true;
+    obj[KEY_PARENT_NODE_ID] = getNodeId();
     if (sendBroadcast(obj)) {
         taskStop(_sendParentInfoTask);
     }
 }
 
 /**
- * モジュール状態送信要求
+ * モジュール状態送信要求を送信
+ * 送る対象の親機IDを送信する
  * メッシュノード全ての状態情報を取得したタイミングでタスクを停止するので
  * 情報送信の成功をトリガーにタスクを停止することはない
  */
