@@ -53,12 +53,12 @@
 #define KEY_INIT_GPS "init_gps"
 #define KEY_MESH_GRAPH "mesh_graph"
 #define KEY_SYNC_SLEEP "sync_sleep"
-#define KEY_REAL_TIME "real_time"
 #define KEY_CAMERA_ENABLE "camera"
 #define KEY_PICTURE_FORMAT "picture_format"
 // 稼働時間
 #define WORK_TIME 180000 // 3分間稼働[msec]
-
+// 起動時刻設定最小閾値[min]
+#define WAKE_TIME_SET_MIN 15
 // デフォルト設定値
 #define DEF_TRAP_MODE false // 設置モード
 #define DEF_TRAP_FIRE false // 罠作動済みフラグ
@@ -72,9 +72,10 @@
 #define DEF_NODEID 0
 // 設定値上限下限値
 #ifdef ESP32
-#define MAX_SLEEP_INTERVAL 86400 // ESP32 の場合停止時間は24時間でも大丈夫
+// 最大DeepSleep時間[sec]
+#define MAX_SLEEP_TIME 86400 // ESP32 の場合停止時間は24時間でも大丈夫
 #else
-#define MAX_SLEEP_INTERVAL 4200 // 70分[sec] 最大Sleep時間（本当は71.5分まで可能だが安全のため）
+#define MAX_SLEEP_TIME 4200 // 70分[sec] 最大Sleep時間（本当は71.5分まで可能だが安全のため）
 #endif
 // Task 関連
 #define SYNC_SLEEP_INTERVAL 3000    // 同期 DeepSleep 遅延時間[msec]

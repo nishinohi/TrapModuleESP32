@@ -34,9 +34,6 @@ class ModuleConfig {
     bool _isSleep = false;           // スリープ状態遷移フラグ
     // カメラモジュール関連
     bool _cameraEnable = false;
-    // 時間誤差修正
-    time_t _realTime = 0;
-    unsigned long _realTimeDiff = 0;
     // 親限定
     bool _isParent = true;                  // 親モジュールとして振る舞うかどうか
     bool _isStarted = false;                // 罠起動モード開始済みフラグ
@@ -46,7 +43,6 @@ class ModuleConfig {
   public:
     ModuleConfig(){};
 
-    void setWakeTime();
     void collectModuleInfo(painlessMesh &mesh, JsonObject &moduleInfo);
     void collectModuleState(JsonObject &state);
     void collectModuleConfig(JsonObject &moduleConfig);
@@ -56,6 +52,7 @@ class ModuleConfig {
         memset(_lat, '\0', GPS_STR_LEN);
         memset(_lon, '\0', GPS_STR_LEN);
     };
+    time_t calcWakeTime(uint8_t activeStart, uint8_t activeEnd);
     time_t calcSleepTime(const time_t &tNow, const time_t &nextWakeTime);
     void pushNoDuplicateNodeId(const uint32_t &nodeId, SimpleList<uint32_t> &list);
     bool loadModuleConfigFile();

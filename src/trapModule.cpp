@@ -597,7 +597,7 @@ void TrapModule::startSendModuleState() {
  */
 void TrapModule::startSyncSleeptask() {
     _config.updateNodeNum(_mesh.getNodeList());
-    _config.setWakeTime();
+    _config._wakeTime = _config.calcWakeTime(_config._activeStart, _config._activeEnd);
     taskStart(_sendSyncSleepTask);
 }
 
