@@ -58,7 +58,8 @@
 #define KEY_PICTURE_FORMAT "picture_format"
 // 稼働時間
 #define WORK_TIME 180000 // 3分間稼働[msec]
-
+// 起動時刻設定最小閾値[min]
+#define WAKE_TIME_SET_MIN 15
 // デフォルト設定値
 #define DEF_TRAP_MODE false // 設置モード
 #define DEF_TRAP_FIRE false // 罠作動済みフラグ

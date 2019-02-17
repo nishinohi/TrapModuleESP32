@@ -272,8 +272,9 @@ void ModuleConfig::updateGpsInfo(const char *lat, const char *lon) {
 
 /**
  * 次の起動時刻を設定する
- * もし1分以内に次の起動時刻になるなら2時間先の起動時刻まで飛ばす
- * 例）今が 13:59:05 で 14:00:00 も稼働時刻内なら次の起動時刻は 15:00:00
+ * もし現在時刻から15分以内(WAKE_TIME_SET_MIN)に次の起動時刻になる場合
+ * 最も近い起動時刻を1つ飛ばした次の起動時刻を次回の起動時刻に設定する
+ * 例）今が 13:46 で15分以内の 14:00 も稼働時間帯なら次の起動時刻は 14:00 を飛ばして 15:00
  */
 void ModuleConfig::setWakeTime() {
     // 現在時刻
@@ -284,40 +285,38 @@ void ModuleConfig::setWakeTime() {
     tNow.Minute = 0;
     tNow.Second = 0;
     time_t baseTime = makeTime(tNow);
-    // 現在時刻が稼働時刻内
+    // 現在時刻が稼働時間帯
     if (_activeStart <= tHour && tHour < _activeEnd) {
-        // 次の起動時刻が 1分以上後
-        if (tMinute < 59) {
+        // 次の起動時刻が15分以上後なら1時間後が次回起動時刻
+        if (tMinute < 60 - WAKE_TIME_SET_MIN) {
             _wakeTime = baseTime + 1 * SECS_PER_HOUR;
             return;
         }
-        // [次の起動時刻] + 1h が稼働時刻内の場合
+        // 2時間後の時刻が稼働時間帯の場合
         if (tHour + 2 <= _activeEnd) {
             _wakeTime = baseTime + 2 * SECS_PER_HOUR;
             return;
         }
-        // [次の起動時刻] + 1h が稼働時刻外の場合は稼働開始時刻をセット
+        // 2時間後の時刻が稼働時間帯ではない場合は稼働開始時刻をセット
         _wakeTime = baseTime + (24 - tHour + _activeStart) * SECS_PER_HOUR;
         return;
     }
     // 現在時刻が稼働開始時刻より早い
     if (tHour < _activeStart) {
-        tNow.Hour = _activeStart;
-        baseTime = makeTime(tNow);
-        // もし1分以内に稼働開始時刻になるなら [稼働開始時刻] + 1h
-        // の起動時刻まで飛ばす
-        if (tHour + 1 == _activeStart && tMinute >= 59) {
-            _wakeTime = baseTime + 1 * SECS_PER_HOUR;
+        // 15分以内に稼働開始時刻にならないなら稼働開始時刻まで停止
+        if (tHour + 1 != _activeStart || tMinute < 60 - WAKE_TIME_SET_MIN) {
+            tNow.Hour = _activeStart;
+            _wakeTime = makeTime(tNow);
             return;
         }
-        // 1分以内に稼働開始時刻にならないなら稼働開始時刻まで停止
-        _wakeTime = baseTime;
+        // もし15分以内に稼働開始時刻になるなら2時間後の起動時刻まで飛ばす
+        tNow.Hour = _activeStart + 1;
+        _wakeTime = makeTime(tNow);
         return;
     }
     // 現在時刻が稼働終了時刻より遅い
-    // 1分以内に稼働開始時刻になる場合 [稼働開始時刻] + 1h
-    // まで停止(実質稼働開始時刻が 0 時の場合のみの考慮)
-    if (tMinute < 59 && tHour + 1 - 24 == _activeStart) {
+    // 15分以内に稼働開始時刻になる場合2時間後まで停止(実質稼働開始時刻が 0 時の場合のみの考慮)
+    if (tMinute < 60 - WAKE_TIME_SET_MIN && tHour + 1 - 24 == _activeStart) {
         _wakeTime = baseTime + 2 * SECS_PER_HOUR;
         return;
     }
