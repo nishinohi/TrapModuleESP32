@@ -271,7 +271,7 @@ void ModuleConfig::updateGpsInfo(const char *lat, const char *lon) {
  * 最も近い起動時刻を1つ飛ばした次の起動時刻を次回の起動時刻に設定する
  * 例）今が 13:46 で15分以内の 14:00 も稼働時間帯なら次の起動時刻は 14:00 を飛ばして 15:00
  */
-void ModuleConfig::setWakeTime() {
+time_t ModuleConfig::calcWakeTime(uint8_t activeStart, uint8_t activeEnd) {
     // 現在時刻
     tmElements_t tNow;
     breakTime(now(), tNow);
@@ -281,42 +281,33 @@ void ModuleConfig::setWakeTime() {
     tNow.Second = 0;
     time_t baseTime = makeTime(tNow);
     // 現在時刻が稼働時間帯
-    if (_activeStart <= tHour && tHour < _activeEnd) {
+    if (activeStart <= tHour && tHour < activeEnd) {
         // 次の起動時刻が15分以上後なら1時間後が次回起動時刻
         if (tMinute < 60 - WAKE_TIME_SET_MIN) {
-            _wakeTime = baseTime + 1 * SECS_PER_HOUR;
-            return;
+            return baseTime + 1 * SECS_PER_HOUR;
         }
         // 2時間後の時刻が稼働時間帯の場合
-        if (tHour + 2 <= _activeEnd) {
-            _wakeTime = baseTime + 2 * SECS_PER_HOUR;
-            return;
+        if (tHour + 2 <= activeEnd) {
+            return baseTime + 2 * SECS_PER_HOUR;
         }
         // 2時間後の時刻が稼働時間帯ではない場合は稼働開始時刻をセット
-        _wakeTime = baseTime + (24 - tHour + _activeStart) * SECS_PER_HOUR;
-        return;
+        return baseTime + (24 - tHour + activeStart) * SECS_PER_HOUR;
     }
     // 現在時刻が稼働開始時刻より早い
-    if (tHour < _activeStart) {
-        // 15分以内に稼働開始時刻にならないなら稼働開始時刻まで停止
-        if (tHour + 1 != _activeStart || tMinute < 60 - WAKE_TIME_SET_MIN) {
-            tNow.Hour = _activeStart;
-            _wakeTime = makeTime(tNow);
-            return;
+    if (tHour < activeStart) {
+        // 次の稼働時刻が15分以内の場合稼働開始時刻まで停止
+        if (tHour + 1 != activeStart || tMinute < 60 - WAKE_TIME_SET_MIN) {
+            return baseTime + (activeStart - tHour) * SECS_PER_HOUR;
         }
         // もし15分以内に稼働開始時刻になるなら2時間後の起動時刻まで飛ばす
-        tNow.Hour = _activeStart + 1;
-        _wakeTime = makeTime(tNow);
-        return;
+        return baseTime + 2 * SECS_PER_HOUR;
     }
     // 現在時刻が稼働終了時刻より遅い
     // 15分以内に稼働開始時刻になる場合2時間後まで停止(実質稼働開始時刻が 0 時の場合のみの考慮)
-    if (tMinute < 60 - WAKE_TIME_SET_MIN && tHour + 1 - 24 == _activeStart) {
-        _wakeTime = baseTime + 2 * SECS_PER_HOUR;
-        return;
+    if (tMinute < 60 - WAKE_TIME_SET_MIN && tHour + 1 - 24 == activeStart) {
+        return baseTime + 2 * SECS_PER_HOUR;
     }
-    _wakeTime = baseTime + (24 - tHour + _activeStart) * SECS_PER_HOUR;
-    return;
+    return baseTime + (24 - tHour + activeStart) * SECS_PER_HOUR;
 }
 
 /**
@@ -325,15 +316,15 @@ void ModuleConfig::setWakeTime() {
 time_t ModuleConfig::calcSleepTime(const time_t &tNow, const time_t &nextWakeTime) {
     time_t diff = nextWakeTime - tNow;
     // 最大Sleep時間以内の時間差
-    if (diff <= MAX_SLEEP_INTERVAL) {
+    if (diff <= MAX_SLEEP_TIME) {
         DEBUG_MSG_F("calcSleepTime:%lu\n", diff);
         return diff;
     }
     // 極端に短いSleep時間にならないようにするための処理
-    if (diff - MAX_SLEEP_INTERVAL > MAX_SLEEP_INTERVAL / 2) {
-        DEBUG_MSG_F("calcSleepTime:%lu\n", MAX_SLEEP_INTERVAL);
-        return MAX_SLEEP_INTERVAL;
+    if (diff - MAX_SLEEP_TIME > MAX_SLEEP_TIME / 2) {
+        DEBUG_MSG_F("calcSleepTime:%lu\n", MAX_SLEEP_TIME);
+        return MAX_SLEEP_TIME;
     }
-    DEBUG_MSG_F("calcSleepTime:%lu\n", MAX_SLEEP_INTERVAL / 2);
-    return MAX_SLEEP_INTERVAL / 2;
+    DEBUG_MSG_F("calcSleepTime:%lu\n", MAX_SLEEP_TIME / 2);
+    return MAX_SLEEP_TIME / 2;
 }

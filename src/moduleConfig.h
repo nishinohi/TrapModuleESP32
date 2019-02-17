@@ -38,7 +38,6 @@ class ModuleConfig {
   public:
     ModuleConfig(){};
 
-    void setWakeTime();
     void collectModuleInfo(painlessMesh &mesh, JsonObject &moduleInfo);
     void collectModuleState(JsonObject &state);
     void collectModuleConfig(JsonObject &moduleConfig);
@@ -48,6 +47,7 @@ class ModuleConfig {
         memset(_lat, '\0', GPS_STR_LEN);
         memset(_lon, '\0', GPS_STR_LEN);
     };
+    time_t calcWakeTime(uint8_t activeStart, uint8_t activeEnd);
     time_t calcSleepTime(const time_t &tNow, const time_t &nextWakeTime);
     void pushNoDuplicateNodeId(const uint32_t &nodeId, SimpleList<uint32_t> &list);
     bool loadModuleConfigFile();
