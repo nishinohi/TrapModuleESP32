@@ -53,7 +53,6 @@
 #define KEY_INIT_GPS "init_gps"
 #define KEY_MESH_GRAPH "mesh_graph"
 #define KEY_SYNC_SLEEP "sync_sleep"
-#define KEY_REAL_TIME "real_time"
 #define KEY_CAMERA_ENABLE "camera"
 #define KEY_PICTURE_FORMAT "picture_format"
 // 稼働時間

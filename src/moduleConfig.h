@@ -34,9 +34,6 @@ class ModuleConfig {
     bool _isSleep = false;           // スリープ状態遷移フラグ
     // カメラモジュール関連
     bool _cameraEnable = false;
-    // 時間誤差修正
-    time_t _realTime = 0;
-    unsigned long _realTimeDiff = 0;
 
   public:
     ModuleConfig(){};

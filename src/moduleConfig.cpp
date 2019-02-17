@@ -173,11 +173,6 @@ void ModuleConfig::updateModuleConfig(const JsonObject &config) {
     if (config.containsKey(KEY_CURRENT_TIME)) {
         setTime(config[KEY_CURRENT_TIME]);
     }
-    // 真時刻メッセージ
-    if (config.containsKey(KEY_REAL_TIME)) {
-        _realTime = config[KEY_REAL_TIME];
-        _realTimeDiff = millis();
-    }
     // 罠作動
     if (config.containsKey(KEY_TRAP_FIRE)) {
         _trapFire = config[KEY_TRAP_FIRE];
@@ -329,9 +324,6 @@ void ModuleConfig::setWakeTime() {
  */
 time_t ModuleConfig::calcSleepTime(const time_t &tNow, const time_t &nextWakeTime) {
     time_t diff = nextWakeTime - tNow;
-    // 時刻誤差修正
-    _realTime = _realTime == 0 ? 0 : _realTime + (millis() - _realTimeDiff) / 1000;
-    diff = _realTime == 0 ? diff : diff + (tNow - _realTime);
     // 最大Sleep時間以内の時間差
     if (diff <= MAX_SLEEP_INTERVAL) {
         DEBUG_MSG_F("calcSleepTime:%lu\n", diff);
