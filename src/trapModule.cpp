@@ -80,7 +80,7 @@ void TrapModule::update() {
         return;
     }
     // 稼働時間超過により強制 DeepSleep
-    if (millis() > _config._workTime * 1000) {
+    if (millis() > WORK_TIME) {
         DEBUG_MSG_LN("work time limit.");
         _config._isSleep = true;
     }
