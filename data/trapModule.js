@@ -1,4 +1,3 @@
-const KEY_WORK_TIME = 'work_time';
 const KEY_TRAP_MODE = 'trap_mode';
 const KEY_NODE_ID = 'module_id';
 const KEY_NODE_LIST = 'node_list';
@@ -215,7 +214,6 @@ function setCurrentTime() {
  */
 function setConfig() {
     let config = {
-        work_time: document.getElementById('workTimeConfig').value,
         trap_mode: document.getElementById('modeConfig').value,
         active_start: sliderObj.getValue().split(',')[0],
         active_end: sliderObj.getValue().split(',')[1]

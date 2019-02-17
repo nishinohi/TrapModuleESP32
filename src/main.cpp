@@ -24,12 +24,10 @@ void setup() {
     if (trapModule.isTrapMode()) {
         trapModule.adjustCurrentTimeFromNTP();
     }
-    // mesh
-    // ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE
     DEBUG_MSG_LN("camera setup");
     trapModule.setupCamera();
     DEBUG_MSG_LN("mesh setup");
-    trapModule.setupMesh(ERROR);
+    trapModule.setupMesh(CONNECTION | SYNC); // painlessmesh 1.3v error
     trapModule.setupTask();
     // Server
     DEBUG_MSG_LN("server setup");

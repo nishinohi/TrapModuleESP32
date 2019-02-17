@@ -31,7 +31,6 @@
 // json buffer number
 #define JSON_BUF_NUM 4096
 // 設定値 JSON KEY
-#define KEY_WORK_TIME "work_time"
 #define KEY_ACTIVE_START "active_start"
 #define KEY_ACTIVE_END "active_end"
 #define KEY_TRAP_MODE "trap_mode" // false:トラップ設置モード, true:トラップ起動モード
@@ -57,8 +56,10 @@
 #define KEY_REAL_TIME "real_time"
 #define KEY_CAMERA_ENABLE "camera"
 #define KEY_PICTURE_FORMAT "picture_format"
+// 稼働時間
+#define WORK_TIME 180000 // 3分間稼働[msec]
+
 // デフォルト設定値
-#define DEF_WORK_TIME 180   // 3分間稼働[sec]
 #define DEF_TRAP_MODE false // 設置モード
 #define DEF_TRAP_FIRE false // 罠作動済みフラグ
 #define DEF_GPS_LAT "\0"
@@ -75,10 +76,6 @@
 #else
 #define MAX_SLEEP_INTERVAL 4200 // 70分[sec] 最大Sleep時間（本当は71.5分まで可能だが安全のため）
 #endif
-#define MIN_SLEEP_INTERVAL 10 // 10分[sec]
-#define MIN_WORK_TIME 30 // 1分[sec]（これ以上短いと設定変更するためにアクセスする暇がない）
-#define MAX_WORK_TIME 600 // 10分[sec]
-#define MESH_WAIT_LIMIT 20 // メッシュネットワーク構築待機限界時間(_workTime - 20[sec])
 // Task 関連
 #define SYNC_SLEEP_INTERVAL 3000    // 同期 DeepSleep 遅延時間[msec]
 #define BATTERY_CHECK_INTERVAL 5000 // バッテリー残量チェック間隔[msec]

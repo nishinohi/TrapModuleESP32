@@ -10,7 +10,6 @@ void ModuleConfig::collectModuleInfo(painlessMesh &mesh, JsonObject &moduleInfo)
     DEBUG_MSG_LN("collectModuleInfo");
     moduleInfo[KEY_NODE_ID] = mesh.getNodeId();
     moduleInfo[KEY_TRAP_MODE] = _trapMode;
-    moduleInfo[KEY_WORK_TIME] = _workTime;
     moduleInfo[KEY_TRAP_FIRE] = _trapFire;
     moduleInfo[KEY_GPS_LAT] = _lat;
     moduleInfo[KEY_GPS_LON] = _lon;
@@ -18,9 +17,7 @@ void ModuleConfig::collectModuleInfo(painlessMesh &mesh, JsonObject &moduleInfo)
     moduleInfo[KEY_ACTIVE_END] = _activeEnd;
     moduleInfo[KEY_CAMERA_ENABLE] = _cameraEnable;
     moduleInfo[KEY_PARENT_NODE_ID] = _parentNodeId;
-    // 現在時刻
-    bool isTimeSet = timeStatus() != timeStatus_t::timeNotSet;
-    moduleInfo[KEY_CURRENT_TIME] = isTimeSet ? now() : DEF_CURRENT_TIME;
+    moduleInfo[KEY_CURRENT_TIME] = now();
     // モジュールリスト
     JsonArray &nodeList = moduleInfo.createNestedArray(KEY_NODE_LIST);
     SimpleList<uint32_t> nodes = mesh.getNodeList();
@@ -34,7 +31,6 @@ void ModuleConfig::collectModuleInfo(painlessMesh &mesh, JsonObject &moduleInfo)
  * ただし、引数のmoduleConfigに予め設定されている値は上書きしない
  */
 void ModuleConfig::collectModuleConfig(JsonObject &moduleConfig) {
-    moduleConfig[KEY_WORK_TIME] = _workTime;
     moduleConfig[KEY_ACTIVE_START] = _activeStart;
     moduleConfig[KEY_ACTIVE_END] = _activeEnd;
     moduleConfig[KEY_PARENT_NODE_ID] = _parentNodeId;
@@ -61,7 +57,6 @@ void ModuleConfig::collectModuleState(JsonObject &state) {
  */
 void ModuleConfig::setDefaultModuleConfig() {
     DEBUG_MSG_LN("Set Default Module Config");
-    _workTime = DEF_WORK_TIME;
     _activeStart = DEF_ACTIVE_START;
     _activeEnd = DEF_ACTIVE_END;
     _trapMode = DEF_TRAP_MODE;
@@ -146,11 +141,6 @@ void ModuleConfig::updateModuleConfig(const JsonObject &config) {
         DEBUG_MSG_LN("json parse failed");
         setDefaultModuleConfig();
         return;
-    }
-    // 稼働時間
-    if (config.containsKey(KEY_WORK_TIME)) {
-        setParameter(_workTime, static_cast<unsigned long>(config[KEY_WORK_TIME]), MAX_WORK_TIME,
-                     MIN_WORK_TIME);
     }
     // 稼働開始時刻
     if (config.containsKey(KEY_ACTIVE_START)) {
@@ -242,7 +232,6 @@ bool ModuleConfig::saveCurrentModuleConfig() {
     DynamicJsonBuffer jsonBuf(JSON_BUF_NUM);
     JsonObject &config = jsonBuf.createObject();
     config[KEY_TRAP_MODE] = _trapMode;
-    config[KEY_WORK_TIME] = _workTime;
     config[KEY_TRAP_FIRE] = _trapFire;
     config[KEY_GPS_LAT] = _lat;
     config[KEY_GPS_LON] = _lon;

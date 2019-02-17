@@ -17,7 +17,6 @@ struct ModuleState {
 class ModuleConfig {
   public:
     uint32_t _nodeId = DEF_NODEID;           // 自身のNodeId
-    unsigned long _workTime = DEF_WORK_TIME; // 起動時間
     uint8_t _activeStart = DEF_ACTIVE_START; // 稼働開始時刻
     uint8_t _activeEnd = DEF_ACTIVE_END;     // 稼働停止時刻
     bool _trapMode = DEF_TRAP_MODE;          // 罠モード
