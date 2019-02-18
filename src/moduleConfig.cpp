@@ -284,47 +284,48 @@ time_t ModuleConfig::calcWakeTime(uint8_t activeStart, uint8_t activeEnd) {
     if (activeStart <= tHour && tHour < activeEnd) {
         // 次の起動時刻が15分以上後なら1時間後が次回起動時刻
         if (tMinute < 60 - WAKE_TIME_SET_MIN) {
-            return baseTime + 1 * SECS_PER_HOUR;
+            return baseTime + adjustSleepTime(SECS_PER_HOUR);
         }
         // 2時間後の時刻が稼働時間帯の場合
         if (tHour + 2 <= activeEnd) {
-            return baseTime + 2 * SECS_PER_HOUR;
+            return baseTime + adjustSleepTime(2 * SECS_PER_HOUR);
         }
         // 2時間後の時刻が稼働時間帯ではない場合は稼働開始時刻をセット
-        return baseTime + (24 - tHour + activeStart) * SECS_PER_HOUR;
+        return baseTime + adjustSleepTime((24 - tHour + activeStart) * SECS_PER_HOUR);
     }
     // 現在時刻が稼働開始時刻より早い
     if (tHour < activeStart) {
         // 次の稼働時刻が15分以内の場合稼働開始時刻まで停止
         if (tHour + 1 != activeStart || tMinute < 60 - WAKE_TIME_SET_MIN) {
-            return baseTime + (activeStart - tHour) * SECS_PER_HOUR;
+            return baseTime + adjustSleepTime((activeStart - tHour) * SECS_PER_HOUR);
         }
         // もし15分以内に稼働開始時刻になるなら2時間後の起動時刻まで飛ばす
-        return baseTime + 2 * SECS_PER_HOUR;
+        return baseTime + adjustSleepTime(2 * SECS_PER_HOUR);
     }
     // 現在時刻が稼働終了時刻より遅い
     // 15分以内に稼働開始時刻になる場合2時間後まで停止(実質稼働開始時刻が 0 時の場合のみの考慮)
     if (tMinute < 60 - WAKE_TIME_SET_MIN && tHour + 1 - 24 == activeStart) {
-        return baseTime + 2 * SECS_PER_HOUR;
+        return baseTime + adjustSleepTime(2 * SECS_PER_HOUR);
     }
-    return baseTime + (24 - tHour + activeStart) * SECS_PER_HOUR;
+    return baseTime + adjustSleepTime((24 - tHour + activeStart) * SECS_PER_HOUR);
 }
 
 /**
- * DeepSleep 時間を計算する[秒]
+ * 最大DeepSleep時間を考慮したDeepSleep時間を返す
+ * sleepTimeが最大DeepSleep時間を超えていて複数回DeepSleepする場合は
+ * 極端に短いDeepSleep時間が発生しないように調整する
  */
-time_t ModuleConfig::calcSleepTime(const time_t &tNow, const time_t &nextWakeTime) {
-    time_t diff = nextWakeTime - tNow;
+time_t ModuleConfig::adjustSleepTime(time_t sleepTime) {
     // 最大Sleep時間以内の時間差
-    if (diff <= MAX_SLEEP_TIME) {
-        DEBUG_MSG_F("calcSleepTime:%lu\n", diff);
-        return diff;
+    if (sleepTime <= MAX_SLEEP_TIME) {
+        DEBUG_MSG_F("adjustSleepTime:%lu\n", sleepTime);
+        return sleepTime;
     }
-    // 極端に短いSleep時間にならないようにするための処理
-    if (diff - MAX_SLEEP_TIME > MAX_SLEEP_TIME / 2) {
-        DEBUG_MSG_F("calcSleepTime:%lu\n", MAX_SLEEP_TIME);
+    // 極端に短いDeepSleep時間が発生しないように調整する
+    if (sleepTime - MAX_SLEEP_TIME > MAX_SLEEP_TIME / 2) {
+        DEBUG_MSG_F("adjustSleepTime:%lu\n", MAX_SLEEP_TIME);
         return MAX_SLEEP_TIME;
     }
-    DEBUG_MSG_F("calcSleepTime:%lu\n", MAX_SLEEP_TIME / 2);
+    DEBUG_MSG_F("adjustSleepTime:%lu\n", MAX_SLEEP_TIME / 2);
     return MAX_SLEEP_TIME / 2;
 }

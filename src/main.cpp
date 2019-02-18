@@ -17,7 +17,7 @@ void setup() {
     // モジュール読み込み
     trapModule.loadModuleConfig();
     // 起動前チェック
-    if (!trapModule.checkStart()) {
+    if (!trapModule.checkBeforeStart()) {
         trapModule.shiftDeepSleep();
     }
     DEBUG_MSG_LN("camera setup");

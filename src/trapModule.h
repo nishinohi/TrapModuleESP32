@@ -30,7 +30,7 @@ class TrapModule {
     void setupTask();
     void setupCamera() { _config._cameraEnable = _camera.initialize(); };
     bool loadModuleConfig() { return _config.loadModuleConfigFile(); };
-    bool checkStart();
+    bool checkBeforeStart();
     // loop
     void update();
     // モジュール設定同期
