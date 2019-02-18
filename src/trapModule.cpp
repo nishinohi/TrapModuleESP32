@@ -51,15 +51,31 @@ void TrapModule::setupTask() {
 
 /**
  * 起動前チェック
+ * バッテリー残量がない場合終了
+ * 起動時刻が稼働時刻範囲内じゃない場合終了
  */
-bool TrapModule::checkStart() {
+bool TrapModule::checkBeforeStart() {
+    DEBUG_MSG_LN("checkBeforeStart.");
+    // バッテリー残量チェック
     updateBattery();
     if (_config._isBatteryDead) {
         DEBUG_MSG_LN("cannot start because battery already dead.");
         return false;
     }
-    if (_config._trapMode && now() < _config._wakeTime) {
-        DEBUG_MSG_LN("cannot start because current time is before waketime.");
+    // 設置モードの場合はバッテリー残量チェックのみ
+    if (!_config._trapMode) {
+        return true;
+    }
+    // 起動時刻チェック
+    tmElements_t activeStart;
+    breakTime(_config._wakeTime, activeStart);
+    activeStart.Hour = _config._activeStart;
+    activeStart.Minute = 0;
+    activeStart.Second = 0;
+    tmElements_t activeEnd = activeStart;
+    activeEnd.Hour = _config._activeEnd;
+    if (_config._wakeTime < makeTime(activeStart) || _config._wakeTime > makeTime(activeEnd)) {
+        DEBUG_MSG_LN("cannot start because current time is not active time.");
         return false;
     }
     return true;
@@ -519,7 +535,7 @@ void TrapModule::shiftDeepSleep() {
     DEBUG_MSG_F("currentTime:%s\n", asctime(gmtime(&currentTime)));
     DEBUG_MSG_F("wakeTime:%s\n", asctime(gmtime(&_config._wakeTime)));
     // calcSleepTime()の返り値をマイクロ秒にするとなぜか変になるので一旦ミリ秒で返してからマイクロ秒にする
-    uint64_t deepSleepTime = _config.calcSleepTime(now(), _config._wakeTime);
+    uint64_t deepSleepTime = _config._wakeTime - now();
     deepSleepTime = deepSleepTime * 1000000L;
 #ifdef ESP32
     esp_sleep_enable_timer_wakeup(deepSleepTime);

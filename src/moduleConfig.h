@@ -53,7 +53,6 @@ class ModuleConfig {
         memset(_lon, '\0', GPS_STR_LEN);
     };
     time_t calcWakeTime(uint8_t activeStart, uint8_t activeEnd);
-    time_t calcSleepTime(const time_t &tNow, const time_t &nextWakeTime);
     void pushNoDuplicateNodeId(const uint32_t &nodeId, SimpleList<uint32_t> &list);
     bool loadModuleConfigFile();
     // 親機用
@@ -64,6 +63,7 @@ class ModuleConfig {
     void pushNoDuplicateModuleState(const uint32_t &nodeId, JsonObject &stateJson);
 
   private:
+    time_t adjustSleepTime(time_t sleepTime);
     void setDefaultModuleConfig();
     template <class T>
     void setParameter(T &targetParam, const T &setParam, const int maxV, const int minV);
