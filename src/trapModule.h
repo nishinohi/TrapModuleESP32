@@ -10,7 +10,9 @@
 
 class TrapModule {
   private:
-    ModuleConfig _config;
+    static TrapModule *_pTrapModule;
+
+    ModuleConfig *_pConfig;
     Camera _camera;
     painlessMesh _mesh;
 
@@ -23,14 +25,22 @@ class TrapModule {
     TaskHandle_t _taskHandle[1];
 
   public:
-    TrapModule(){};
-    ~TrapModule(){};
+    static TrapModule *getInstance() {
+        if (_pTrapModule == NULL) {
+            _pTrapModule = new TrapModule();
+        }
+        return _pTrapModule;
+    }
+    static void deleteInstance() {
+        if (_pTrapModule == NULL) {
+            return;
+        }
+        delete _pTrapModule;
+        _pTrapModule = NULL;
+    }
+
     // setup
-    void setupMesh(const uint16_t types);
-    void setupTask();
-    void setupCamera() { _config._cameraEnable = _camera.initialize(); };
-    bool loadModuleConfig() { return _config.loadModuleConfigFile(); };
-    bool checkBeforeStart();
+    void setupModule();
     // loop
     void update();
     // モジュール設定同期
@@ -40,7 +50,7 @@ class TrapModule {
     // モジュール情報取得
     String getMeshGraph() { return _mesh.subConnectionJson(); };
     void collectModuleInfo(JsonObject &moduleInfo) {
-        _config.collectModuleInfo(_mesh, moduleInfo);
+        _pConfig->collectModuleInfo(_mesh, moduleInfo);
     };
     // カメラ機能
     bool snapCamera(int resolution = -1);
@@ -51,12 +61,19 @@ class TrapModule {
     void shiftDeepSleep();
 
   private:
+    TrapModule() { _pConfig = ModuleConfig::getInstance(); };
+    // setup
+    void setupMesh(const uint16_t types);
+    void setupTask();
+    void setupCamera() { _pConfig->_cameraEnable = _camera.initialize(); };
+    bool loadModuleConfig() { return _pConfig->loadModuleConfigFile(); };
+    bool checkBeforeStart();
     // メッセージ送信
     bool sendCurrentTime();
     void sendPicture();
     void sendModuleState();
     // モジュール情報取得
-    uint32_t getNodeId() { return _config._nodeId != 0 ? _config._nodeId : _mesh.getNodeId(); };
+    uint32_t getNodeId() { return _pConfig->_nodeId != 0 ? _pConfig->_nodeId : _mesh.getNodeId(); };
     // センサ情報
     void updateBattery();
     void updateTrapFire();
@@ -87,7 +104,7 @@ class TrapModule {
     bool sendParent(JsonObject &obj) {
         String msg;
         obj.printTo(msg);
-        return _mesh.sendSingle(_config._parentNodeId, msg);
+        return _mesh.sendSingle(_pConfig->_parentNodeId, msg);
     }
     void refreshMeshDetail();
 };

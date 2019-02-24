@@ -15,6 +15,9 @@ struct ModuleState {
 };
 
 class ModuleConfig {
+  private:
+    static ModuleConfig *_pModuleConfig;
+
   public:
     uint32_t _nodeId = DEF_NODEID;           // 自身のNodeId
     uint8_t _activeStart = DEF_ACTIVE_START; // 稼働開始時刻
@@ -36,7 +39,19 @@ class ModuleConfig {
     bool _cameraEnable = false;
 
   public:
-    ModuleConfig(){};
+    static ModuleConfig *getInstance() {
+        if (_pModuleConfig == NULL) {
+            _pModuleConfig = new ModuleConfig();
+        }
+        return _pModuleConfig;
+    }
+    static void deleteInstance() {
+        if (_pModuleConfig == NULL) {
+            return;
+        }
+        delete _pModuleConfig;
+        _pModuleConfig = NULL;
+    }
 
     void collectModuleInfo(painlessMesh &mesh, JsonObject &moduleInfo);
     void collectModuleState(JsonObject &state);
@@ -52,6 +67,8 @@ class ModuleConfig {
     bool loadModuleConfigFile();
 
   private:
+    ModuleConfig(){};
+
     time_t adjustSleepTime(time_t sleepTime);
     void setDefaultModuleConfig();
     template <class T>
