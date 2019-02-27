@@ -11,16 +11,16 @@ void TrapModule::setupModule() {
     pinMode(FORCE_SETTING_MODE_PIN, INPUT);
     pinMode(LED, OUTPUT);
     // モジュール読み込み
-    _pTrapModule->loadModuleConfig();
+    loadModuleConfig();
     // // 起動前チェック
-    if (!_pTrapModule->checkBeforeStart()) {
-        _pTrapModule->shiftDeepSleep();
+    if (!checkBeforeStart()) {
+        shiftDeepSleep();
     }
     DEBUG_MSG_LN("camera setup");
-    _pTrapModule->setupCamera();
+    setupCamera();
     DEBUG_MSG_LN("mesh setup");
-    _pTrapModule->setupMesh(CONNECTION | SYNC); // painlessmesh 1.3v error
-    _pTrapModule->setupTask();
+    setupMesh(CONNECTION | SYNC); // painlessmesh 1.3v error
+    setupTask();
 }
 
 /**
