@@ -23,7 +23,8 @@ class TrapModule {
     Task _sendPictureTask;     // 写真撮影フラグ
     Task _sendModuleStateTask; // モジュール状態送信タスク
     Task _checkBatteryLimitTask; // バッテリー残量チェックタスク（設置モードで使用する）
-    // 親モジュール機能
+
+    // 親モジュール
     Task _sendSyncSleepTask;      // 同期停止メッセージ送信タスク
     Task _sendParentInfoTask;     // 親モジュール情報送信タスク
     Task _requestModuleStateTask; // モジュール状態送信要求タスク
@@ -53,10 +54,6 @@ class TrapModule {
     bool syncConfig(JsonObject &config);
     bool syncCurrentTime(time_t current);
     bool initGps();
-    bool startModule() { return _cellular.startModule(); }
-    bool stopModule() { return _cellular.stopModule(); }
-    bool isTrapMode() { return _pConfig->_trapMode; }
-    bool adjustCurrentTimeFromNTP();
     // モジュール情報取得
     String getMeshGraph() { return _mesh.subConnectionJson(); };
     void collectModuleInfo(JsonObject &moduleInfo) {
@@ -70,6 +67,12 @@ class TrapModule {
     // deepSleep
     void shiftDeepSleep();
 
+    // 親モジュール
+    bool startModule() { return _cellular.startModule(); }
+    bool stopModule() { return _cellular.stopModule(); }
+    bool isTrapMode() { return _pConfig->_trapMode; }
+    bool adjustCurrentTimeFromNTP();
+
   private:
     TrapModule() { _pConfig = ModuleConfig::getInstance(); };
     // setup
@@ -78,19 +81,10 @@ class TrapModule {
     void setupCamera() { _pConfig->_cameraEnable = _camera.initialize(); };
     bool loadModuleConfig() { return _pConfig->loadModuleConfigFile(); };
     bool checkBeforeStart();
-    // 罠モード開始処理
-    void startTrapMode();
-    // mqtt server に情報送信
-    void sendModulesInfo();
     // メッセージ送信
     bool sendCurrentTime();
     void sendPicture();
     void sendModuleState();
-    // 親限定メッセージ送信
-    void sendSyncSleep();
-    void sendGpsData();
-    void sendParentModuleInfo();
-    void sendRequestModuleState();
     // モジュール情報取得
     uint32_t getNodeId() { return _pConfig->_nodeId != 0 ? _pConfig->_nodeId : _mesh.getNodeId(); };
     // センサ情報
@@ -113,7 +107,6 @@ class TrapModule {
         }
     }
     void startSendModuleState();
-    void startSyncSleeptask();
     // util
     void saveBase64Image(const char *data, const char *name = NULL);
     bool sendBroadcast(JsonObject &obj) {
@@ -127,6 +120,20 @@ class TrapModule {
         return _mesh.sendSingle(_pConfig->_parentNodeId, msg);
     }
     void refreshMeshDetail();
+
+    // 親モジュール
+    // 罠モード開始処理
+    void startTrapMode();
+    // mqtt server に情報送信
+    void sendModulesInfo();
+    // 親限定メッセージ送信
+    void sendSyncSleep();
+    void sendGpsData();
+    void sendParentModuleInfo();
+    void sendRequestModuleState();
+    // DeepSleep開始
+    void startSyncSleeptask();
+    // マルチタスク開始
     bool beginMultiTask(const char *taskName, TaskFunction_t func, TaskHandle_t taskHandle,
                         void *arg, const uint8_t priority, const uint8_t core = 0);
 };
