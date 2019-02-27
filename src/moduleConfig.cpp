@@ -1,4 +1,6 @@
 #include "moduleConfig.h"
+// singleton
+ModuleConfig *ModuleConfig::_pModuleConfig = NULL;
 
 /***********************************
  * module method

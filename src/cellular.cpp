@@ -2,12 +2,17 @@
 /************************************************
                     helper
 *************************************************/
-
-String createRandomId() {
+/**
+ * 任意の文字数未満の数字、アルファベット小文字大文字だけのIDを返す
+ */
+String createRandomId(uint8_t idLength) {
     DEBUG_MSG_LN("### createRandomId");
-    randomSeed(millis());
-    String clientId = "MqttClient-";
-    clientId += String(random(0xffff), HEX);
+    String clientId = "ID";
+    // 最大で4文字ずつ文字列を追加するので23文字を超えないようにする
+    while (clientId.length() < idLength - 4) {
+        randomSeed(millis());
+        clientId += String(random(0xffff), HEX);
+    }
     return clientId;
 }
 
@@ -82,8 +87,9 @@ bool Cellular::connectMqttServer(const char *hostAddress, const uint16_t port,
     _mqttClient.setServer(hostAddress, port);
     // MQTT クライアントIDが未指定の場合はランダムIDを生成して接続
     if (!clientId) {
-        String randomId = createRandomId();
+        String randomId = createRandomId(MQTT_CLIENT_ID_LENGTH);
         clientId = randomId.c_str();
+        DEBUG_MSG_F("### Client ID: %s #\n", clientId);
     }
     if (!_mqttClient.connect(clientId)) {
         DEBUG_MSG_LN("### ERROR! ###");
@@ -125,7 +131,6 @@ void Cellular::sendTrapModuleInfo(const String &contents, const SendType sendTyp
  * モジュール電源ON
  */
 bool Cellular::wakeup() {
-    DEBUG_MSG_LN("--- START ---------------------------------------------------");
     DEBUG_MSG_LN("### I/O Initialize.");
     _wio.Init(CELLULAR_RX, CELLULAR_TX);
     DEBUG_MSG_LN("### Power supply ON.");
@@ -214,8 +219,9 @@ bool Cellular::reconnectMqttServer(unsigned long timeout, const char *clientId) 
         DEBUG_MSG("### Attempting MQTT connection...");
         // MQTT クライアントIDが未指定の場合はランダムIDを生成して接続
         if (randomIdTry) {
-            String randomId = createRandomId();
+            String randomId = createRandomId(MQTT_CLIENT_ID_LENGTH);
             clientId = randomId.c_str();
+            DEBUG_MSG_F("### Client ID: %s #\n", clientId);
         }
         // Attempt to connect
         if (_mqttClient.connect(clientId)) {

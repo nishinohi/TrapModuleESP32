@@ -11,7 +11,9 @@
 
 class TrapModule {
   private:
-    ModuleConfig _config;
+    static TrapModule *_pTrapModule;
+
+    ModuleConfig *_pConfig;
     Camera _camera;
     painlessMesh _mesh;
     Cellular _cellular;
@@ -29,14 +31,22 @@ class TrapModule {
     TaskHandle_t _taskHandle[2]; // 0:カメラタスク、1:Cellular タスク
 
   public:
-    TrapModule(){};
-    ~TrapModule(){};
+    static TrapModule *getInstance() {
+        if (_pTrapModule == NULL) {
+            _pTrapModule = new TrapModule();
+        }
+        return _pTrapModule;
+    }
+    static void deleteInstance() {
+        if (_pTrapModule == NULL) {
+            return;
+        }
+        delete _pTrapModule;
+        _pTrapModule = NULL;
+    }
+
     // setup
-    void setupMesh(const uint16_t types);
-    void setupTask();
-    void setupCamera() { _config._cameraEnable = _camera.initialize(); };
-    bool loadModuleConfig() { return _config.loadModuleConfigFile(); };
-    bool checkBeforeStart();
+    void setupModule();
     // loop
     void update();
     // モジュール設定同期
@@ -45,12 +55,12 @@ class TrapModule {
     bool initGps();
     bool startModule() { return _cellular.startModule(); }
     bool stopModule() { return _cellular.stopModule(); }
-    bool isTrapMode() { return _config._trapMode; }
+    bool isTrapMode() { return _pConfig->_trapMode; }
     bool adjustCurrentTimeFromNTP();
     // モジュール情報取得
     String getMeshGraph() { return _mesh.subConnectionJson(); };
     void collectModuleInfo(JsonObject &moduleInfo) {
-        _config.collectModuleInfo(_mesh, moduleInfo);
+        _pConfig->collectModuleInfo(_mesh, moduleInfo);
     };
     // カメラ機能
     bool snapCamera(int resolution = -1);
@@ -61,6 +71,13 @@ class TrapModule {
     void shiftDeepSleep();
 
   private:
+    TrapModule() { _pConfig = ModuleConfig::getInstance(); };
+    // setup
+    void setupMesh(const uint16_t types);
+    void setupTask();
+    void setupCamera() { _pConfig->_cameraEnable = _camera.initialize(); };
+    bool loadModuleConfig() { return _pConfig->loadModuleConfigFile(); };
+    bool checkBeforeStart();
     // 罠モード開始処理
     void startTrapMode();
     // mqtt server に情報送信
@@ -75,7 +92,7 @@ class TrapModule {
     void sendParentModuleInfo();
     void sendRequestModuleState();
     // モジュール情報取得
-    uint32_t getNodeId() { return _config._nodeId != 0 ? _config._nodeId : _mesh.getNodeId(); };
+    uint32_t getNodeId() { return _pConfig->_nodeId != 0 ? _pConfig->_nodeId : _mesh.getNodeId(); };
     // センサ情報
     void updateBattery();
     void updateTrapFire();
@@ -107,7 +124,7 @@ class TrapModule {
     bool sendParent(JsonObject &obj) {
         String msg;
         obj.printTo(msg);
-        return _mesh.sendSingle(_config._parentNodeId, msg);
+        return _mesh.sendSingle(_pConfig->_parentNodeId, msg);
     }
     void refreshMeshDetail();
     bool beginMultiTask(const char *taskName, TaskFunction_t func, TaskHandle_t taskHandle,

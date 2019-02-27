@@ -11,7 +11,7 @@ class TrapServer {
     TrapModule *_trapModule;
 
   public:
-    TrapServer(TrapModule *trapMesh) { _trapModule = trapMesh; };
+    TrapServer() { _trapModule = TrapModule::getInstance(); };
     ~TrapServer(){};
     void beginServer() { server.begin(); };
     void setupServer();

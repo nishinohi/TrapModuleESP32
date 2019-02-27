@@ -28,6 +28,8 @@
 #define NTP_SERVER "ntp.nict.jp"
 // timeout
 #define DEFAULT_TIMEOUT 5000
+// MQTT Client ID Length
+#define MQTT_CLIENT_ID_LENGTH 23
 
 /**
  * MQTT の送信タイプ
