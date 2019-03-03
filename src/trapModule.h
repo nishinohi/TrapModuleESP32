@@ -13,7 +13,7 @@ class TrapModule {
     static TrapModule *_pTrapModule;
 
     ModuleConfig *_pConfig;
-    Camera _camera;
+    Camera *_pCamera;
     painlessMesh _mesh;
 
     // タスク関連
@@ -61,11 +61,14 @@ class TrapModule {
     void shiftDeepSleep();
 
   private:
-    TrapModule() { _pConfig = ModuleConfig::getInstance(); };
+    TrapModule() {
+        _pConfig = ModuleConfig::getInstance();
+        _pCamera = Camera::getInstance();
+    };
     // setup
     void setupMesh(const uint16_t types);
     void setupTask();
-    void setupCamera() { _pConfig->_cameraEnable = _camera.initialize(); };
+    void setupCamera();
     bool loadModuleConfig() { return _pConfig->loadModuleConfigFile(); };
     bool checkBeforeStart();
     // メッセージ送信

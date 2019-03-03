@@ -1,17 +1,20 @@
 #include "camera.h"
 
+// singleton
+Camera *Camera::_pCamera = NULL;
+
 /**
  * save picture by default name
  */
 bool Camera::saveCameraData() {
-    int picFmt = _resolution != -1 ? _resolution : OV528_SIZE_QVGA;
+    DEBUG_MSG_LN("saveCameraData");
     if (SPIFFS.exists(DEF_IMG_PATH)) {
         DEBUG_MSG_LN("delete old image");
         SPIFFS.remove(DEF_IMG_PATH);
     }
-    preCapture(picFmt);
-    Capture();
-    return GetData(DEF_IMG_PATH);
+    _resolution == NON_SET ? preCapture(OV528_SIZE_QVGA) : preCapture(_resolution);
+    unsigned long dataLen = Capture();
+    return GetData(DEF_IMG_PATH, dataLen);
 }
 
 /*********************************************************************/
@@ -30,27 +33,24 @@ void Camera::sendCmd(char cmd[], int cmd_len) {
 }
 /*********************************************************************/
 uint16_t Camera::readBytes(uint8_t buf[], uint16_t len, uint16_t timeout_ms) {
-    uint16_t i;
-    uint8_t subms = 0;
     unsigned long current = millis();
-    for (i = 0; i < len; i++) {
-        while (!_camSerial.available() && millis() - current < timeout_ms) {
-            TASK_DELAY(1);
-            if (++subms >= 100) {
-                if (timeout_ms == 0) {
-                    return i;
-                }
-                subms = 0;
-                timeout_ms--;
+    int bufIndex = 0;
+    for (bufIndex = 0; bufIndex < len; bufIndex++) {
+        while (!_camSerial.available()) {
+            if (millis() - current > timeout_ms) {
+                DEBUG_MSG_LN("read Buffer timeout.");
+                return bufIndex;
             }
+            TASK_DELAY(1);
         }
-        buf[i] = _camSerial.read();
+        buf[bufIndex] = _camSerial.read();
         current = millis();
     }
-    return i;
+    return bufIndex;
 }
 /*********************************************************************/
 bool Camera::initialize() {
+    clearRxBuf();
     char cmd[] = {0xaa, 0x0d | _cameraAddr, 0x00, 0x00, 0x00, 0x00};
     unsigned char resp[6];
     DEBUG_MSG("initializing camera");
@@ -59,7 +59,7 @@ bool Camera::initialize() {
     while (millis() - current < INITIALIZE_TIMEOUT) {
         TASK_DELAY(1);
         sendCmd(cmd, 6);
-        if (readBytes((uint8_t *)resp, 6, 1000) != 6) {
+        if (readBytes((uint8_t *)resp, 6, 500) != 6) {
             DEBUG_MSG(".");
             continue;
         }
@@ -82,7 +82,36 @@ bool Camera::initialize() {
     return false;
 }
 /*********************************************************************/
+void Camera::setResolution(int resolution) {
+    DEBUG_MSG("Camera Resolution:");
+    switch (resolution) {
+    case OV528_SIZE_80_60:
+        DEBUG_MSG_LN("OV528_SIZE_80_60");
+        resolution = 1;
+        break;
+    case OV528_SIZE_QQVGA:
+        DEBUG_MSG_LN("OV528_SIZE_QQVGA");
+        resolution = 3;
+        break;
+    case OV528_SIZE_QVGA:
+        DEBUG_MSG_LN("OV528_SIZE_QVGA");
+        resolution = 5;
+        break;
+    case OV528_SIZE_VGA:
+        DEBUG_MSG_LN("OV528_SIZE_VGA");
+        resolution = 7;
+        break;
+    default:
+        DEBUG_MSG_LN("OV528_SIZE_QQVGA");
+        resolution = 3;
+        break;
+    }
+    _resolution = resolution;
+}
+
+/*********************************************************************/
 bool Camera::preCapture(int picFmt) {
+    DEBUG_MSG_LN("preCapture");
     char cmd[] = {0xaa, 0x01 | _cameraAddr, 0x00, 0x07, 0x00, picFmt};
     unsigned char resp[6];
 
@@ -92,7 +121,7 @@ bool Camera::preCapture(int picFmt) {
         TASK_DELAY(1);
         clearRxBuf();
         sendCmd(cmd, 6);
-        if (readBytes((uint8_t *)resp, 6, 100) != 6) {
+        if (readBytes((uint8_t *)resp, 6, 500) != 6) {
             continue;
         }
         if (resp[0] == 0xaa && resp[1] == (0x0e | _cameraAddr) && resp[2] == 0x01 && resp[4] == 0 &&
@@ -103,7 +132,8 @@ bool Camera::preCapture(int picFmt) {
     return false;
 }
 
-void Camera::Capture() {
+unsigned long Camera::capture() {
+    DEBUG_MSG_LN("Capture");
     char cmd[] = {0xaa, 0x06 | _cameraAddr, 0x08, PIC_PKT_LEN & 0xff, (PIC_PKT_LEN >> 8) & 0xff, 0};
     unsigned char resp[6];
 
@@ -111,7 +141,7 @@ void Camera::Capture() {
         TASK_DELAY(1);
         clearRxBuf();
         sendCmd(cmd, 6);
-        if (readBytes((uint8_t *)resp, 6, 100) != 6)
+        if (readBytes((uint8_t *)resp, 6, 500) != 6)
             continue;
         if (resp[0] == 0xaa && resp[1] == (0x0e | _cameraAddr) && resp[2] == 0x06 && resp[4] == 0 &&
             resp[5] == 0)
@@ -126,7 +156,7 @@ void Camera::Capture() {
         TASK_DELAY(1);
         clearRxBuf();
         sendCmd(cmd, 6);
-        if (readBytes((uint8_t *)resp, 6, 100) != 6)
+        if (readBytes((uint8_t *)resp, 6, 500) != 6)
             continue;
         if (resp[0] == 0xaa && resp[1] == (0x0e | _cameraAddr) && resp[2] == 0x05 && resp[4] == 0 &&
             resp[5] == 0)
@@ -134,10 +164,11 @@ void Camera::Capture() {
     }
     cmd[1] = 0x04 | _cameraAddr;
     cmd[2] = 0x1;
+    unsigned long dataLen = 0;
     while (1) {
         clearRxBuf();
         sendCmd(cmd, 6);
-        if (readBytes((uint8_t *)resp, 6, 100) != 6)
+        if (readBytes((uint8_t *)resp, 6, 500) != 6)
             continue;
         if (resp[0] == 0xaa && resp[1] == (0x0e | _cameraAddr) && resp[2] == 0x04 && resp[4] == 0 &&
             resp[5] == 0) {
@@ -145,56 +176,54 @@ void Camera::Capture() {
                 continue;
             }
             if (resp[0] == 0xaa && resp[1] == (0x0a | _cameraAddr) && resp[2] == 0x01) {
-                _picTotalLen = (resp[3]) | (resp[4] << 8) | (resp[5] << 16);
-                DEBUG_MSG("_picTotalLen:");
-                DEBUG_MSG_LN(_picTotalLen);
+                dataLen = (resp[3]) | (resp[4] << 8) | (resp[5] << 16);
+                DEBUG_MSG("DataLen:");
+                DEBUG_MSG_LN(dataLen);
                 break;
             }
         }
     }
+    return dataLen;
 }
 /*********************************************************************/
-bool Camera::GetData(String fileName) {
-    unsigned int pktCnt = (_picTotalLen) / (PIC_PKT_LEN - 6);
-    if ((_picTotalLen % (PIC_PKT_LEN - 6)) != 0)
-        pktCnt += 1;
-
-    char cmd[] = {0xaa, 0x0e | _cameraAddr, 0x00, 0x00, 0x00, 0x00};
-    unsigned char pkt[PIC_PKT_LEN];
-
+bool Camera::GetData(String fileName, unsigned long dataLen) {
+    DEBUG_MSG_LN("Get Camera Data");
     File myFile = SPIFFS.open(fileName, "w");
     if (!myFile) {
         DEBUG_MSG_LN("myFile open fail...");
         return false;
     }
 
-    for (unsigned int i = 0; i < pktCnt; i++) {
-        cmd[4] = i & 0xff;
-        cmd[5] = (i >> 8) & 0xff;
+    char cmd[] = {0xaa, 0x0e | _cameraAddr, 0x00, 0x00, 0x00, 0x00};
+    unsigned char pkt[PIC_PKT_LEN];
+    unsigned long readLen = 0;
+    for (int ii = 0; readLen < dataLen; ++ii) {
+        cmd[4] = ii & 0xff;
+        cmd[5] = (ii >> 8) & 0xff;
 
-        int retry_cnt = 0;
-    retry:
         // delay(10);
         TASK_DELAY(1);
         clearRxBuf();
         sendCmd(cmd, 6);
-        uint16_t cnt = readBytes((uint8_t *)pkt, PIC_PKT_LEN, 200);
-
+        uint16_t cnt = readBytes((uint8_t *)pkt, PIC_PKT_LEN, 500);
+        // 読み込んだデータが正常かチェック
+        if (cnt == 0) {
+            break;
+        }
         unsigned char sum = 0;
         for (int y = 0; y < cnt - 2; y++) {
             sum += pkt[y];
         }
         if (sum != pkt[cnt - 2]) {
-            if (++retry_cnt < 100)
-                goto retry;
-            else
-                break;
+            break;
         }
+        readLen += cnt - 6;
         myFile.write((uint8_t *)&pkt[4], cnt - 6);
     }
+    DEBUG_MSG_LN("Get Camera Data End");
     cmd[4] = 0xf0;
     cmd[5] = 0xf0;
     sendCmd(cmd, 6);
     myFile.close();
-    return true;
+    return readLen == dataLen;
 }

@@ -41,6 +41,19 @@ void TrapModule::setupMesh(const uint16_t types) {
 }
 
 /**
+ * カメラセットアップ
+ */
+void TrapModule::setupCamera() {
+    _pCamera->cameraSerialBegin();
+    delay(10);
+    _pConfig->_cameraEnable = _pCamera->initialize();
+    if (_pConfig->_cameraEnable) {
+        xTaskCreatePinnedToCore(TrapModule::snapCameraTask, CAMERA_TASK_NAME, TASK_MEMORY, NULL, 2,
+                                &_taskHandle[0], 0);
+    }
+}
+
+/**
  * 実施タスクセットアップ
  */
 void TrapModule::setupTask() {
@@ -479,8 +492,7 @@ void TrapModule::startSendModuleState() {
  * Camera メソッド
  *******************************************/
 /**
- * カメラスナップショット要求
- * TODO: タスク完了後の bool 値を判定に使用したい
+ * カメラスナップショット
  */
 bool TrapModule::snapCamera(int resolution) {
     DEBUG_MSG_LN("snapCamera");
@@ -493,19 +505,12 @@ bool TrapModule::snapCamera(int resolution) {
         DEBUG_MSG_LN("camera cannot use because picture send task is running");
         return false;
     }
-    _camera.setResolution(resolution);
-    // タスク作成前の場合はタスクを作成
-    if (strncmp(pcTaskGetTaskName(_taskHandle[0]), CAMERA_TASK_NAME, strlen(CAMERA_TASK_NAME)) !=
-        0) {
-        xTaskCreatePinnedToCore(TrapModule::snapCameraTask, CAMERA_TASK_NAME, TASK_MEMORY, this, 2,
-                                &_taskHandle[0], 0);
+    if (eTaskGetState(_taskHandle[0]) == eSuspended) {
+        Camera::getInstance()->setResolution(resolution);
+        vTaskResume(_taskHandle[0]);
         return true;
-    } else {
-        if (eTaskGetState(_taskHandle[0]) == eSuspended) {
-            vTaskResume(_taskHandle[0]);
-            return true;
-        }
     }
+    DEBUG_MSG_LN("camera task is running");
     return false;
 }
 
@@ -513,18 +518,22 @@ bool TrapModule::snapCamera(int resolution) {
  * カメラ撮影タスク
  */
 void TrapModule::snapCameraTask(void *arg) {
-    TrapModule *trapModule = reinterpret_cast<TrapModule *>(arg);
+    TrapModule *pTrapModule = TrapModule::getInstance();
+    Camera *pCamera = Camera::getInstance();
+    DEBUG_MSG_LN("snapCameraTask");
     while (1) {
-        if (trapModule->_camera.saveCameraData()) {
-            DEBUG_MSG_LN("snap success");
-            // メッセージ送信タスク実行中でなければ送信タスク開始
-            trapModule->_sendPictureTask.setIterations(DEF_ITERATION);
-            trapModule->_sendPictureTask.enable();
-        } else {
-            DEBUG_MSG_LN("snap failed");
+        if (pCamera->isSetResolution()) {
+            if (pCamera->saveCameraData()) {
+                DEBUG_MSG_LN("snap success");
+                // メッセージ送信タスク実行中でなければ送信タスク開始
+                pTrapModule->_sendPictureTask.setIterations(DEF_ITERATION);
+                pTrapModule->_sendPictureTask.enable();
+            } else {
+                DEBUG_MSG_LN("snap failed");
+            }
         }
         DEBUG_MSG_LN("camera task suspend");
-        vTaskSuspend(trapModule->_taskHandle[0]);
+        vTaskSuspend(pTrapModule->_taskHandle[0]);
         TASK_DELAY(1);
     }
 }
