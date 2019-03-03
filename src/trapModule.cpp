@@ -128,7 +128,7 @@ bool TrapModule::adjustCurrentTimeFromNTP() {
     if (!startModule()) {
         return false;
     }
-    time_t ntpTime = _cellular.getTime();
+    time_t ntpTime = _pCellular->getTime();
     if (ntpTime == 0) {
         return false;
     }
@@ -709,19 +709,19 @@ void TrapModule::sendModulesInfo() {
     // 自身のセンサ情報更新
     updateBattery();
     updateTrapFire();
-    if (!_cellular.startModule()) {
+    if (!_pCellular->startModule()) {
         return;
     }
-    _cellular.initMqttSetting();
-    if (!_cellular.connectMqttServer(MQTT_SERVER_HOST, MQTT_SERVER_PORT)) {
+    _pCellular->initMqttSetting();
+    if (!_pCellular->connectMqttServer(MQTT_SERVER_HOST, MQTT_SERVER_PORT)) {
         return;
     }
     String trapStartInfo;
     _pConfig->createModulesInfo(trapStartInfo, _pConfig->_isTrapStart);
     SendType sendType = _pConfig->_isTrapStart ? SETTING : PERIOD;
-    _cellular.sendTrapModuleInfo(trapStartInfo, sendType);
-    _cellular.disconnectMqttServer();
-    _cellular.stopModule();
+    _pCellular->sendTrapModuleInfo(trapStartInfo, sendType);
+    _pCellular->disconnectMqttServer();
+    _pCellular->stopModule();
 }
 
 /*************************************

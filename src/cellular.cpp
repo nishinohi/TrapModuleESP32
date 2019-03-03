@@ -1,4 +1,8 @@
 #include "cellular.h"
+
+// singleton
+Cellular *Cellular::_pCellular = NULL;
+
 /************************************************
                     helper
 *************************************************/

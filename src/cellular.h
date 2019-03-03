@@ -38,6 +38,8 @@ enum SendType { TEST = 0, SETTING, PERIOD };
 
 class Cellular {
   private:
+    static Cellular *_pCellular;
+
     WioLTE _wio = WioLTE();
     WioLTEClient _wioClient = WioLTEClient(&_wio);
     PubSubClient _mqttClient;
@@ -48,8 +50,19 @@ class Cellular {
     char _lon[GPS_STR_LEN] = "\0";
 
   public:
-    Cellular(){};
-    ~Cellular(){};
+    static Cellular *getInstance() {
+        if (_pCellular == NULL) {
+            _pCellular = new Cellular();
+        }
+        return _pCellular;
+    }
+    static void deleteInstance() {
+        if (_pCellular == NULL) {
+            return;
+        }
+        delete _pCellular;
+        _pCellular = NULL;
+    }
 
     bool startModule();
     bool stopModule();
@@ -63,6 +76,8 @@ class Cellular {
     void sendTrapModuleInfo(const String &contents, const SendType sendType = TEST);
 
   private:
+    Cellular(){};
+
     bool wakeup();
     bool shutdown();
     bool activate(const char *apn, const char *useName, const char *password);

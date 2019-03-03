@@ -16,7 +16,7 @@ class TrapModule {
     ModuleConfig *_pConfig;
     Camera _camera;
     painlessMesh _mesh;
-    Cellular _cellular;
+    Cellular *_pCellular;
 
     // タスク関連
     Task _blinkNodesTask;      // LED タスク
@@ -68,13 +68,16 @@ class TrapModule {
     void shiftDeepSleep();
 
     // 親モジュール
-    bool startModule() { return _cellular.startModule(); }
-    bool stopModule() { return _cellular.stopModule(); }
+    bool startModule() { return _pCellular->startModule(); }
+    bool stopModule() { return _pCellular->stopModule(); }
     bool isTrapMode() { return _pConfig->_trapMode; }
     bool adjustCurrentTimeFromNTP();
 
   private:
-    TrapModule() { _pConfig = ModuleConfig::getInstance(); };
+    TrapModule() {
+        _pConfig = ModuleConfig::getInstance();
+        _pCellular = Cellular::getInstance();
+    };
     // setup
     void setupMesh(const uint16_t types);
     void setupTask();
