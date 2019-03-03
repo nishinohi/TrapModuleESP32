@@ -72,9 +72,9 @@ void ModuleConfig::setDefaultModuleConfig() {
 
 /**
  * モジュールに保存してある設定を読み出す
- * ファイルが存在しない場合（初回起動時）はデフォルト値の設定ファイルを作成する
- * 設定値はjson形式のファイルとする
- * 設置モード強制起動の場合は親モジュール情報をクリアする
+ * ファイルが存在しない場合や（初回起動時）読み込みエラーのとき
+ * はデフォルト値の設定ファイルを作成する
+ * 設置モード強制起動の場合は親モジュール情報をクリアして設定情報を保存する
  */
 bool ModuleConfig::loadModuleConfigFile() {
     DEBUG_MSG_LN("loadModuleConfigFile");
@@ -83,12 +83,14 @@ bool ModuleConfig::loadModuleConfigFile() {
     if (!file) {
         DEBUG_MSG_LN("file not found...\nmaybe this is first using of this module");
         setDefaultModuleConfig();
+        saveCurrentModuleConfig();
         return false;
     }
     size_t size = file.size();
     if (size == 0) {
         file.close();
         setDefaultModuleConfig();
+        saveCurrentModuleConfig();
         return false;
     }
     // 読み取ったデータを設定値に反映
@@ -100,10 +102,12 @@ bool ModuleConfig::loadModuleConfigFile() {
         DEBUG_MSG_LN("json parse failed");
         file.close();
         setDefaultModuleConfig();
+        saveCurrentModuleConfig();
         return false;
     }
     // 強制設置モード起動
     if (digitalRead(FORCE_SETTING_MODE_PIN) == HIGH) {
+        DEBUG_MSG_LN("Force Setting Mode");
         config[KEY_TRAP_MODE] = false;
     }
     // 設置モードでの起動時にロードしない内容はここで除外する
@@ -265,7 +269,7 @@ void ModuleConfig::updateGpsInfo(const char *lat, const char *lon) {
     if (!lat || !lon || strlen(lat) == 0 || strlen(lon) == 0) {
         memset(_lat, '\0', GPS_STR_LEN);
         memset(_lon, '\0', GPS_STR_LEN);
-        DEBUG_MSG_F("GPS Clear");
+        DEBUG_MSG_LN("GPS Clear");
         return;
     }
     strncpy(_lat, lat, strlen(lat));
