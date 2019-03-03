@@ -4,34 +4,43 @@
 Camera *Camera::_pCamera = NULL;
 
 /**
- * save picture by default name
+ * 画像を撮影し指定したファイル名を含むパスに保存
+ * パスを指定しないとデフォルトのパスに保存
  */
-bool Camera::saveCameraData() {
+bool Camera::saveCameraData(String path) {
     DEBUG_MSG_LN("saveCameraData");
-    if (SPIFFS.exists(DEF_IMG_PATH)) {
+    if (SPIFFS.exists(path)) {
         DEBUG_MSG_LN("delete old image");
-        SPIFFS.remove(DEF_IMG_PATH);
+        SPIFFS.remove(path);
     }
     _resolution == NON_SET ? preCapture(OV528_SIZE_QVGA) : preCapture(_resolution);
-    unsigned long dataLen = Capture();
-    return GetData(DEF_IMG_PATH, dataLen);
+    unsigned long dataLen = capture();
+    return readAndSaveCaptureData(path, dataLen);
 }
 
-/*********************************************************************/
+/**
+ * バッファクリア
+ */
 void Camera::clearRxBuf() {
     while (_camSerial.available()) {
         TASK_DELAY(1);
         _camSerial.read();
     }
 }
-/*********************************************************************/
+
+/**
+ * カメラモジュールに任意のコマンドを送信
+ */
 void Camera::sendCmd(char cmd[], int cmd_len) {
     for (int i = 0; i < cmd_len; i++) {
         TASK_DELAY(1);
         _camSerial.write(cmd[i]);
     }
 }
-/*********************************************************************/
+
+/**
+ * UART のバッファから読み出し
+ */
 uint16_t Camera::readBytes(uint8_t buf[], uint16_t len, uint16_t timeout_ms) {
     unsigned long current = millis();
     int bufIndex = 0;
@@ -48,7 +57,10 @@ uint16_t Camera::readBytes(uint8_t buf[], uint16_t len, uint16_t timeout_ms) {
     }
     return bufIndex;
 }
-/*********************************************************************/
+
+/**
+ * 初期化
+ */
 bool Camera::initialize() {
     clearRxBuf();
     char cmd[] = {0xaa, 0x0d | _cameraAddr, 0x00, 0x00, 0x00, 0x00};
@@ -81,7 +93,10 @@ bool Camera::initialize() {
     DEBUG_MSG_LN("\nCamera Not found.");
     return false;
 }
-/*********************************************************************/
+
+/**
+ * カメラ解像度設定
+ */
 void Camera::setResolution(int resolution) {
     DEBUG_MSG("Camera Resolution:");
     switch (resolution) {
@@ -109,7 +124,9 @@ void Camera::setResolution(int resolution) {
     _resolution = resolution;
 }
 
-/*********************************************************************/
+/**
+ * キャプチャ準備
+ */
 bool Camera::preCapture(int picFmt) {
     DEBUG_MSG_LN("preCapture");
     char cmd[] = {0xaa, 0x01 | _cameraAddr, 0x00, 0x07, 0x00, picFmt};
@@ -132,8 +149,11 @@ bool Camera::preCapture(int picFmt) {
     return false;
 }
 
+/**
+ * キャプチャ
+ */
 unsigned long Camera::capture() {
-    DEBUG_MSG_LN("Capture");
+    DEBUG_MSG_LN("capture");
     char cmd[] = {0xaa, 0x06 | _cameraAddr, 0x08, PIC_PKT_LEN & 0xff, (PIC_PKT_LEN >> 8) & 0xff, 0};
     unsigned char resp[6];
 
@@ -185,9 +205,13 @@ unsigned long Camera::capture() {
     }
     return dataLen;
 }
-/*********************************************************************/
-bool Camera::GetData(String fileName, unsigned long dataLen) {
-    DEBUG_MSG_LN("Get Camera Data");
+
+/**
+ * キャプチャしたデータをバッファから読み出し
+ * 指定したパスへ保存する
+ */
+bool Camera::readAndSaveCaptureData(String fileName, unsigned long dataLen) {
+    DEBUG_MSG_LN("read And Save Capture Data");
     File myFile = SPIFFS.open(fileName, "w");
     if (!myFile) {
         DEBUG_MSG_LN("myFile open fail...");
