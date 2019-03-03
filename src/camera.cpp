@@ -62,10 +62,10 @@ uint16_t Camera::readBytes(uint8_t buf[], uint16_t len, uint16_t timeout_ms) {
  * 初期化
  */
 bool Camera::initialize() {
+    DEBUG_MSG_LN("initializing camera");
     clearRxBuf();
     char cmd[] = {0xaa, 0x0d | _cameraAddr, 0x00, 0x00, 0x00, 0x00};
     unsigned char resp[6];
-    DEBUG_MSG("initializing camera");
 
     unsigned long current = millis();
     while (millis() - current < INITIALIZE_TIMEOUT) {
@@ -211,7 +211,7 @@ unsigned long Camera::capture() {
  * 指定したパスへ保存する
  */
 bool Camera::readAndSaveCaptureData(String fileName, unsigned long dataLen) {
-    DEBUG_MSG_LN("read And Save Capture Data");
+    DEBUG_MSG_LN("readAndSaveCaptureData");
     File myFile = SPIFFS.open(fileName, "w");
     if (!myFile) {
         DEBUG_MSG_LN("myFile open fail...");
@@ -244,7 +244,6 @@ bool Camera::readAndSaveCaptureData(String fileName, unsigned long dataLen) {
         readLen += cnt - 6;
         myFile.write((uint8_t *)&pkt[4], cnt - 6);
     }
-    DEBUG_MSG_LN("Get Camera Data End");
     cmd[4] = 0xf0;
     cmd[5] = 0xf0;
     sendCmd(cmd, 6);
